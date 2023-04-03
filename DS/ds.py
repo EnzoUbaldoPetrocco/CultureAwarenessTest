@@ -207,7 +207,10 @@ class DSClass:
     for file in os.listdir(path):
         d = os.path.join(path, file)
         if os.path.isdir(d):
-            d = d.split('\\')[-1]
+            d = d.split('\\')
+            if len(d)==1:
+              d = d[0].split('/')
+            d = d[-1]
             dir_list.append(d)
     return dir_list
 

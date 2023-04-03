@@ -67,8 +67,8 @@ class ClassificatorClass:
         CV_rfc = GridSearchCV(estimator=rfc, param_grid=param_grid, cv= 5)
         # training set is divided into (X,y)
         TS = np.array(TS, dtype = object)
-        X = TS[:,0]
-        y = TS[:,1]
+        X = list(TS[:,0])
+        y = list(TS[:,1])
         
         print('RFC TRAINING')
         H = CV_rfc.fit(X,y)
