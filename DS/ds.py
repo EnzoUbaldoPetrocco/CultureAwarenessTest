@@ -218,60 +218,44 @@ class DSClass:
     images = self.acquire_images(path + '/' + label, self.greyscale)
     training = []
     test = []
-    mixedtest = []
     if len(images)>1:
-      for image in images[0:int(len(images)*self.Xl)]: 
+      for image in images[0:int(len(images)*self.proportion)]: 
         #image = image.flatten()
         if self.greyscale:
           image = image[0::]
         training.append((image.flatten(), i))
-      for image in images[int(len(images)*self.Xl):int(len(images)*self.Xl)+int(len(images)*self.XTl)]:
+      for image in images[int(len(images)*self.proportion):len(images)-1]:
         #image = image.flatten()
         if self.greyscale:
           image = image[0::]
         test.append((image.flatten(), i))
-      for image in images[int(len(images)*self.Xl)+int(len(images)*self.XTl):len(images)-1]:
-        #image = image.flatten()
-        if self.greyscale:
-          image = image[0::]
-        mixedtest.append((image.flatten(), i))
     else:
       print(f'{path} is empty')
     
-    return training, test, mixedtest
+    return training, test
     #self.TS.append(training)
     #self.TestS.append(test)
 
   def build_dataset(self, paths, greyscale):
-    # managing proportions useful for 70:20:10 splitting:
-    # - Pv validation proportion wrt Training Set
-    # - Pt test proportion
-    Pv = 2/7 
-    Pt = 1/7
-    # Xl prop of X, XTl = prop of XT
-    self.Xl = (Pv + 1)/(Pv + 2*Pt + 1)
-    self.XTl = (Pt)/(Pv + 2*Pt + 1)
-    #self.proportion = 0.85
+    
+    self.proportion = 0.8
     self.greyscale = greyscale
     # for each path build a dataset
     # the dataset is divided into training and test set
     self.TS = []
     self.TestS = []
-    self.MixedTestS = []
     tempTS = []
     tempTestS = []
     if paths != None:
       for path in paths:
         labels = self.get_labels(path)
         for i, label in enumerate(labels):
-          training, test, mixedtest = self.splitting(path, i, label)
+          training, test = self.splitting(path, i, label)
           tempTS = tempTS + training
           tempTestS = tempTestS + test
-          self.MixedTestS = self.MixedTestS + mixedtest
         
         random.shuffle(tempTS)
         random.shuffle(tempTestS)
-        random.shuffle(self.MixedTestS)
         self.TS.append(tempTS)
         self.TestS.append(tempTestS)
         tempTS = []

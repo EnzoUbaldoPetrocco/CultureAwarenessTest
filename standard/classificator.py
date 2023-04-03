@@ -7,10 +7,11 @@ import DS.ds
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
+from Utils.utils import FileClass
 
 class ClassificatorClass:
     def __init__(self, culture=0, greyscale=0, paths=None,
-                 type='SVC', points=50, kernel='linear', times=30):
+                 type='SVC', points=50, kernel='linear', times=30, fileName = 'results.csv'):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -18,8 +19,8 @@ class ClassificatorClass:
         self.points = points
         self.kernel = kernel
         self.times = times
+        self.fileName = fileName
         
-
     def prepareDataset(self, paths):
         datasetClass = DS.ds.DSClass()
         datasetClass.build_dataset(paths)
@@ -158,9 +159,17 @@ class ClassificatorClass:
         cm = confusion_matrix(yT, yF)
         return cm
     
+    def save_cm(self, fileName, cm):
+        f = FileClass(fileName)
+        f.writecm(cm)
+
+    def get_results(self, fileName):
+        f = FileClass(fileName)
+        return f.readcms()
+
     def execute(self):
         results = []
-        mixedResults = []
+        
         for i in range(self.times):
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
@@ -169,7 +178,11 @@ class ClassificatorClass:
             TS = obj.TS[self.culture]
             # I have to test on every culture
             TestSets = obj.TestS
-            MixedTestSet = obj.MixedTestS
+            # Name of the file management for results
+            fileNames = []
+            for l in range(len(TestSets)):
+                name = self.fileName.split('.')[0] + str(l) + self.fileName.split('.')[1]
+                fileNames.append(name)
             if self.type == 'SVC':
                 model = self.SVC(TS)
             elif self.type == 'RFC':
@@ -179,16 +192,16 @@ class ClassificatorClass:
             cms = []
             for k, TestSet in enumerate(TestSets):
                 cm = self.test(model, TestSet)
+                self.save_cm(fileNames[k], cm)
                 cms.append(cm)
-            results.append(cms)
-            mixedResults.append(self.test(model, MixedTestSet))
-        
-        results = np.array(results, dtype = object)
+            #results.append(cms)
+
+        #results = np.array(results, dtype = object)
         for i in range(len(obj.TS)):
-            result = results[:,i]
+            #result = results[:,i]
+            result = self.get_results(fileNames[i])
             print(f'RESULTS OF CULTURE {i}')
-            print(np.shape(result))
-            tot = self.return_tot_elements(result[i])
+            tot = self.return_tot_elements(result[0])
             pcm_list = self.calculate_percentage_confusion_matrix(result, tot)
             statistic = self.return_statistics_pcm(pcm_list)
             for j in statistic:
@@ -196,29 +209,29 @@ class ClassificatorClass:
             accuracy = statistic[0][0][0] + statistic[0][1][1]
             print(f'Accuracy is {accuracy} %')
 
-        print('MIXED RESULTS')
-        tot = self.return_tot_elements(mixedResults[0])
-        pcm_list = self.calculate_percentage_confusion_matrix(mixedResults, tot)
-        statistic = self.return_statistics_pcm(pcm_list)
-        for j in statistic:
-            print(j)
-        accuracy = statistic[0][0][0] + statistic[0][1][1]
-        print(f'Accuracy is {accuracy} %')
+    
+            
 
-    def execute_mixed(self):
+    def execute_mixed(self, cultures = [1]):
         results = []
         mixedResults = []
+        # Name of the file management
+
         for i in range(self.times):
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
             obj.build_dataset(self.paths, self.greyscale)
             # I have to mix the cultures
             TS = []
-            for culture in obj.TS:
-                  TS.append(culture)
-            # I have to test on every culture
-            TestSets = obj.TestS
-            MixedTestSet = obj.MixedTestS
+            MixedTestSet = []
+            TestSets = []
+            for culture in cultures:
+                TS = TS + obj.TS[culture]
+                MixedTestSet.append(obj.TestS[culture])
+            for i in range(len(obj.TestS)):
+                  if i not in cultures:
+                        TestSets.append(obj.TestS[i])
+            
             if self.type == 'SVC':
                 model = self.SVC(TS)
             elif self.type == 'RFC':
@@ -237,7 +250,7 @@ class ClassificatorClass:
             result = results[:,i]
             print(f'RESULTS OF CULTURE {i}')
             print(np.shape(result))
-            tot = self.return_tot_elements(result[i])
+            tot = self.return_tot_elements(result[0])
             pcm_list = self.calculate_percentage_confusion_matrix(result, tot)
             statistic = self.return_statistics_pcm(pcm_list)
             for j in statistic:
