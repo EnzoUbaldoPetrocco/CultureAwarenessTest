@@ -154,7 +154,7 @@ class ClassificatorClass:
             fileNames = []
             for culture in cultures:
                 TS = TS + obj.TS[culture]
-                MixedTestSet.append(obj.TestS[culture])
+                MixedTestSet = MixedTestSet + obj.TestS[culture]
                 cultureName = cultureName + str(culture)
             mixedName = self.fileName.split('.')[0] + cultureName + self.fileName.split('.')[1]
 
