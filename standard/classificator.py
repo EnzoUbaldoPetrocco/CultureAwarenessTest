@@ -7,7 +7,7 @@ import DS.ds
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
-from Utils.utils import FileClass
+from Utils.utils import FileClass, ResultsClass
 
 class ClassificatorClass:
     def __init__(self, culture=0, greyscale=0, paths=None,
@@ -20,6 +20,7 @@ class ClassificatorClass:
         self.kernel = kernel
         self.times = times
         self.fileName = fileName
+        self.resultsObj = ResultsClass()
         
     def prepareDataset(self, paths):
         datasetClass = DS.ds.DSClass()
@@ -31,12 +32,15 @@ class ClassificatorClass:
         if self.kernel == 'rbf':
             logspaceC = np.logspace(-2,2,self.points)
             logspaceGamma = np.logspace(-2,2,self.points)
+            grid = {'C':        logspaceC,
+                'kernel':   [self.kernel],
+                'gamma':    logspaceGamma}
         if self.kernel == 'linear':
             logspaceC = np.logspace(-2,2,self.points)
             logspaceGamma = np.logspace(-2,2,self.points)
-        grid = {'C':        logspaceC,
-                'kernel':   [self.kernel],
-                'gamma':    logspaceGamma}
+            grid = {'C':        logspaceC,
+                'kernel':   [self.kernel]}
+        
         MS = GridSearchCV(estimator = SVC(),
                         param_grid = grid,
                         scoring = 'balanced_accuracy',
@@ -50,13 +54,12 @@ class ClassificatorClass:
         H = MS.fit(X,y)
         # Check that C and gamma are not the extreme values
         print(f"C best param {H.best_params_['C']}")
-        print(f"gamma best param {H.best_params_['gamma']}")    
+        #print(f"gamma best param {H.best_params_['gamma']}")    
 
         return H
 
     def RFC(self, TS):
         rfc=RandomForestClassifier(random_state=42)
-        logspace_n_estimators = []
         logspace_max_depth = []
         for i in np.logspace(0,3,self.points):
                 logspace_max_depth.append(int(i))
@@ -78,78 +81,6 @@ class ClassificatorClass:
 
         return H
 
-    def calculate_percentage_confusion_matrix(self, confusion_matrix_list, tot):
-                pcms = []
-                for i in confusion_matrix_list:
-                        true_negative = (i[0,0]/tot)*100
-                        false_negative = (i[1,0]/tot)*100
-                        true_positive = (i[1,1]/tot)*100
-                        false_positive = (i[0,1]/tot)*100
-                        pcm = np.array([[true_negative , false_positive],[false_negative, true_positive]])
-                        pcms.append(pcm)
-                return pcms
-
-    def return_tot_elements(self, cm):
-            tot = cm[0,0] + cm[0,1] + cm[1,0] + cm[1,1]
-            return tot
-
-    def return_statistics_pcm(self, pcms):
-            max_true_negative = 0
-            max_false_negative = 0
-            max_true_positive = 0
-            max_false_positive = 0
-            min_true_negative = 100
-            min_false_negative = 100
-            min_true_positive = 100
-            min_false_positive = 100
-            count_true_negative = 0
-            count_false_negative = 0
-            count_true_positive = 0
-            count_false_positive = 0
-            for i in pcms:
-                    true_negative = i[0,0]
-                    false_negative = i[1,0]
-                    true_positive = i[1,1]
-                    false_positive = i[0,1]
-
-                    count_true_negative += true_negative
-                    count_false_negative += false_negative
-                    count_false_positive += false_positive
-                    count_true_positive += true_positive
-
-                    if true_negative > max_true_negative:
-                            max_true_negative = true_negative
-                    if false_negative > max_false_negative:
-                            max_false_negative = false_negative
-                    if true_positive > max_true_positive:
-                            max_true_positive = true_positive
-                    if false_positive > max_false_positive:
-                            max_false_positive = false_positive
-
-                    if true_negative < min_true_negative:
-                            min_true_negative = true_negative
-                    if false_negative < min_false_negative:
-                            min_false_negative = false_negative
-                    if true_positive < min_true_positive:
-                            min_true_positive = true_positive
-                    if false_positive < min_false_positive:
-                            min_false_positive = false_positive
-            
-            mean_true_negative = count_true_negative/len(pcms)
-            mean_false_negative = count_false_negative/len(pcms)
-            mean_true_positive = count_true_positive/len(pcms)
-            mean_false_positive = count_false_positive/len(pcms)
-
-            mean_matrix = np.array([[mean_true_negative, mean_false_positive],[mean_false_negative, mean_true_positive]])
-            max_matrix = np.array([[max_true_negative, max_false_positive],[max_false_negative, max_true_positive]])
-            min_matrix = np.array([[min_true_negative, min_false_positive],[min_false_negative, min_true_positive]])
-
-            matrix = []
-            matrix.append(mean_matrix)
-            matrix.append(max_matrix)
-            matrix.append(min_matrix)
-            return matrix
-    
     def test(self, model, testSet):
         testSet = np.array(testSet, dtype=object)
         XT = list(testSet[:,0])
@@ -168,8 +99,6 @@ class ClassificatorClass:
         return f.readcms()
 
     def execute(self):
-        results = []
-        
         for i in range(self.times):
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
@@ -200,21 +129,17 @@ class ClassificatorClass:
         for i in range(len(obj.TS)):
             #result = results[:,i]
             result = self.get_results(fileNames[i])
+            result = np.array(result, dtype=object)
             print(f'RESULTS OF CULTURE {i}')
-            tot = self.return_tot_elements(result[0])
-            pcm_list = self.calculate_percentage_confusion_matrix(result, tot)
-            statistic = self.return_statistics_pcm(pcm_list)
+            tot = self.resultsObj.return_tot_elements(result[0])
+            pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(result, tot)
+            statistic = self.resultsObj.return_statistics_pcm(pcm_list)
             for j in statistic:
                 print(j)
             accuracy = statistic[0][0][0] + statistic[0][1][1]
-            print(f'Accuracy is {accuracy} %')
-
-    
-            
+            print(f'Accuracy is {accuracy} %')       
 
     def execute_mixed(self, cultures = [1]):
-        results = []
-        mixedResults = []
         # Name of the file management
 
         for i in range(self.times):
@@ -225,12 +150,19 @@ class ClassificatorClass:
             TS = []
             MixedTestSet = []
             TestSets = []
+            cultureName = ""
+            fileNames = []
             for culture in cultures:
                 TS = TS + obj.TS[culture]
                 MixedTestSet.append(obj.TestS[culture])
+                cultureName = cultureName + str(culture)
+            mixedName = self.fileName.split('.')[0] + cultureName + self.fileName.split('.')[1]
+
             for i in range(len(obj.TestS)):
                   if i not in cultures:
                         TestSets.append(obj.TestS[i])
+                        name = self.fileName.split('.')[0] + str(i) + self.fileName.split('.')[1]
+                        fileNames.append(name)
             
             if self.type == 'SVC':
                 model = self.SVC(TS)
@@ -242,26 +174,29 @@ class ClassificatorClass:
             for k, TestSet in enumerate(TestSets):
                 cm = self.test(model, TestSet)
                 cms.append(cm)
-            results.append(cms)
-            mixedResults.append(self.test(model, MixedTestSet))
+                self.save_cm(fileNames[k], cm)
+            
+            self.save_cm(mixedName, self.test(model, MixedTestSet))
         
-        results = np.array(results, dtype = object)
-        for i in range(len(obj.TS)):
-            result = results[:,i]
+        
+        for i in range(len(fileNames)):
             print(f'RESULTS OF CULTURE {i}')
-            print(np.shape(result))
-            tot = self.return_tot_elements(result[0])
-            pcm_list = self.calculate_percentage_confusion_matrix(result, tot)
-            statistic = self.return_statistics_pcm(pcm_list)
+            result = self.get_results(fileNames[i])
+            result = np.array(result, dtype=object)
+            tot = self.resultsObj.return_tot_elements(result[0])
+            pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(result, tot)
+            statistic = self.resultsObj.return_statistics_pcm(pcm_list)
             for j in statistic:
                 print(j)
             accuracy = statistic[0][0][0] + statistic[0][1][1]
             print(f'Accuracy is {accuracy} %')
 
         print('MIXED RESULTS')
-        tot = self.return_tot_elements(mixedResults[0])
-        pcm_list = self.calculate_percentage_confusion_matrix(mixedResults, tot)
-        statistic = self.return_statistics_pcm(pcm_list)
+        mixedResults = self.get_results(mixedName)
+        print(np.shape(mixedResults))
+        tot = self.resultsObj.return_tot_elements(mixedResults[0])
+        pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(mixedResults, tot)
+        statistic = self.resultsObj.return_statistics_pcm(pcm_list)
         for j in statistic:
             print(j)
         accuracy = statistic[0][0][0] + statistic[0][1][1]

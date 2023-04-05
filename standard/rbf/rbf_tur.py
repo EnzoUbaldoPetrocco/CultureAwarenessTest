@@ -2,10 +2,10 @@ import sys
 sys.path.insert(1, '../../')
 
 from standard.classificator import ClassificatorClass
+from standard.strings import Strings
 
-paths = ['C:\\Users\\enzop\\Desktop\\FINALDS\\lamps\\chinese\\35\\Greyscale',
-         'C:\\Users\\enzop\\Desktop\\FINALDS\\lamps\\french\\35\\Greyscale',
-         'C:\\Users\\enzop\\Desktop\\FINALDS\\lamps\\turkish\\35\\Greyscale']
+strings = Strings()
+paths = strings.paths
 
-cc = ClassificatorClass(2,1,paths,'SVC',10,'rbf')
+cc = ClassificatorClass(2,1,paths,'SVC',30,'rbf', fileName='rbf_tur.csv')
 cc.execute()

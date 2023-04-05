@@ -37,33 +37,11 @@ import os
 
 BATCH_SIZE = 1
 
-def unfreeze_model(model, layers_n):
-    # We unfreeze the top 20 layers while leaving BatchNorm layers frozen
-    for layer in model.layers[-layers_n:]:
-        if not isinstance(layer, layers.BatchNormalization):
-            layer.trainable = True
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
-    model.compile(
-        optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
-    )
 
 def to_grayscale_then_rgb(image):
     image = tf.image.rgb_to_grayscale(image)
     image = tf.image.grayscale_to_rgb(image)
     return image
-
-def batch_generator(X, Y, batch_size = BATCH_SIZE):
-    indices = np.arange(len(X)) 
-    batch=[]
-    while True:
-            # it might be a good idea to shuffle your data before each epoch
-            np.random.shuffle(indices) 
-            for i in indices:
-                batch.append(i)
-                if len(batch)==batch_size:
-                    yield X[batch], Y[batch]
-                    batch=[]
 
 
 class FeatureExtractor:

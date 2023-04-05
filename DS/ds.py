@@ -223,23 +223,27 @@ class DSClass:
         #image = image.flatten()
         if self.greyscale:
           image = image[0::]
-        training.append((image.flatten(), i))
+        if self.flat:
+          image = image.flatten()
+        training.append((image, i))
       for image in images[int(len(images)*self.proportion):len(images)-1]:
         #image = image.flatten()
         if self.greyscale:
           image = image[0::]
-        test.append((image.flatten(), i))
+        if self.flat:
+          image = image.flatten()
+        test.append((image, i))
     else:
       print(f'{path} is empty')
-    
     return training, test
     #self.TS.append(training)
     #self.TestS.append(test)
 
-  def build_dataset(self, paths, greyscale):
-    
+  def build_dataset(self, paths, greyscale=0, flat=1):
+    random.seed(time.time_ns())
     self.proportion = 0.8
     self.greyscale = greyscale
+    self.flat = flat
     # for each path build a dataset
     # the dataset is divided into training and test set
     self.TS = []
@@ -253,7 +257,6 @@ class DSClass:
           training, test = self.splitting(path, i, label)
           tempTS = tempTS + training
           tempTestS = tempTestS + test
-        
         random.shuffle(tempTS)
         random.shuffle(tempTestS)
         self.TS.append(tempTS)
