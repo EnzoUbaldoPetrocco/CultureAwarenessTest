@@ -1,8 +1,8 @@
 import sys
 sys.path.insert(1, '../../')
 
-from deep_learning.classificator import ClassificatorClass
-from deep_learning.strings import Strings
+from v.classificator import ClassificatorClass
+from deep_learning_mitigation.strings import Strings
 
 strings = Strings()
 paths = strings.lamp_paths

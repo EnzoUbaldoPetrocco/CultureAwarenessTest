@@ -125,6 +125,7 @@ class ClassificatorClass:
 
     def train(self, TS):
         size = np.shape(TS[0][0])
+        
         input = Input(size)
         x = tf.keras.Sequential([
             ResNet50(input_shape=size, weights='imagenet', include_top=False)

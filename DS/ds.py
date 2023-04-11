@@ -270,6 +270,6 @@ class DSClass:
   def nineonedivision(self, culture):
     for i, ts in enumerate(self.TS):
       if i != culture:
-        self.TS[culture] = self.TS + ts[0:int(len(ts)*0.1)]
+        self.TS[culture] = self.TS[culture] + ts[0:int(len(ts)*0.1)]
   
   
