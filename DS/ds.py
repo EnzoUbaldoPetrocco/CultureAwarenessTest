@@ -267,4 +267,9 @@ class DSClass:
     else:
          print('Paths is None')
       
-    
+  def nineonedivision(self, culture):
+    for i, ts in enumerate(self.TS):
+      if i != culture:
+        self.TS[culture] = self.TS + ts[0:int(len(ts)*0.1)]
+  
+  

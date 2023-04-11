@@ -27,7 +27,8 @@ class ClassificatorClass:
                  batch_size=1,
                  epochs=10,
                  learning_rate=1e-3,
-                 verbose=0):
+                 verbose=0,
+                 plot = False):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -39,6 +40,7 @@ class ClassificatorClass:
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.verbose_param = verbose
+        self.plot = plot
 
         gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
@@ -121,7 +123,6 @@ class ClassificatorClass:
 
         plt.show()
 
-
     def train(self, TS):
         size = np.shape(TS[0][0])
         input = Input(size)
@@ -142,13 +143,13 @@ class ClassificatorClass:
         lr_reduce = ReduceLROnPlateau(monitor='val_accuracy',
                                       factor=0.2,
                                       patience=3,
-                                      verbose=1,
+                                      verbose=self.verbose_param,
                                       mode='max',
                                       min_lr=1e-8)
         early = EarlyStopping(monitor='val_accuracy',
                               min_delta=0.001,
-                              patience=10,
-                              verbose=1,
+                              patience=8,
+                              verbose=self.verbose_param,
                               mode='auto')
         adam = optimizers.Adam(self.learning_rate)
         optimizer = adam
@@ -173,7 +174,8 @@ class ClassificatorClass:
                                  callbacks=[early, lr_reduce],
                                  verbose=self.verbose_param,
                                  batch_size = self.batch_size)
-
+        if self.plot:
+            self.plot_training()
         return model
 
     def execute(self):
@@ -275,3 +277,46 @@ class ClassificatorClass:
             print(j)
         accuracy = statistic[0][0][0] + statistic[0][1][1]
         print(f'Accuracy is {accuracy} %')
+
+    def executenineone(self):
+            for i in range(self.times):
+                print(f'CICLE {i}')
+                obj = DS.ds.DSClass()
+                obj.build_dataset(self.paths, self.greyscale, 0)
+                obj.nineonedivision(self.culture)
+                # I have to select a culture
+                TS = obj.TS[self.culture]
+                # I have to test on every culture
+                TestSets = obj.TestS
+                print(np.shape(TestSets))
+                # Name of the file management for results
+                fileNames = []
+                for l in range(len(TestSets)):
+                    name = self.fileName.split('.')[0] + str(
+                        l) + self.fileName.split('.')[1]
+                    fileNames.append(name)
+
+                model = self.train(TS)
+
+                cms = []
+                for k, TestSet in enumerate(TestSets):
+                    cm = self.test(model, TestSet)
+                    self.save_cm(fileNames[k], cm)
+                    cms.append(cm)
+                #results.append(cms)
+
+            #results = np.array(results, dtype = object)
+            for i in range(len(obj.TS)):
+                #result = results[:,i]
+                result = self.get_results(fileNames[i])
+                result = np.array(result, dtype=object)
+                print(f'RESULTS OF CULTURE {i}')
+                tot = self.resultsObj.return_tot_elements(result[0])
+                pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
+                    result, tot)
+                statistic = self.resultsObj.return_statistics_pcm(pcm_list)
+                for j in statistic:
+                    print(j)
+                accuracy = statistic[0][0][0] + statistic[0][1][1]
+                print(f'Accuracy is {accuracy} %')
+
