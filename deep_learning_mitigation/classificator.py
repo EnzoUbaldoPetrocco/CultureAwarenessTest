@@ -57,9 +57,39 @@ class ClassificatorClass:
         else:
             print('no gpus')
 
+        lambda_grid = [1.00000000e-02, 1.46779927e-02, 2.15443469e-02,  3.16227766e-02,
+        4.64158883e-02, 6.81292069e-02, 1.00000000e-01, 1.46779927e-01,
+        2.15443469e-01, 3.16227766e-01, 4.64158883e-01, 6.81292069e-01,
+        1.00000000e+00, 1.46779927e+00, 2.15443469e+00, 3.16227766e+00,
+        4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
+        2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
+        1.00000000e+02]
+        self.lamb = lambda_grid[0]
+
+    def custom_loss(self, out):
+        def loss(y_true, y_pred):
+            weights1 = self.model.layers[len(self.model.layers)-1].kernel
+            weights2 = self.model.layers[len(self.model.layers)-2].kernel
+            weights3 = self.model.layers[len(self.model.layers)-3].kernel
+            dist12 = tf.norm(weights1-weights2, ord='euclidean')
+            dist13 = tf.norm(weights1-weights3, ord='euclidean')
+            dist23 = tf.norm(weights2-weights3, ord='euclidean')
+            dist = tf.math.add(dist12, dist13)
+            dist = tf.math.add(dist, dist23)
+            dist = tf.multiply(tf.multiply(dist,dist) , self.lamb)
+            loss = tf.keras.losses.binary_crossentropy(y_true[0][1], y_pred[0])
+            res = tf.math.add(loss , dist)
+            mask = tf.math.abs(tf.math.subtract(y_true[0][0], out))
+            if mask>0:
+                return 0.0
+            else:
+                return res
+            
+        return loss
+
     def prepareDataset(self, paths):
         datasetClass = DS.ds.DSClass()
-        datasetClass.build_dataset(paths)
+        datasetClass.mitigation_dataset(paths)
         self.TS = datasetClass.TS
         self.TestSet = datasetClass.TestS
 
@@ -125,20 +155,21 @@ class ClassificatorClass:
 
     def train(self, TS):
         size = np.shape(TS[0][0])
-        print(f'size is {size}')
         input = Input(size)
         x = tf.keras.Sequential([
             ResNet50(input_shape=size, weights='imagenet', include_top=False)
         ])(input)
         x = Flatten()(x)
-        x = (Dense(1, activation='sigmoid'))(x)
-        model = Model(inputs=input,
-                    outputs = x,
+        y1 = (Dense(1, activation='sigmoid', name='dense'))(x)
+        y2 = (Dense(1, activation='sigmoid', name='dense_1'))(x)
+        y3 = (Dense(1, activation='sigmoid', name='dense_2'))(x)
+        self.model = Model(inputs=input,
+                    outputs = [y1,y2,y3],
                     name = 'model')
-        model.trainable = True
-        for layer in model.layers[1].layers:
+        self.model.trainable = True
+        for layer in self.model.layers[1].layers:
             layer.trainable = False
-        for layer in model.layers[1].layers[-1:]:
+        for layer in self.model.layers[1].layers[-3:]:
             if not isinstance(layer, layers.BatchNormalization):
                 layer.trainable = True
         lr_reduce = ReduceLROnPlateau(monitor='val_accuracy',
@@ -154,9 +185,10 @@ class ClassificatorClass:
                               mode='auto')
         adam = optimizers.Adam(self.learning_rate)
         optimizer = adam
-        model.compile(loss="binary_crossentropy",
-                      optimizer=optimizer,
-                      metrics=["accuracy"])
+        
+        self.model.compile(optimizer=optimizer,
+                      metrics=["accuracy"],
+                      loss=[self.custom_loss(out=0),self.custom_loss(out=1),self.custom_loss(out=2)])
 
         TS = np.array(TS, dtype=object)
         X = list(TS[:, 0])
@@ -169,7 +201,7 @@ class ClassificatorClass:
         y = tf.stack(y)
         X_val = tf.stack(X_val)
         y_val = tf.stack(y_val)
-        self.history = model.fit(X,y,
+        self.history = self.model.fit(X,y,
                                  epochs=self.epochs,
                                  validation_data=(X_val,y_val),
                                  callbacks=[early, lr_reduce],
@@ -177,18 +209,17 @@ class ClassificatorClass:
                                  batch_size = self.batch_size)
         if self.plot:
             self.plot_training()
-        return model
+        return self.model
 
     def execute(self):
         for i in range(self.times):
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
-            obj.build_dataset(self.paths, self.greyscale, 0)
+            obj.mitigation_dataset(self.paths, self.greyscale, 0)
             # I have to select a culture
             TS = obj.TS[self.culture]
             # I have to test on every culture
             TestSets = obj.TestS
-            print(np.shape(TestSets))
             # Name of the file management for results
             fileNames = []
             for l in range(len(TestSets)):

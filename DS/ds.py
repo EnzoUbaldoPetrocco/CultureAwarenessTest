@@ -225,14 +225,14 @@ class DSClass:
           image = image[0::]
         if self.flat:
           image = image.flatten()
-        training.append((image, i))
+        training.append([image/255, i])
       for image in images[int(len(images)*self.proportion):len(images)-1]:
         #image = image.flatten()
         if self.greyscale:
           image = image[0::]
         if self.flat:
           image = image.flatten()
-        test.append((image, i))
+        test.append([image/255, i])
     else:
       print(f'{path} is empty')
     return training, test
@@ -271,5 +271,21 @@ class DSClass:
     for i, ts in enumerate(self.TS):
       if i != culture:
         self.TS[culture] = self.TS[culture] + ts[0:int(len(ts)*0.1)]
+
+  def mitigation_dataset(self, paths, greyscale=0,flat=1):
+    self.build_dataset(paths, greyscale, flat)
+    cultureID = 0
+    for cultureTS in self.TS:
+      for sample in cultureTS:
+        sample[1] = (cultureID, sample[1])
+      cultureID = cultureID + 1
+    cultureID = 0
+    for cultureTestS in self.TestS:
+       for sample in cultureTestS:
+        sample[1] = (cultureID, sample[1])
+    cultureID = cultureID + 1
+    
+       
+           
   
   
