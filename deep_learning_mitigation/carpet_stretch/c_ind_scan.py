@@ -7,5 +7,5 @@ from deep_learning_mitigation.strings import Strings
 strings = Strings()
 paths = strings.carpet_paths_str
 
-cc = ClassificatorClass(0,1,paths, fileName='c_ind_scan.csv', verbose = 1, validation_split=0.2, epochs=10, learning_rate=4e-4)
+cc = ClassificatorClass(0,0,paths, fileName='c_ind_scan.csv', verbose = 1, validation_split=0.2, epochs=10, learning_rate=4e-4)
 cc.execute_mixed([0,2])
