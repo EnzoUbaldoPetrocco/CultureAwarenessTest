@@ -4,14 +4,14 @@ import pathlib
 import numpy as np
 import skimage.color
 import cv2
-import matplotlib.pyplot as plt
 import math
-import pandas as pd
 import random
 import time
 import os, shutil
 from PIL import Image
 import random
+from collections import deque
+import tensorflow as tf
 
 n_ims = 1000
 
@@ -271,19 +271,24 @@ class DSClass:
     for i, ts in enumerate(self.TS):
       if i != culture:
         self.TS[culture] = self.TS[culture] + ts[0:int(len(ts)*0.1)]
+    for ts in self.TS:
+      random.shuffle(ts)
 
   def mitigation_dataset(self, paths, greyscale=0,flat=1):
     self.build_dataset(paths, greyscale, flat)
-    cultureID = 0
+    cultureID =0
     for cultureTS in self.TS:
       for sample in cultureTS:
-        sample[1] = (cultureID, sample[1])
+        y = (cultureID, sample[1])
+        sample[1] = y
       cultureID = cultureID + 1
     cultureID = 0
     for cultureTestS in self.TestS:
-       for sample in cultureTestS:
-        sample[1] = (cultureID, sample[1])
-    cultureID = cultureID + 1
+      for sample in cultureTestS:
+        y = (cultureID, sample[1])
+        sample[1] = y
+      cultureID = cultureID + 1
+    
     
        
            

@@ -125,7 +125,6 @@ class ClassificatorClass:
 
     def train(self, TS):
         size = np.shape(TS[0][0])
-        print(f'size is {size}')
         input = Input(size)
         x = tf.keras.Sequential([
             ResNet50(input_shape=size, weights='imagenet', include_top=False)
@@ -188,7 +187,6 @@ class ClassificatorClass:
             TS = obj.TS[self.culture]
             # I have to test on every culture
             TestSets = obj.TestS
-            print(np.shape(TestSets))
             # Name of the file management for results
             fileNames = []
             for l in range(len(TestSets)):
