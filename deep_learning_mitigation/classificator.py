@@ -111,10 +111,13 @@ class ClassificatorClass:
         yT = list(testSet[:, 1])
         XT = tf.stack(XT)
         yT = tf.stack(yT)
-        
-        yF = model.predict(XT)
-        yF = self.quantize(yF)
-        cm = confusion_matrix(yT, yF)
+
+        cms = []
+        yFs = model.predict(XT)
+        for yF in yFs:
+            yF = self.quantize(yF)
+            cm = confusion_matrix(yT, yF)
+            cms.append(cm)
         return cm
 
     def save_cm(self, fileName, cm):
@@ -233,125 +236,24 @@ class ClassificatorClass:
             # Name of the file management for results
             fileNames = []
             for l in range(len(TestSets)):
-                name = self.fileName.split('.')[0] + str(
-                    l) + self.fileName.split('.')[1]
-                fileNames.append(name)
-
-            model = self.train(TS)
-
-            cms = []
-            for k, TestSet in enumerate(TestSets):
-                cm = self.test(model, TestSet)
-                self.save_cm(fileNames[k], cm)
-                cms.append(cm)
-            #results.append(cms)
-
-        #results = np.array(results, dtype = object)
-        for i in range(len(obj.TS)):
-            #result = results[:,i]
-            result = self.get_results(fileNames[i])
-            result = np.array(result, dtype=object)
-            print(f'RESULTS OF CULTURE {i}')
-            tot = self.resultsObj.return_tot_elements(result[0])
-            pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
-                result, tot)
-            statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
-            print(f'Accuracy is {accuracy} %')
-
-    def execute_mixed(self, cultures=[1]):
-        # Name of the file management
-        for i in range(self.times):
-            print(f'CICLE {i}')
-            obj = DS.ds.DSClass()
-            obj.build_dataset(self.paths, self.greyscale, 0)
-            # I have to mix the cultures
-            TS = []
-            MixedTestSet = []
-            TestSets = []
-            cultureName = ""
-            fileNames = []
-            
-            for culture in cultures:
-                TS = TS + obj.TS[culture]
-                MixedTestSet = MixedTestSet + obj.TestS[culture]
-                cultureName = cultureName + str(culture)
-            mixedName = self.fileName.split(
-                '.')[0] + cultureName + self.fileName.split('.')[1]
-            for i in range(len(obj.TestS)):
-                if i not in cultures:
-                    TestSets.append(obj.TestS[i])
-                    name = self.fileName.split('.')[0] + str(
-                        i) + self.fileName.split('.')[1]
+                onPointSplitted = self.fileName.split('.')
+                for o in range(3):
+                    name = onPointSplitted[0] + str(
+                        l) + f'/out{o}' + onPointSplitted[1]
                     fileNames.append(name)
             model = self.train(TS)
             cms = []
             for k, TestSet in enumerate(TestSets):
                 cm = self.test(model, TestSet)
-                cms.append(cm)
-                self.save_cm(fileNames[k], cm)
-            self.save_cm(mixedName, self.test(model, MixedTestSet))
-
-        for i in range(len(fileNames)):
-            print(f'RESULTS OF REMAIN CULTURE {i}')
-            result = self.get_results(fileNames[i])
-            result = np.array(result, dtype=object)
-            tot = self.resultsObj.return_tot_elements(result[0])
-            pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
-                result, tot)
-            statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
-            print(f'Accuracy is {accuracy} %')
-
-        print('MIXED RESULTS')
-        mixedResults = self.get_results(mixedName)
-        mixedResults = np.array(mixedResults, dtype = object)
-        tot = self.resultsObj.return_tot_elements(mixedResults[0])
-        pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
-            mixedResults, tot)
-        statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-        for j in statistic:
-            print(j)
-        accuracy = statistic[0][0][0] + statistic[0][1][1]
-        print(f'Accuracy is {accuracy} %')
-
-    def executenineone(self):
-            for i in range(self.times):
-                print(f'CICLE {i}')
-                obj = DS.ds.DSClass()
-                obj.build_dataset(self.paths, self.greyscale, 0)
-                obj.nineonedivision(self.culture)
-                # I have to select a culture
-                TS = obj.TS[self.culture]
-                # I have to test on every culture
-                TestSets = obj.TestS
-                print(np.shape(TestSets))
-                # Name of the file management for results
-                fileNames = []
-                for l in range(len(TestSets)):
-                    name = self.fileName.split('.')[0] + str(
-                        l) + self.fileName.split('.')[1]
-                    fileNames.append(name)
-
-                model = self.train(TS)
-
-                cms = []
-                for k, TestSet in enumerate(TestSets):
-                    cm = self.test(model, TestSet)
-                    self.save_cm(fileNames[k], cm)
+                for o in range(3):
+                    self.save_cm(fileNames[k][o], cm)
                     cms.append(cm)
-                #results.append(cms)
-
-            #results = np.array(results, dtype = object)
-            for i in range(len(obj.TS)):
-                #result = results[:,i]
-                result = self.get_results(fileNames[i])
+        
+        for i in range(len(obj.TS)):
+            for o in range(3):
+                result = self.get_results(fileNames[i][o])
                 result = np.array(result, dtype=object)
-                print(f'RESULTS OF CULTURE {i}')
+                print(f'RESULTS OF CULTURE {i}, out {o}')
                 tot = self.resultsObj.return_tot_elements(result[0])
                 pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                     result, tot)
@@ -360,4 +262,5 @@ class ClassificatorClass:
                     print(j)
                 accuracy = statistic[0][0][0] + statistic[0][1][1]
                 print(f'Accuracy is {accuracy} %')
+
 
