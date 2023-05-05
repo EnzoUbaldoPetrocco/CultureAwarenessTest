@@ -135,34 +135,27 @@ class ClassificatorClass:
         return f.readcms()
 
     def plot_training(self):
-        train_acc = self.history.history['accuracy']
-        val_acc = self.history.history['val_accuracy']
-        train_loss = self.history.history['loss']
+        train_acc = self.history.history['dense_accuracy']
+        val_acc = self.history.history['val_dense_accuracy']
+        train_loss = self.history.history['dense_loss']
+        val_loss = self.history.history['val_dense_loss']
         train_acc_x = range(len(train_acc))
         val_acc_x = range(len(train_acc))
         train_loss_x = range(len(train_acc))
         val_loss_x = range(len(train_acc))
-
         plt.plot(train_acc_x, train_acc, marker = 'o', color = 'blue', markersize = 10, 
                         linewidth = 1.5, label = 'Training Accuracy')
         plt.plot(val_acc_x, val_acc, marker = '.', color = 'red', markersize = 10, 
                         linewidth = 1.5, label = 'Validation Accuracy')
-
         plt.title('Training Accuracy and Testing Accuracy w.r.t Number of Epochs')
-
         plt.legend()
-
         plt.figure()
-
         plt.plot(train_loss_x, train_loss, marker = 'o', color = 'blue', markersize = 10, 
                         linewidth = 1.5, label = 'Training Loss')
-        plt.plot(val_loss_x, val_acc, marker = '.', color = 'red', markersize = 10, 
+        plt.plot(val_loss_x, val_loss, marker = '.', color = 'red', markersize = 10, 
                         linewidth = 1.5, label = 'Validation Loss')
-
         plt.title('Training Loss and Testing Loss w.r.t Number of Epochs')
-
         plt.legend()
-
         plt.show()
 
     def train(self, TS):
@@ -184,13 +177,17 @@ class ClassificatorClass:
         for layer in self.model.layers[1].layers[-3:]:
             if not isinstance(layer, layers.BatchNormalization):
                 layer.trainable = True
-        lr_reduce = ReduceLROnPlateau(monitor='val_accuracy',
+        if self.culture == 0:
+            monitor_val = 'val_dense_accuracy'
+        else:
+            monitor_val = f'val_dense_{self.culture}_accuracy'
+        lr_reduce = ReduceLROnPlateau(monitor=monitor_val,
                                       factor=0.2,
                                       patience=3,
                                       verbose=self.verbose_param,
                                       mode='max',
                                       min_lr=1e-8)
-        early = EarlyStopping(monitor='val_accuracy',
+        early = EarlyStopping(monitor=monitor_val,
                               min_delta=0.001,
                               patience=8,
                               verbose=self.verbose_param,
