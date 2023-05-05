@@ -30,7 +30,8 @@ class ClassificatorClass:
                  learning_rate=1e-3,
                  verbose=0,
                  plot = False,
-                 run_eagerly = False):
+                 run_eagerly = False,
+                 lambda_index = 0):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -44,6 +45,7 @@ class ClassificatorClass:
         self.verbose_param = verbose
         self.plot = plot
         self.run_eagerly = run_eagerly
+        self.lambda_index = lambda_index
 
         gpus = tf.config.experimental.list_physical_devices('GPU')
         if gpus:
@@ -51,7 +53,7 @@ class ClassificatorClass:
             try:
                 tf.config.experimental.set_virtual_device_configuration(
                     gpus[0],
-                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2000)])
+                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2300)])
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
             except RuntimeError as e:
@@ -67,7 +69,7 @@ class ClassificatorClass:
         4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
         2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
         1.00000000e+02]
-        self.lamb = lambda_grid[2]
+        self.lamb = lambda_grid[lambda_index]
 
     def custom_loss(self, out):
         def loss(y_true, y_pred):
@@ -111,14 +113,18 @@ class ClassificatorClass:
         yT = list(testSet[:, 1])
         XT = tf.stack(XT)
         yT = tf.stack(yT)
-
-        cms = []
+        yT = yT[:, 1]
+        
         yFs = model.predict(XT)
+        yFs = np.array(yFs, dtype=object)
+        yFs = yFs[:,:,0]
+        cms = []
+        
         for yF in yFs:
             yF = self.quantize(yF)
             cm = confusion_matrix(yT, yF)
-            cms.append(cm)
-        return cm
+            cms.append(cm)        
+        return cms
 
     def save_cm(self, fileName, cm):
         f = FileClass(fileName)
@@ -237,30 +243,34 @@ class ClassificatorClass:
             fileNames = []
             for l in range(len(TestSets)):
                 onPointSplitted = self.fileName.split('.')
+                fileNamesOut = []
                 for o in range(3):
-                    name = onPointSplitted[0] + str(
-                        l) + f'/out{o}' + onPointSplitted[1]
-                    fileNames.append(name)
+                    name = str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                        l) + f'/out{o}.' + onPointSplitted[1]
+                    
+                    fileNamesOut.append(name)
+                fileNames.append(fileNamesOut)
             model = self.train(TS)
             cms = []
             for k, TestSet in enumerate(TestSets):
                 cm = self.test(model, TestSet)
                 for o in range(3):
-                    self.save_cm(fileNames[k][o], cm)
+                    print(fileNames[k][o])
+                    self.save_cm(fileNames[k][o], cm[o])
                     cms.append(cm)
-        
-        for i in range(len(obj.TS)):
-            for o in range(3):
-                result = self.get_results(fileNames[i][o])
-                result = np.array(result, dtype=object)
-                print(f'RESULTS OF CULTURE {i}, out {o}')
-                tot = self.resultsObj.return_tot_elements(result[0])
-                pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
-                    result, tot)
-                statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-                for j in statistic:
-                    print(j)
-                accuracy = statistic[0][0][0] + statistic[0][1][1]
-                print(f'Accuracy is {accuracy} %')
+        if self.verbose:
+            for i in range(len(obj.TS)):
+                for o in range(3):
+                    result = self.get_results(fileNames[i][o])
+                    result = np.array(result, dtype=object)
+                    print(f'RESULTS OF CULTURE {i}, out {o}')
+                    tot = self.resultsObj.return_tot_elements(result[0])
+                    pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
+                        result, tot)
+                    statistic = self.resultsObj.return_statistics_pcm(pcm_list)
+                    print(statistic[0])
+                    
+                    accuracy = statistic[0][0][0] + statistic[0][1][1]
+                    print(f'Accuracy is {accuracy} %')
 
 

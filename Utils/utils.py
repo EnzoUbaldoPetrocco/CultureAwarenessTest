@@ -1,9 +1,17 @@
 import csv
 import numpy as np
+import os
 
 class FileClass:
     def __init__(self, name):
         self.name = name
+        dir = os.path.dirname(name)
+        self.mkdir(dir)
+
+    def mkdir(self, dir):
+        if not os.path.exists(dir):
+                print(f'Making directory: {str(dir)}')
+                os.makedirs(dir)
 
     def readrows(self):
         csvlist = []
@@ -21,8 +29,8 @@ class FileClass:
             with open(self.name, 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(row)
-        except:
-            print(f'Error in writing file {self.name}')
+        except Exception as e:
+            print(f'Error in writing file {self.name} due to Exception:\n{e}')
 
     def writecm(self, cm):
         row = [cm[0][0], cm[0][1], cm[1][0], cm[1][1]]

@@ -17,7 +17,7 @@ n_ims = 1000
 
 class DSClass:
   # utils
-  def options(self, options, default=1):
+  def options(self, options=[], default=1):
     if options == None:
         raise Exception('Options is None')
     if len(options) == 0:
@@ -182,7 +182,7 @@ class DSClass:
        self.size = 33
     self.stretch = self.accept('Do you want to stretch the image (default, fill with white pixels) ')
 
-  def prepare(self, arg, auto = False):
+  def prepare(self, arg=[], auto = False):
     self.paths()
     # prepare path and images
     if auto:

@@ -6,6 +6,7 @@ from deep_learning_mitigation.strings import Strings
 
 strings = Strings()
 paths = strings.carpet_paths_bla
-
-cc = ClassificatorClass(1,0,paths,batch_size=4, fileName='c_jap.csv', verbose = 1, validation_split=0.2, epochs=10, learning_rate=4e-4)
-cc.execute()
+file_name = 'c_jap.csv'
+for i in range(25):
+    cc = ClassificatorClass(1, 0, paths,batch_size=4, fileName=file_name, lambda_index=i, verbose = 1, validation_split=0.2, epochs=10, learning_rate=4e-4)
+    cc.execute()
