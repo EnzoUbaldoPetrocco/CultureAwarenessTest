@@ -14,6 +14,7 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from matplotlib import pyplot as plt
 import keras.backend as K
 from keras.models import Model
+import gc
 
 
 class ClassificatorClass:
@@ -180,6 +181,7 @@ class ClassificatorClass:
 
     def execute(self):
         for i in range(self.times):
+            gc.collect()
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
             obj.build_dataset(self.paths, self.greyscale, 0)
@@ -191,7 +193,7 @@ class ClassificatorClass:
             fileNames = []
             for l in range(len(TestSets)):
                 name = self.fileName.split('.')[0] + str(
-                    l) + self.fileName.split('.')[1]
+                    l) + '.csv'
                 fileNames.append(name)
 
             model = self.train(TS)
@@ -201,7 +203,8 @@ class ClassificatorClass:
                 cm = self.test(model, TestSet)
                 self.save_cm(fileNames[k], cm)
                 cms.append(cm)
-            #results.append(cms)
+            # Reset Memory each time
+            #gc.collect()
 
         #results = np.array(results, dtype = object)
         for i in range(len(obj.TS)):
@@ -222,6 +225,7 @@ class ClassificatorClass:
         # Name of the file management
         for i in range(self.times):
             print(f'CICLE {i}')
+            gc.collect()
             obj = DS.ds.DSClass()
             obj.build_dataset(self.paths, self.greyscale, 0)
             # I have to mix the cultures
@@ -251,6 +255,9 @@ class ClassificatorClass:
                 self.save_cm(fileNames[k], cm)
             self.save_cm(mixedName, self.test(model, MixedTestSet))
 
+            # Reset Memory each time
+            gc.collect()
+
         for i in range(len(fileNames)):
             print(f'RESULTS OF REMAIN CULTURE {i}')
             result = self.get_results(fileNames[i])
@@ -278,44 +285,47 @@ class ClassificatorClass:
         print(f'Accuracy is {accuracy} %')
 
     def executenineone(self):
-            for i in range(self.times):
-                print(f'CICLE {i}')
-                obj = DS.ds.DSClass()
-                obj.build_dataset(self.paths, self.greyscale, 0)
-                obj.nineonedivision(self.culture)
-                # I have to select a culture
-                TS = obj.TS[self.culture]
-                # I have to test on every culture
-                TestSets = obj.TestS
-                print(np.shape(TestSets))
-                # Name of the file management for results
-                fileNames = []
-                for l in range(len(TestSets)):
-                    name = self.fileName.split('.')[0] + str(
-                        l) + self.fileName.split('.')[1]
-                    fileNames.append(name)
+        for i in range(self.times):
+            gc.collect()
+            print(f'CICLE {i}')
+            obj = DS.ds.DSClass()
+            obj.build_dataset(self.paths, self.greyscale, 0)
+            obj.nineonedivision(self.culture)
+            # I have to select a culture
+            TS = obj.TS[self.culture]
+            # I have to test on every culture
+            TestSets = obj.TestS
+            print(np.shape(TestSets))
+            # Name of the file management for results
+            fileNames = []
+            for l in range(len(TestSets)):
+                name = self.fileName.split('.')[0] + str(
+                    l) + self.fileName.split('.')[1]
+                fileNames.append(name)
 
-                model = self.train(TS)
+            model = self.train(TS)
 
-                cms = []
-                for k, TestSet in enumerate(TestSets):
-                    cm = self.test(model, TestSet)
-                    self.save_cm(fileNames[k], cm)
-                    cms.append(cm)
-                #results.append(cms)
+            cms = []
+            for k, TestSet in enumerate(TestSets):
+                cm = self.test(model, TestSet)
+                self.save_cm(fileNames[k], cm)
+                cms.append(cm)
+            
+            # Reset Memory each time
+            gc.collect()
 
-            #results = np.array(results, dtype = object)
-            for i in range(len(obj.TS)):
-                #result = results[:,i]
-                result = self.get_results(fileNames[i])
-                result = np.array(result, dtype=object)
-                print(f'RESULTS OF CULTURE {i}')
-                tot = self.resultsObj.return_tot_elements(result[0])
-                pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
-                    result, tot)
-                statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-                for j in statistic:
-                    print(j)
-                accuracy = statistic[0][0][0] + statistic[0][1][1]
-                print(f'Accuracy is {accuracy} %')
+        #results = np.array(results, dtype = object)
+        for i in range(len(obj.TS)):
+            #result = results[:,i]
+            result = self.get_results(fileNames[i])
+            result = np.array(result, dtype=object)
+            print(f'RESULTS OF CULTURE {i}')
+            tot = self.resultsObj.return_tot_elements(result[0])
+            pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
+                result, tot)
+            statistic = self.resultsObj.return_statistics_pcm(pcm_list)
+            for j in statistic:
+                print(j)
+            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            print(f'Accuracy is {accuracy} %')
 

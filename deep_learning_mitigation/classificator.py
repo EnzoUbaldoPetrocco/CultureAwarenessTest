@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 import keras.backend as K
 from keras.models import Model
 import random
-
+import gc
 
 class ClassificatorClass:
     def __init__(self,
@@ -228,6 +228,7 @@ class ClassificatorClass:
 
     def execute(self):
         for i in range(self.times):
+            gc.collect()
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
             obj.mitigation_dataset(self.paths, self.greyscale, 0)
@@ -255,7 +256,10 @@ class ClassificatorClass:
                     print(fileNames[k][o])
                     self.save_cm(fileNames[k][o], cm[o])
                     cms.append(cm)
-        if self.verbose:
+            # Reset Memory each time
+            gc.collect()
+        
+        if self.verbose_param:
             for i in range(len(obj.TS)):
                 for o in range(3):
                     result = self.get_results(fileNames[i][o])

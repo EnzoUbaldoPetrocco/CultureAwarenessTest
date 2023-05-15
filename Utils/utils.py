@@ -9,9 +9,12 @@ class FileClass:
         self.mkdir(dir)
 
     def mkdir(self, dir):
-        if not os.path.exists(dir):
-                print(f'Making directory: {str(dir)}')
-                os.makedirs(dir)
+        try:
+                if not os.path.exists(dir):
+                        print(f'Making directory: {str(dir)}')
+                        os.makedirs(dir)
+        except Exception as e:
+              print(f'{dir} Not created')
 
     def readrows(self):
         csvlist = []
