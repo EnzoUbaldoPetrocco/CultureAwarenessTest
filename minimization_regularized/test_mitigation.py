@@ -53,12 +53,12 @@ Lamblist = np.logspace(-2,2,points)
 underrepr_param = 0.1
 
 # TESTING CULTURE
-ya0 = [[-1,0]] * n
-ya1 = [[1,0]] * n
-yb0 = [[-1,1]] * int(n*underrepr_param)
+ya0 = [[0, -1]] * n
+ya1 = [[0, 1]] * n
+yb0 = [[1,-1]] * int(n*underrepr_param)
 yb1 = [[1,1]] * int(n*underrepr_param)
-yc0 = [[-1,2]] * int(n*underrepr_param)
-yc1 = [[1,2]] * int(n*underrepr_param)
+yc0 = [[2,-1]] * int(n*underrepr_param)
+yc1 = [[2,1]] * int(n*underrepr_param)
 
 ya0T = [-1] * nT
 ya1T = [1] * nT

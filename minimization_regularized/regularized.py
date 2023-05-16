@@ -41,8 +41,7 @@ class Model:
         dL = (((2*q*self.lamb-2*self.lamb+q)/q) + 2*self.C*np.dot(X.T,X))*self.w[culture] - 2*self.C*Y*X.T + otherCultureParts
         #print(dL)
         return dL
-        
-    
+           
     def fit(self, X, Y, batch_size=10, learning_rate = 0.001, epochs = 2):
         # Adam Algorithm
         # while wt non converged do
@@ -83,8 +82,8 @@ class Model:
         for t in range(epochs):
             for j in range(n):
                 x = ids[j]
-                i = Y[x][1] # referring culture
-                dLdw[i] = self.gradient(q, X[x], Y[x][0], i)
+                i = Y[x][0] # referring culture
+                dLdw[i] = self.gradient(q, X[x], Y[x][1], i)
                 mt[i] = beta1*mt[i] + (1-beta1)*dLdw[i]
                 vt[i] = beta2*vt[i] + (1-beta2)*(dLdw[i]**2)
                 mhat[i] = mt[i]/(1-beta1**(t+1))
@@ -97,7 +96,7 @@ class Model:
         ret = np.sign(np.dot(self.w[out], X))
         return ret
     
-    def gridSearch(self, C_list, gamma_list, lamb, X, y, validation_split, learning_rate, epochs, culture_metric=0):
+    def gridSearch(self, C_list, gamma_list, lamb, X, y, validation_split, learning_rate, epochs, culture_metric=0, classificator = 'linear', verbose = 0):
         n = np.shape(X)[0]
         ids = np.arange(n)
         max_accuracy = 0
@@ -107,6 +106,8 @@ class Model:
         for i,C in enumerate(C_list):
             random.shuffle(ids)
             self.C = C
+            if classificator == 'linear':
+                gamma_list = [0]
             for j,gamma in enumerate(gamma_list):
                 self.gamma = gamma
                 
@@ -115,6 +116,8 @@ class Model:
                 for l in ids[0:int(len(ids)*(1-validation_split))]:
                     train.append(X[ids[l]])
                     train_y.append(y[ids[l]])
+                if verbose:
+                    print(f'TRAINING C={self.C} and Gamma={self.gamma}')
                 self.fit(train, train_y, learning_rate=learning_rate, epochs=epochs)
                 count = 0
                 val_numb = int(len(ids)*(validation_split))
