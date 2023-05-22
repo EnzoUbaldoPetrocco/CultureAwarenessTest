@@ -10,11 +10,12 @@ from sklearn.model_selection import GridSearchCV
 from Utils.utils import FileClass, ResultsClass
 import gc
 from minimization_regularized.regularized import Model
+import time
 
 class ClassificatorClass:
     def __init__(self, culture=0, greyscale=0, paths=None,
                  type='SVC', points=30, kernel='linear', times=30, fileName = 'results.csv',
-                 validation_split = 0.2,learning_rate = 0.001, epochs = 1000, lambda_index= 0, lamb = 0, verbose_param = 0 ):
+                 validation_split = 0.25 ,learning_rate = 0.001, epochs = 800, lambda_index= 0, lamb = 0, verbose_param = 0 ):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -60,9 +61,19 @@ class ClassificatorClass:
         TS = np.array(TS, dtype = object)
         X = list(TS[:,0])
         y = list(TS[:,1])
+        trainY = []
+        for y_i in y:
+            
+            if y_i[1] == 0:
+                trainY.append([y_i[0],-1.0])
+            else:
+                trainY.append([y_i[0],1.0])
         print('SVC TRAINING')
         m = Model()
-        m.gridSearch(logspaceC, logspaceGamma, self.lamb, X,y, self.validation_split, self.lr,self.epochs, self.culture, self.verbose_param)
+        init_time = time.time()
+        m.gridSearch(logspaceC, logspaceGamma, self.lamb, X,trainY, self.validation_split, self.lr,self.epochs, self.culture, verbose=self.verbose_param)
+        if self.verbose_param:
+                    print(f"--- {time.time() - init_time}s in grid search with C={m.C} and gamma={m.gamma}---")
         return m
 
     def RFC(self, TS):
@@ -92,8 +103,14 @@ class ClassificatorClass:
         testSet = np.array(testSet, dtype=object)
         XT = list(testSet[:,0])
         yT= list(testSet[:,1])
-
-        yF = model.predict(XT, out)
+        yF = []
+        yTnew = []
+        for i,xT in enumerate(XT):
+            yF.append(model.predict(xT, out))
+            if yT[i][1] == 0:
+                yTnew.append([yT[0],-1.0])
+            else:
+                yTnew.append([yT[0],1.0])
         cm = confusion_matrix(yT, yF)
         return cm
     

@@ -76,12 +76,23 @@ class ClassificatorClass:
             weights1 = self.model.layers[len(self.model.layers)-1].kernel
             weights2 = self.model.layers[len(self.model.layers)-2].kernel
             weights3 = self.model.layers[len(self.model.layers)-3].kernel
-            dist12 = tf.norm(weights1-weights2, ord='euclidean')
-            dist13 = tf.norm(weights1-weights3, ord='euclidean')
-            dist23 = tf.norm(weights2-weights3, ord='euclidean')
-            dist = tf.math.add(dist12, dist13)
-            dist = tf.math.add(dist, dist23)
-            dist = tf.multiply(tf.multiply(dist,dist) , self.lamb)
+            mean = tf.math.add(weights1,weights2)
+            mean = tf.math.add(mean,weights3)
+            mean = tf.multiply(mean,1/3)
+            mean = tf.multiply(mean,self.lamb)
+            if out == 0:
+                dist = tf.norm(weights1-mean,ord='euclidian')
+            if out == 1:
+                dist = tf.norm(weights2-mean,ord='euclidian')
+            if out == 2:
+                dist = tf.norm(weights3-mean,ord='euclidian')
+            dist = tf.multiply(dist,dist)
+            #dist12 = tf.norm(weights1-weights2, ord='euclidean')
+            #dist13 = tf.norm(weights1-weights3, ord='euclidean')
+            #dist23 = tf.norm(weights2-weights3, ord='euclidean')
+            #dist = tf.math.add(dist12, dist13)
+            #dist = tf.math.add(dist, dist23)
+            #dist = tf.multiply(tf.multiply(dist,dist) , self.lamb)
             loss = tf.keras.losses.binary_crossentropy(y_true[0][1], y_pred[0])
             res = tf.math.add(loss , dist)
             mask = tf.reduce_all(tf.equal(y_true[0][0], out))

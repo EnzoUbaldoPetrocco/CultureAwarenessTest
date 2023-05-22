@@ -2,6 +2,7 @@ from cmath import exp
 import numpy as np
 import math
 import random
+import time
 
 ## Formula is in paper
 
@@ -33,49 +34,56 @@ class Model:
         if self.kernel == 'rbf':
             return math.exp(self.gamma*(x**2))
         
-    def gradient(self, q, X, Y, culture):
-        otherCultureParts = 0
+    def gradient(self, X, Y, culture):
+        X = np.asarray(X, dtype=float)
+        Y = np.asarray(Y, dtype=float)
+        otherCultureParts = np.zeros(np.shape(X[0]), dtype=float)
         for i in range(np.shape(self.w)[0]):
-            if culture != i:
-                otherCultureParts+= (-2*self.lamb/q)*self.w[i]
-        dL = (((2*q*self.lamb-2*self.lamb+q)/q) + 2*self.C*np.dot(X.T,X))*self.w[culture] - 2*self.C*Y*X.T + otherCultureParts
-        #print(dL)
+                otherCultureParts+= self.w[i]
+        
+        dL = self.first*self.w[culture] + self.second*otherCultureParts + np.matmul(self.third,self.w[culture])-2*np.matmul(X.T,Y[:,1])
         return dL
            
-    def fit(self, X, Y, batch_size=10, learning_rate = 0.001, epochs = 2):
+    def fit(self, X, Y, batch_size=10, learning_rate = 0.01, epochs = 1000, grid=False, verbose = False):
         # Adam Algorithm
         # while wt non converged do
-        # mt+1 = beta1*mt + (1-beta1)*(dL/dwit)
-        # vt+1 = beta2*vt + (1-beta2)*(dL/dwit)
+        # gt+1 = nabthettaft(thetat-1)
+        # mt+1 = beta1*mt + (1-beta1)*(gt)
+        # vt+1 = beta2*vt + (1-beta2)*(gt)^2
         # mhat+1 = mt+1/(1-beta1**t)
         # vhat+1 = vt+1/(1-beta2**t)
-        # wt+1 = wt - alpha((mhat+1/sqrt(vhat+1))+e)
+        # wt+1 = wt - alpha(mhat/(sqrt(vhat)+e))
         # t = t + 1
         q = 3
         n = np.shape(X)[0]
         d = np.shape(X)[1]
         mt = []
         vt = []
-        mhat = []
-        vhat = []
         self.w = []
         dLdw = []
         for i in range(q):
-            zeros = np.zeros(d)
-            random_numbers = np.random.random(d)
+            zeros = np.zeros(d, dtype=float)
+            random_numbers = np.random.random(d).astype(float)
             self.w.append(random_numbers)
             mt.append(zeros)
             vt.append(zeros)
-            mhat.append(zeros)
-            vhat.append(zeros)
             dLdw.append(zeros)
 
         ids = np.arange(n)
         random.shuffle(ids)
-
-        
+        if not grid:
+             # Preliminary Computations
+            self.first = 2*self.C + 2*self.gamma
+            self.second =(2*self.gamma+(1-q))/(q*q)
+            # X^T*X given X n*d matrix
+            X = np.asarray(X, dtype=object)
+            init_time = time.time()
+            self.third = np.matmul(X.T,X)
+            if verbose:
+                print(f'Time passed to perform matmul: {time.time()-init_time}s')
+        self.second =(2*self.gamma+(1-q))/(q*q)
         # Hyperparams
-        beta1 = 0.8
+        beta1 = 0.9
         beta2 = 0.9
         e = 0.00000001
         
@@ -83,12 +91,13 @@ class Model:
             for j in range(n):
                 x = ids[j]
                 i = Y[x][0] # referring culture
-                dLdw[i] = self.gradient(q, X[x], Y[x][1], i)
-                mt[i] = beta1*mt[i] + (1-beta1)*dLdw[i]
-                vt[i] = beta2*vt[i] + (1-beta2)*(dLdw[i]**2)
-                mhat[i] = mt[i]/(1-beta1**(t+1))
-                vhat[i] = vt[i]/(1-beta2**(t+1))
-                self.w[i] = self.w[i] - learning_rate*((mhat[i]/np.sqrt(vhat[i]))+e)     
+                
+                dLdw[i] = self.gradient(X, Y, i)
+                mt[i] = np.add(beta1*mt[i], (1-beta1)*dLdw[i])
+                vt[i] = np.add(beta2*vt[i] , (1-beta2)*(dLdw[i]**2))
+                mhat = mt[i]/(1-beta1**(t+1))
+                vhatsqr = np.sqrt((vt[i]/(1-beta2**(t+1))).astype(float))
+                self.w[i] = self.w[i] - learning_rate*((mhat/vhatsqr)+e)     
         #self.w = np.asarray(self.w, dtype=object)      
         return self.w
     
@@ -97,6 +106,14 @@ class Model:
         return ret
     
     def gridSearch(self, C_list, gamma_list, lamb, X, y, validation_split, learning_rate, epochs, culture_metric=0, classificator = 'linear', verbose = 0):
+        # Preliminary Computations
+        self.first = 2*self.C + 2*self.gamma
+        # X^T*X given X n*d matrix
+        X = np.asarray(X, dtype=float)
+        init_time = time.time()
+        self.third = np.matmul(X.T,X)
+        if verbose:
+            print(f'Time passed to perform matmul: {time.time()-init_time}s')
         n = np.shape(X)[0]
         ids = np.arange(n)
         max_accuracy = 0
@@ -118,21 +135,33 @@ class Model:
                     train_y.append(y[ids[l]])
                 if verbose:
                     print(f'TRAINING C={self.C} and Gamma={self.gamma}')
-                self.fit(train, train_y, learning_rate=learning_rate, epochs=epochs)
+                init_time = time.time()
+                self.fit(train, train_y, learning_rate=learning_rate, epochs=epochs, grid=True, verbose=verbose)
+                if verbose:
+                    print(f"--- {time.time() - init_time}s in fitting with C={C} and gamma={gamma}---")
                 count = 0
                 val_numb = int(len(ids)*(validation_split))
                 #print(val_numb)
+                init_time = time.time()
                 for l in ids[0:val_numb]:
                     yP = self.predict(X[ids[l]], culture_metric)
-                    if yP == y[ids[l]][culture_metric]:
-                        count+=1
+                    y_i = y[ids[l]][1]
+                    #print(f'yP is {yP}')
+                    #print(f'y_i is {y_i}\n\n')
+                    
+                    if yP == y_i:
+                        count = count + 1
+                if verbose:
+                    print(f"--- {time.time() - init_time}s in predicting {val_numb} samples---")
                 accuracy = count/val_numb
-                
+                if verbose:
+                    print(f"Accuracy is {accuracy*100}%")
                 if accuracy > max_accuracy:
                     max_accuracy = accuracy
                     bestC = C
                     bestGamma = gamma
-
+        if verbose:
+            print(f'max validation accuracy is: {max_accuracy}')
         self.C = bestC
         self.gamma = bestGamma
         #print('Weights per culture:')
