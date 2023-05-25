@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 import keras.backend as K
 from keras.models import Model
 import gc
+import os
 
 
 class ClassificatorClass:
@@ -29,7 +30,8 @@ class ClassificatorClass:
                  epochs=10,
                  learning_rate=1e-3,
                  verbose=0,
-                 plot = False):
+                 plot = False,
+                 gpu = True):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -42,21 +44,24 @@ class ClassificatorClass:
         self.learning_rate = learning_rate
         self.verbose_param = verbose
         self.plot = plot
-
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        if gpus:
-        # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
-            try:
-                tf.config.experimental.set_virtual_device_configuration(
-                    gpus[0],
-                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2000)])
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            except RuntimeError as e:
-                # Virtual devices must be set before GPUs have been initialized
-                print(e)
+        self.gpu = gpu
+        if self.gpu:
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+            if gpus:
+            # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
+                try:
+                    tf.config.experimental.set_virtual_device_configuration(
+                        gpus[0],
+                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2000)])
+                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                except RuntimeError as e:
+                    # Virtual devices must be set before GPUs have been initialized
+                    print(e)
+            else:
+                print('no gpus')
         else:
-            print('no gpus')
+            os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     def prepareDataset(self, paths):
         datasetClass = DS.ds.DSClass()

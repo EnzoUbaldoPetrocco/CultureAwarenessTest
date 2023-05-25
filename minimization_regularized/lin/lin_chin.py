@@ -8,5 +8,5 @@ strings = Strings()
 paths = strings.paths
 
 for i in range(25):
-    cc = ClassificatorClass(0,1,paths,'SVC',30,'linear', fileName='lin_chin.csv', lambda_index=i-2, verbose_param=1)
+    cc = ClassificatorClass(0,1,paths,'SVC',30,'linear', fileName='lin_chin.csv', lambda_index=i-1, verbose_param=1, times=2)
     cc.execute()

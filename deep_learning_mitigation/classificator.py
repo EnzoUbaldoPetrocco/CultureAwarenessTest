@@ -16,6 +16,7 @@ import keras.backend as K
 from keras.models import Model
 import random
 import gc
+import os
 
 class ClassificatorClass:
     def __init__(self,
@@ -31,7 +32,8 @@ class ClassificatorClass:
                  verbose=0,
                  plot = False,
                  run_eagerly = False,
-                 lambda_index = 0):
+                 lambda_index = 0,
+                 gpu = True):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -46,21 +48,24 @@ class ClassificatorClass:
         self.plot = plot
         self.run_eagerly = run_eagerly
         self.lambda_index = lambda_index
-
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        if gpus:
-        # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
-            try:
-                tf.config.experimental.set_virtual_device_configuration(
-                    gpus[0],
-                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2300)])
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            except RuntimeError as e:
-                # Virtual devices must be set before GPUs have been initialized
-                print(e)
+        self.gpu = gpu
+        if self.gpu:
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+            if gpus:
+            # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
+                try:
+                    tf.config.experimental.set_virtual_device_configuration(
+                        gpus[0],
+                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2000)])
+                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                except RuntimeError as e:
+                    # Virtual devices must be set before GPUs have been initialized
+                    print(e)
+            else:
+                print('no gpus')
         else:
-            print('no gpus')
+            os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
         lambda_grid = [1.00000000e-02, 1.46779927e-02, 2.15443469e-02,  3.16227766e-02,
         4.64158883e-02, 6.81292069e-02, 1.00000000e-01, 1.46779927e-01,
@@ -81,11 +86,11 @@ class ClassificatorClass:
             mean = tf.multiply(mean,1/3)
             mean = tf.multiply(mean,self.lamb)
             if out == 0:
-                dist = tf.norm(weights1-mean,ord='euclidian')
+                dist = tf.norm(weights1-mean,ord='euclidean')
             if out == 1:
-                dist = tf.norm(weights2-mean,ord='euclidian')
+                dist = tf.norm(weights2-mean,ord='euclidean')
             if out == 2:
-                dist = tf.norm(weights3-mean,ord='euclidian')
+                dist = tf.norm(weights3-mean,ord='euclidean')
             dist = tf.multiply(dist,dist)
             #dist12 = tf.norm(weights1-weights2, ord='euclidean')
             #dist13 = tf.norm(weights1-weights3, ord='euclidean')

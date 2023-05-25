@@ -15,7 +15,7 @@ import time
 class ClassificatorClass:
     def __init__(self, culture=0, greyscale=0, paths=None,
                  type='SVC', points=30, kernel='linear', times=30, fileName = 'results.csv',
-                 validation_split = 0.25 ,learning_rate = 0.001, epochs = 800, lambda_index= 0, lamb = 0, verbose_param = 0 ):
+                 validation_split = 0.25 ,learning_rate = 0.001, epochs = 30000, lambda_index= 0, lamb = 0, verbose_param = 0 ):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -59,19 +59,23 @@ class ClassificatorClass:
 
         # training set is divided into (X,y)
         TS = np.array(TS, dtype = object)
-        X = list(TS[:,0])
-        y = list(TS[:,1])
-        trainY = []
+        X = []
+        y = []
+        for ts in TS:
+            ts = np.array(ts, dtype=object)
+            X.append(list(ts[:,0]))
+            y.append(list(ts[:,1]))
+        
         for y_i in y:
-            
             if y_i[1] == 0:
-                trainY.append([y_i[0],-1.0])
+                y_i = [y_i[0],-1.0]
             else:
-                trainY.append([y_i[0],1.0])
+                y_i = [y_i[0],1.0]
+
         print('SVC TRAINING')
         m = Model()
         init_time = time.time()
-        m.gridSearch(logspaceC, logspaceGamma, self.lamb, X,trainY, self.validation_split, self.lr,self.epochs, self.culture, verbose=self.verbose_param)
+        m.gridSearch(logspaceC, logspaceGamma, self.lamb, X, y, self.validation_split, self.lr,self.epochs, self.culture, verbose=self.verbose_param)
         if self.verbose_param:
                     print(f"--- {time.time() - init_time}s in grid search with C={m.C} and gamma={m.gamma}---")
         return m
@@ -99,20 +103,26 @@ class ClassificatorClass:
 
         return H
 
-    def test(self, model, testSet, out):
+    def test(self, model, testSet, n_outputs):
         testSet = np.array(testSet, dtype=object)
         XT = list(testSet[:,0])
         yT= list(testSet[:,1])
-        yF = []
-        yTnew = []
-        for i,xT in enumerate(XT):
-            yF.append(model.predict(xT, out))
-            if yT[i][1] == 0:
-                yTnew.append([yT[0],-1.0])
-            else:
-                yTnew.append([yT[0],1.0])
-        cm = confusion_matrix(yT, yF)
-        return cm
+        
+        
+        cms = []
+        for out in range(n_outputs):
+            yTnew = []
+            yF = []
+            for i,xT in enumerate(XT):
+                yF.append(model.predict(xT, out))
+                if yT[i][1] == 0:
+                    yTnew.append(-1.0)
+                else:
+                    yTnew.append(1.0)
+            cm = confusion_matrix(yTnew, yF)
+            cms.append(cm)
+        print(np.shape(cms))
+        return cms
     
     def save_cm(self, fileName, cm):
         f = FileClass(fileName)
@@ -128,14 +138,10 @@ class ClassificatorClass:
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
             obj.mitigation_dataset(self.paths, self.greyscale, 1)
-            obj.nineonedivision(self.culture)
-            # I have to select a culture
-            TS = obj.TS[self.culture]
-            # I have to test on every culture
-            TestSets = obj.TestS
+            obj.nineonedivision(self.culture, 1)
             # Name of the file management for results
             fileNames = []
-            for l in range(len(TestSets)):
+            for l in range(len(obj.TestS)):
                 onPointSplitted = self.fileName.split('.')
                 fileNamesOut = []
                 for o in range(3):
@@ -145,16 +151,16 @@ class ClassificatorClass:
                     fileNamesOut.append(name)
                 fileNames.append(fileNamesOut)
             if self.type == 'SVC':
-                model = self.SVC(TS)
+                model = self.SVC(obj.TS)
             elif self.type == 'RFC':
                 print('NO RFC IMPLEMENTED UP TO NOW')
                 #model = self.RFC(TS)
                 break
             else:
-                model = self.SVC(TS)
+                model = self.SVC(obj.TS)
             cms = []
-            for k, TestSet in enumerate(TestSets):
-                cm = self.test(model, TestSet, k)
+            for k, TestSet in enumerate(obj.TestS):
+                cm = self.test(model, TestSet, len(obj.TestS))
                 for o in range(3):
                     print(fileNames[k][o])
                     self.save_cm(fileNames[k][o], cm[o])
