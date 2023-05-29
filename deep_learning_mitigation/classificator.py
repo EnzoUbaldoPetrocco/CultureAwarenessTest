@@ -67,13 +67,14 @@ class ClassificatorClass:
         else:
             os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-        lambda_grid = [1.00000000e-02, 1.46779927e-02, 2.15443469e-02,  3.16227766e-02,
-        4.64158883e-02, 6.81292069e-02, 1.00000000e-01, 1.46779927e-01,
-        2.15443469e-01, 3.16227766e-01, 4.64158883e-01, 6.81292069e-01,
-        1.00000000e+00, 1.46779927e+00, 2.15443469e+00, 3.16227766e+00,
-        4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
-        2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
-        1.00000000e+02]
+        #lambda_grid = [1.00000000e-02, 1.46779927e-02, 2.15443469e-02,  3.16227766e-02,
+        #4.64158883e-02, 6.81292069e-02, 1.00000000e-01, 1.46779927e-01,
+        #2.15443469e-01, 3.16227766e-01, 4.64158883e-01, 6.81292069e-01,
+        #1.00000000e+00, 1.46779927e+00, 2.15443469e+00, 3.16227766e+00,
+        #4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
+        #2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
+        #1.00000000e+02]
+        lambda_grid = np.logspace(-3,1,25)
         self.lamb = lambda_grid[lambda_index]
 
     def custom_loss(self, out):
@@ -151,10 +152,21 @@ class ClassificatorClass:
         return f.readcms()
 
     def plot_training(self):
-        train_acc = self.history.history['dense_accuracy']
-        val_acc = self.history.history['val_dense_accuracy']
-        train_loss = self.history.history['dense_loss']
-        val_loss = self.history.history['val_dense_loss']
+        if self.culture == 0:
+            dense_acc_str = 'dense_accuracy'
+            val_dense_acc_str = 'val_dense_accuracy'
+            dense_loss_str= 'dense_loss'
+            val_dense_loss_str = 'val_dense_loss'
+        else:
+            dense_acc_str = f'dense_{self.culture}_accuracy'
+            val_dense_acc_str = f'val_dense_{self.culture}_accuracy'
+            dense_loss_str = f'dense_{self.culture}_loss'
+            val_dense_loss_str = f'val_dense_{self.culture}_loss'
+
+        train_acc = self.history.history[dense_acc_str]
+        val_acc = self.history.history[val_dense_acc_str]
+        train_loss = self.history.history[dense_loss_str]
+        val_loss = self.history.history[val_dense_loss_str]
         train_acc_x = range(len(train_acc))
         val_acc_x = range(len(train_acc))
         train_loss_x = range(len(train_acc))
@@ -198,14 +210,14 @@ class ClassificatorClass:
         else:
             monitor_val = f'val_dense_{self.culture}_accuracy'
         lr_reduce = ReduceLROnPlateau(monitor=monitor_val,
-                                      factor=0.2,
-                                      patience=3,
+                                      factor=0.1,
+                                      patience=int(self.epochs/3) + 1,
                                       verbose=self.verbose_param,
                                       mode='max',
                                       min_lr=1e-8)
         early = EarlyStopping(monitor=monitor_val,
                               min_delta=0.001,
-                              patience=8,
+                              patience=int(self.epochs/1.7) + 1,
                               verbose=self.verbose_param,
                               mode='auto')
         adam = optimizers.Adam(self.learning_rate)
