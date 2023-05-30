@@ -3,25 +3,28 @@ sys.path.insert(1, '../')
 from deep_learning_mitigation.classificator import ClassificatorClass
 import numpy as np
 import os
+from matplotlib import pyplot as plt
 
 
 
 def get_right_folders(base):
-    root, subdirs, files = os.walk(base)
     subs = []
     lambdas = []
-    for dir in subdirs:
+    for root, subdirs, files in os.walk(base):
+        #print(f'Root is {root}')
+        #print(f'Subdirs is {subdirs}')
+        #print(f'files is {files}')
         try:
-            d = os.path.basename(os.path.normpath(dir))
+            d = os.path.basename(os.path.normpath(root))
             d = int(d)
-            subs.append(dir)
+            subs.append(root)
             lambdas.append(d)
         except:
             pass
     return subs, lambdas
 
 def get_mean_accuracy(file_name):
-    cc = ClassificatorClass()
+    cc = ClassificatorClass(gpu=False)
     result = cc.get_results(file_name)
     result = np.array(result, dtype=object)
     tot = cc.resultsObj.return_tot_elements(result[0])
@@ -36,9 +39,8 @@ def extract_accuracies(base, root):
     # For each lambda I have to extract accuracy for each culture
     # and for each output
     accuracies = []
-    for j,sub in enumerate(subfolders):
+    for j in range(len(lambdas)):
         fileNames = []
-        print(f'FOR LAMBDA INDEX EQUAL {lambdas[j]}')
         for l in range(3):
                     fileNamesOut = []
                     for o in range(3):
@@ -55,12 +57,48 @@ def extract_accuracies(base, root):
                 accuracies_output.append(acc)
             accuracies_culture.append(accuracies_output)
         accuracies.append(accuracies_culture)
+    return accuracies
+
+def extract_accuracies_on_culture(base, root, culture):
+    temp_accs = extract_accuracies(base,root)
+    accs = []
+    for acc in temp_accs:
+        a = acc[culture][culture]
+        accs.append(a)
+    return accs
+
+def plot_acc(title, accs):
+    fig, ax = plt.subplots()
+    plt.xlabel("Lambda parameter")
+    plt.ylabel("Accuracy")
+    plt.ylim([60,95])
+    plt.grid(True)
+    n_points = len(accs)
+    ax.set_title(title)
+    ticks_label = []
+    logspac= np.logspace(-3,1,25)
+    ticks_label.append(0)
+    for i in range(0,n_points-1):
+        ticks_label.append(str(logspac[i])[0:6])
+    x = np.linspace(0, 100, n_points)
+    plt.xticks(ticks=x, labels=ticks_label)
+    ax.plot(x, accs, linewidth=2.0)
+    #ax.set_xscale('log')
+    plt.show()
     
 def main():
     base = 'l_chin'
-    root = '../deep_learning_mitigation/lamp/'
-    accs = extract_accuracies(base, root)
-    print(accs)
+    root = f'../deep_learning_mitigation/lamp/'
+    chin_accs = extract_accuracies_on_culture(base, root, 0)
+    print(chin_accs)
+    fren_accs = extract_accuracies_on_culture(base, root, 1)
+    print(fren_accs)
+    tur_accs = extract_accuracies_on_culture(base, root, 2)
+    print(tur_accs)
+    plot_acc('Accuracy on Chinese Culture', chin_accs)
+    plot_acc('Accuracy on French Culture', fren_accs)
+    plot_acc('Accuracy on Turkish Culture', tur_accs)
+
 
 if __name__ == "__main__":
     main()
