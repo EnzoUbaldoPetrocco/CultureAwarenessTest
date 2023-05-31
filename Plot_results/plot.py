@@ -71,7 +71,7 @@ def plot_acc(title, accs):
     fig, ax = plt.subplots()
     plt.xlabel("Lambda parameter")
     plt.ylabel("Accuracy")
-    plt.ylim([60,95])
+    plt.ylim([min(accs),max(accs)])
     plt.grid(True)
     n_points = len(accs)
     ax.set_title(title)
@@ -85,19 +85,49 @@ def plot_acc(title, accs):
     ax.plot(x, accs, linewidth=2.0)
     #ax.set_xscale('log')
     plt.show()
+
+def plot_accuracies_per_culture(base, root):
+    chin_accs = extract_accuracies_on_culture(base, root, 0)
+    #print(chin_accs)
+    fren_accs = extract_accuracies_on_culture(base, root, 1)
+    #print(fren_accs)
+    tur_accs = extract_accuracies_on_culture(base, root, 2)
+    #print(tur_accs)
+    plot_acc('Accuracy on Chinese Culture', chin_accs)
+    plot_acc('Accuracy on French Culture', fren_accs)
+    plot_acc('Accuracy on Turkish Culture', tur_accs)
+
+def extract_accuracies_per_test_culture(base,root, culture):
+    temp_accs = extract_accuracies(base,root)
+    accs = []
+    for acc in temp_accs:
+        a = acc[culture]
+        accs.append(a)
+    return accs
+
+def plot_all_accuracies(base, root):
+    chin_on_chin = extract_accuracies_per_test_culture(base, root, 0)
+    fren_on_fren = extract_accuracies_per_test_culture(base, root, 1)
+    turn_on_tur = extract_accuracies_per_test_culture(base, root, 2)
+    chin_on_chin = np.asarray(chin_on_chin, dtype=object)
+    fren_on_fren = np.asarray(fren_on_fren, dtype=object)
+    turn_on_tur = np.asarray(turn_on_tur, dtype=object)
+    plot_acc('Accuracy on Chinese Culture out 0', chin_on_chin[:,0])
+    plot_acc('Accuracy on Chinese Culture out 1', chin_on_chin[:,1])
+    plot_acc('Accuracy on Chinese Culture out 2', chin_on_chin[:,2])
+    plot_acc('Accuracy on French Culture out 0', fren_on_fren[:,0])
+    plot_acc('Accuracy on French Culture out 1', fren_on_fren[:,1])
+    plot_acc('Accuracy on French Culture out 2', fren_on_fren[:,2])
+    plot_acc('Accuracy on Turkish Culture out 0', turn_on_tur[:,0])
+    plot_acc('Accuracy on Turkish Culture out 1', turn_on_tur[:,1])
+    plot_acc('Accuracy on Turkish Culture out 2', turn_on_tur[:,2])
     
 def main():
     base = 'l_chin'
     root = f'../deep_learning_mitigation/lamp/'
-    chin_accs = extract_accuracies_on_culture(base, root, 0)
-    print(chin_accs)
-    fren_accs = extract_accuracies_on_culture(base, root, 1)
-    print(fren_accs)
-    tur_accs = extract_accuracies_on_culture(base, root, 2)
-    print(tur_accs)
-    plot_acc('Accuracy on Chinese Culture', chin_accs)
-    plot_acc('Accuracy on French Culture', fren_accs)
-    plot_acc('Accuracy on Turkish Culture', tur_accs)
+    plot_accuracies_per_culture(base, root)
+    plot_all_accuracies(base, root)
+    
 
 
 if __name__ == "__main__":
