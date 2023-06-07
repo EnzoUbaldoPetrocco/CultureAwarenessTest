@@ -8,6 +8,6 @@ strings = Strings()
 paths = strings.carpet_paths_bla
 
 cc = ClassificatorClass(0,0,paths,batch_size=2, fileName='c_jap_scan.csv',
-                         verbose = 0, validation_split=0.3, epochs=8, 
+                         verbose = 0, validation_split=0.3, epochs=20, 
                          learning_rate=5e-4, gpu=False, times=25)
 cc.execute_mixed([1,2])

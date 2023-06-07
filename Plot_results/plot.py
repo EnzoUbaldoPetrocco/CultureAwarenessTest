@@ -4,6 +4,7 @@ from deep_learning_mitigation.classificator import ClassificatorClass
 import numpy as np
 import os
 from matplotlib import pyplot as plt
+import matplotlib.colors as mcolors
 
 
 
@@ -46,18 +47,25 @@ def extract_accuracies(base, root):
                     for o in range(3):
                         name = root + str(lambdas[j]) + '/' + base + str(
                             l) + f'/out{o}.csv'
-                        
-                        fileNamesOut.append(name)
-                    fileNames.append(fileNamesOut)
+                        if os.path.exists(name):
+                            fileNamesOut.append(name)
+                    if len(fileNamesOut) > 0:
+                        fileNames.append(fileNamesOut)
         accuracies_culture = []
-        for i in range(3):
-            accuracies_output = []
-            for o in range(3):
-                print(fileNames[i][o])
-                acc = get_mean_accuracy(fileNames[i][o])
-                accuracies_output.append(acc)
-            accuracies_culture.append(accuracies_output)
-        accuracies.append(accuracies_culture)
+        if np.shape(fileNames) == (3,3):
+            for i in range(3):
+                try:
+                    accuracies_output = []
+                    for o in range(3):
+                        acc = get_mean_accuracy(fileNames[i][o])
+                        accuracies_output.append(acc)
+                    accuracies_culture.append(accuracies_output)
+                    
+                except:
+                    accuracies_output = []
+                    print(f'No data in this directory: {fileNames[i]}')
+
+            accuracies.append(accuracies_culture)
     return accuracies
 
 def extract_accuracies_on_culture(base, root, culture):
@@ -68,7 +76,7 @@ def extract_accuracies_on_culture(base, root, culture):
         accs.append(a)
     return accs
 
-def plot_acc(title, accs, refs): 
+def plot_acc(title, accs, refs, refs_labels): 
     fig, ax = plt.subplots()
     plt.xlabel("Lambda parameter")
     plt.ylabel("Accuracy")
@@ -79,28 +87,29 @@ def plot_acc(title, accs, refs):
     n_points = len(accs)
     ax.set_title(title)
     ticks_label = []
-    logspac= np.logspace(-3,1,25)
+    logspac= np.logspace(-3,2,31)
     ticks_label.append(0)
     for i in range(0,n_points-1):
-        ticks_label.append(str(logspac[i])[0:6])
+        ticks_label.append(str(logspac[i])[0:5])
     x = np.linspace(0, 100, n_points)
     plt.xticks(ticks=x, labels=ticks_label)
-    ax.plot(x, accs, linewidth=2.0)
-    for ref in refs:
-        plt.axhline(y=ref, color='r', linestyle='-')
+    ax.plot(x, accs, linewidth=2.0, color='k')
+    for i, ref in enumerate(refs):
+        plt.axhline(y=ref, color=list(mcolors.BASE_COLORS)[i], linestyle='--', label = refs_labels[i])
     #ax.set_xscale('log')
+    plt.legend()
     plt.show()
 
-def plot_accuracies_per_culture(base, root, ref_c1, ref_c2, ref_c3, pre_title):
+def plot_accuracies_per_culture(base, root, refs, refs_labels, pre_title):
     chin_accs = extract_accuracies_on_culture(base, root, 0)
     #print(chin_accs)
     fren_accs = extract_accuracies_on_culture(base, root, 1)
     #print(fren_accs)
     tur_accs = extract_accuracies_on_culture(base, root, 2)
     #print(tur_accs)
-    plot_acc(f'{pre_title} Accuracy on Chinese Culture', chin_accs, ref_c1)
-    plot_acc(f'{pre_title} Accuracy on French Culture', fren_accs, ref_c2)
-    plot_acc(f'{pre_title} Accuracy on Turkish Culture', tur_accs, ref_c3)
+    plot_acc(f'{pre_title} Accuracy on Chinese Culture', chin_accs, refs[0], refs_labels[0])
+    plot_acc(f'{pre_title} Accuracy on French Culture', fren_accs, refs[1], refs_labels[1])
+    plot_acc(f'{pre_title} Accuracy on Turkish Culture', tur_accs, refs[2], refs_labels[2])
 
 def extract_accuracies_per_test_culture(base,root, culture):
     temp_accs = extract_accuracies(base,root)
@@ -141,9 +150,15 @@ def main():
     tur_on_chin_ref = 78.14
     tur_on_fren_ref = 79.33
     tur_on_tur_ref = 89.13
-    plot_accuracies_per_culture(chin_base, root, [chin_on_chin_ref],[chin_on_fren_ref,fren_on_fren_ref],[chin_on_tur_ref, tur_on_tur_ref], 'Chinese Model' )
-    plot_accuracies_per_culture(fren_base, root, [fren_on_fren_ref,fren_on_chin_ref],[fren_on_fren_ref],[ fren_on_tur_ref,tur_on_tur_ref], 'French Model' )
-    plot_accuracies_per_culture(tur_base, root, [chin_on_chin_ref,tur_on_chin_ref],[tur_on_fren_ref,fren_on_fren_ref],[tur_on_tur_ref], 'Turkish Model' )
+    chin_refs =  [[chin_on_chin_ref],[chin_on_fren_ref,fren_on_fren_ref],[chin_on_tur_ref, tur_on_tur_ref]]
+    fren_refs = [[chin_on_chin_ref,fren_on_chin_ref],[fren_on_fren_ref],[ fren_on_tur_ref,tur_on_tur_ref]]
+    tur_refs = [[chin_on_chin_ref,tur_on_chin_ref],[tur_on_fren_ref,fren_on_fren_ref],[tur_on_tur_ref]]
+    chin_refs_labels = [["C Model on C Test Set"], ["C Model on F Test Set", "F Model on F Test Set"], ["C Model on T Test Set", "T Model on T Test Set"]]
+    fren_refs_labels = [["C Model on C Test Set", "F Model on F Test Set"], ["F Model on F Test Set"], ["F Model on T Test Set", "T Model on T Test Set"]]
+    tur_refs_labels =  [["C Model on C Test Set", "T Model on C Test Set"], ["T Model on F Test Set", "F Model on F Test Set"], ["T Model on T Test Set"]]
+    plot_accuracies_per_culture(chin_base, root, chin_refs, chin_refs_labels , 'Chinese Model' )
+    plot_accuracies_per_culture(fren_base, root, fren_refs, fren_refs_labels , 'French Model' )
+    plot_accuracies_per_culture(tur_base, root, tur_refs, tur_refs_labels , 'Turkish Model' )
     #plot_all_accuracies(base, root)
     
 
