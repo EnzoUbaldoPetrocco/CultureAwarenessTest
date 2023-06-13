@@ -267,18 +267,18 @@ class DSClass:
     else:
          print('Paths is None')
       
-  def nineonedivision(self, culture, divide=0):
+  def nineonedivision(self, culture, percent=0.1, divide=0):
     if not divide:
       for i, ts in enumerate(self.TS):
         if i != culture:
-          self.TS[culture] = self.TS[culture] + ts[0:int(len(ts)*0.1)]
+          self.TS[culture] = self.TS[culture] + ts[0:int(len(ts)*percent)]
       for ts in self.TS:
         random.shuffle(ts)
     else:
        TS = self.TS
        for i, ts in enumerate(TS):
           if i!= culture:
-             TS[i] = ts[0:int(len(ts)*0.1)]
+             TS[i] = ts[0:int(len(ts)*percent)]
        self.TS = TS
 
   def mitigation_dataset(self, paths, greyscale=0,flat=1):

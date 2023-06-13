@@ -30,6 +30,7 @@ class ClassificatorClass:
                  epochs=10,
                  learning_rate=1e-3,
                  verbose=0,
+                 percent=0.1,
                  plot = False,
                  run_eagerly = False,
                  lambda_index = 0,
@@ -45,6 +46,7 @@ class ClassificatorClass:
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.verbose_param = verbose
+        self.percent = percent
         self.plot = plot
         self.run_eagerly = run_eagerly
         self.lambda_index = lambda_index
@@ -260,7 +262,7 @@ class ClassificatorClass:
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
             obj.mitigation_dataset(self.paths, self.greyscale, 0)
-            obj.nineonedivision(self.culture)
+            obj.nineonedivision(self.culture, percent=self.percent)
             # I have to select a culture
             TS = obj.TS[self.culture]
             # I have to test on every culture
@@ -271,7 +273,7 @@ class ClassificatorClass:
                 onPointSplitted = self.fileName.split('.')
                 fileNamesOut = []
                 for o in range(3):
-                    name = str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                    name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
                         l) + f'/out{o}.' + onPointSplitted[1]
                     
                     fileNamesOut.append(name)
@@ -301,5 +303,4 @@ class ClassificatorClass:
                     
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
-
 
