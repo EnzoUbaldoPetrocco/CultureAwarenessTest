@@ -30,8 +30,8 @@ def extract_accuracies(base, root):
 
 base = 'l_chin'
 root = 'lamp/'
-space = [0.1, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-for j in range(0,10):
+space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
+for j in range(0,6):
     percent = space[j]
     root = root + 'percent' + str(percent).replace('.', ',')
     extract_accuracies(base, root)

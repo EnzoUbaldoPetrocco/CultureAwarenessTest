@@ -9,11 +9,12 @@ import numpy as np
 strings = Strings()
 paths = strings.lamp_paths
 file_name = 'l_chin.csv'
-space = [0.1, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+culture = 0
+space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
 for i in range(-1, 25):
-    for j in range(1, 10):
+    for j in range(3, 6):
         percent = space[j]
-        cc = ClassificatorClass(0,
+        cc = ClassificatorClass(culture,
                                 0,
                                 paths,
                                 batch_size=4,
