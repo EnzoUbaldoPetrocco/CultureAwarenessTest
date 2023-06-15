@@ -11,8 +11,8 @@ paths = strings.lamp_paths
 file_name = 'l_chin.csv'
 culture = 0
 space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
-for i in range(-1, 25):
-    for j in range(3, 6):
+for i in range(0, 25):
+    for j in range(1, 2):
         percent = space[j]
         cc = ClassificatorClass(culture,
                                 0,
@@ -25,6 +25,6 @@ for i in range(-1, 25):
                                 epochs=40,
                                 learning_rate=6e-5,
                                 lambda_index=i,
-                                times=20,
+                                times=12,
                                 percent=percent)
         cc.execute()
