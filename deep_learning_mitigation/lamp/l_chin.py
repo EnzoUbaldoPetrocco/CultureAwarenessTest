@@ -5,16 +5,11 @@ sys.path.insert(1, '../../')
 from deep_learning_mitigation.classificator import ClassificatorClass
 from deep_learning_mitigation.strings import Strings
 import numpy as np
+import gc
+import time
 
-strings = Strings()
-paths = strings.lamp_paths
-file_name = 'l_chin.csv'
-culture = 0
-space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
-for i in range(0, 25):
-    for j in range(1, 2):
-        percent = space[j]
-        cc = ClassificatorClass(culture,
+def run(culture, paths, file_name, i, percent):
+    cc = ClassificatorClass(culture,
                                 0,
                                 paths,
                                 batch_size=4,
@@ -27,4 +22,17 @@ for i in range(0, 25):
                                 lambda_index=i,
                                 times=12,
                                 percent=percent)
-        cc.execute()
+    cc.execute()
+    cc = None
+    time.sleep(2)
+
+strings = Strings()
+paths = strings.lamp_paths
+file_name = 'l_chin.csv'
+culture = 0
+space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
+j = 1
+for i in range(9, 25):
+        percent = space[j]
+        run(culture, paths, file_name, i, percent)
+        
