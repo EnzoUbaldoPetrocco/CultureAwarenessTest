@@ -31,7 +31,8 @@ class ClassificatorClass:
                  learning_rate=1e-3,
                  verbose=0,
                  plot = False,
-                 gpu = True):
+                 gpu = True, 
+                 percent = 0.1):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -45,6 +46,7 @@ class ClassificatorClass:
         self.verbose_param = verbose
         self.plot = plot
         self.gpu = gpu
+        self.percent = percent
         if self.gpu:
             gpus = tf.config.experimental.list_physical_devices('GPU')
             if gpus:
@@ -295,7 +297,7 @@ class ClassificatorClass:
             print(f'CICLE {i}')
             obj = DS.ds.DSClass()
             obj.build_dataset(self.paths, self.greyscale, 0)
-            obj.nineonedivision(self.culture)
+            obj.nineonedivision(self.culture, percent=self.percent)
             # I have to select a culture
             TS = obj.TS[self.culture]
             # I have to test on every culture
