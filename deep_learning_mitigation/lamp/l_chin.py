@@ -32,7 +32,7 @@ file_name = 'l_chin.csv'
 culture = 0
 space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
 j = 2
-for i in range(20, 25):
+for i in range(21, 25):
         percent = space[j]
         run(culture, paths, file_name, i, percent)
         
