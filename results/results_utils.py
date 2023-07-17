@@ -6,6 +6,8 @@ import os
 import pathlib
 from Utils.utils import FileClass, ResultsClass
 import glob
+import colorama
+from colorama import Fore
 
 ## CIC formula is:
 # CIC = Ehat_C {|ERR^C - min_C'\inCit{ERR^C'}|}
@@ -120,56 +122,146 @@ def print_errors_CIC_mitigation(p, model, ns, pu):
             cic = calc_CIC(errs)
             print(f'CIC for this model is {cic}\n')
 
+def get_err_std_for_every_lambda(accs_pu_cult):
+    lerrs = [] # errors for each lambda
+    lstds = [] # stds for each lambd
+    try:
+        for i in range(len(accs_pu_cult)):
+            rrs , stds = [], []
+            for j in range(3):
+                acc, std = retrieve_mean_dev_std_accs_pu(accs_pu_cult[i][j])
+                err = calc_ERR(acc/100)
+                rrs.append(err)
+                stds.append(std/100)
+            lerrs.append(rrs)
+            lstds.append(stds)
+    except:
+        ...
+    return lerrs, lstds
+
+
+def get_errs_stds_for_every_lambda(accs_pu):
+    clerrs = [] # errors for each lambda for each culture
+    clstds = [] # stds for each lambda for each cultures
+    try:
+        for i in range(3):
+            lerrs, lstds = get_err_std_for_every_lambda(accs_pu[i])
+            clerrs.append(lerrs)
+            clstds.append(lstds)
+    except:
+        ...
+    return clerrs, clstds
+
+def get_lamb_for_min_CIC(errs_pu):
+    clerrs = [] # errors for each lambda for each culture
+    clstds = [] # stds for each lambda for each cultures
+    for i in range(3):
+        lerrs, lstds = get_err_std_for_every_lambda(errs_pu[i])
+        clerrs.append(lerrs)
+        clstds.append(lstds)
+    CICs = []
+    for i in range(len(errs_pu[0])):
+        errors = []
+        for j in range(3):
+            errors.append(errs_pu[j][i])
+        CIC = calc_CIC(errors)
+        CICs.append(CIC)
+    minCIC = min(CICs)
+    lambda_index = CICs.index(minCIC)
+    return lambda_index
+
+def get_lamb_for_min_err(errs_pu, culture):
+    errs_pu_c = errs_pu[culture]
+    minimum = min(errs_pu_c)
+    lambda_index = errs_pu_c.index(minimum)
+    return lambda_index
+
+def print_stats(errs_pu, stds_pu, lamb, accs):
+    print(f'LAMBDA INDEX = {lamb}')
+    errors = []
+    for j in range(3):
+        acc, _ = retrieve_mean_dev_std_accs_pu(accs[j][lamb])
+        print(f'Accuracy is {acc:.3f}+-{stds_pu[j][lamb]:.3f} on Culture {j}')
+        print(f'Error is {errs_pu[j][lamb]:.3f}+-{stds_pu[j][lamb]:.3f} on Culture {j}')
+        errors.append(errs_pu[j][lamb])
+    CIC = calc_CIC(errors)
+    print(f'CIC is {CIC:.3f} on culture {j}\n\n')
+
+def retrieve_statistics(p, model, ns, pu):
+    print(Fore.WHITE + f'MODEL IS {model}')
+    accs = retrievs_accs(p, model, ns, pu)
+    clerrs, clstds = get_errs_stds_for_every_lambda(accs)
+    for i in range(len(pu)):
+        print(f'\nREFERRING TO PU={pu[i]}')
+        # I want lambda for min errs (for each culture) and min CIC and their values
+        accs_pu = accs[i]
+        errs_pu, stds_pu = clerrs[i], clstds[i]
+        lambdas = []
+        if len(errs_pu)>0:
+            for j in range(3):
+                print(f'LAMBDA FOR MINIMUM ERROR ON CULTURE {j}')
+                l = get_lamb_for_min_err(errs_pu, j)
+                print_stats(errs_pu, stds_pu, l, accs_pu)
+                lambdas.append(l)
+            l = get_lamb_for_min_CIC(errs_pu)
+            lambdas.append(l)
+            print('LAMBDA FOR MINIMUM CIC')
+            print_stats(errs_pu, stds_pu, l, accs_pu)
+        
+
 
 
 # TEST FUNCTIONS MITIGATION PART
 # LAMPS
-print('MITIGATION PART')
-print('\nLAMPS\n')
+print(Fore.RED + '\n\nMITIGATION PART\n\n')
+print(Fore.BLUE + 'LAMPS\n')
 p = '../deep_learning_mitigation/lamp'
 ns = 10
 pu = ['0,05', '0,1']
 # CHIN
 model = 'l_chin'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 # FREN
 model = 'l_fren'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 # TUR
 model = 'l_tur'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 
-print('\CARPETS STRETCHED\n')
+print(Fore.BLUE + '\CARPETS STRETCHED\n')
 p = '../deep_learning_mitigation/carpet_stretch'
 ns = 10
 pu = ['0,05', '0,1']
 # CHIN
 model = 'l_chin'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 # FREN
 model = 'l_fren'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 # TUR
 model = 'l_tur'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 
-print('\CARPETS BLANKED\n')
+print(Fore.BLUE + '\CARPETS BLANKED\n')
 p = '../deep_learning_mitigation/carpet_blanked'
 ns = 10
 pu = ['0,05', '0,1']
 # CHIN
 model = 'l_chin'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 # FREN
 model = 'l_fren'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
 # TUR
 model = 'l_tur'
-print_errors_CIC_mitigation(p, model, ns, pu)
+retrieve_statistics(p, model, ns, pu)
+
+
+
 
 
 # TEST FUNCTIONS ANALYSIS PART
-print('\n\nANALYSIS PART \n\n')
+print(Fore.RED + '\n\n\nANALYSIS PART \n')
 def retrieve_accs_standard(path, model, ns):
     paths = []
     accs = []
@@ -196,21 +288,21 @@ def print_errors_CIC(p, model, ns):
     for j in range(3):
         l = np.multiply(accs[j], 0.01)  
         acc, std = retrieve_mean_dev_std_accs_pu(l)
-        print(f'Acc: {acc} on Culture {j}')
+        print(f'Acc: {acc:.3f} on Culture {j}')
         er = calc_ERR(acc)
         errs.append(er)
-        print(f'Error is {er}')
-        print(f'With std:+-{std}')
+        print(f'Error is {er:.3f}')
+        print(f'With std:+-{std:.3f}')
     if len(errs)>=3:
         cic = calc_CIC(errs)
-        print(f'CIC for this model is {cic}\n')
+        print(f'CIC for this model is {cic:.3f}\n')
 
-print('\nLAMPS\n')
+print(Fore.BLUE + '\nLAMPS\n')
 
 # SVM
 p = '../standard'
 # pu = 0 and LIN
-print('\nPU = 0')
+print(Fore.WHITE + '\nPU = 0')
 print('LSVM')
 pt = p + '/lin'
 model = 'lin_chin'
@@ -304,8 +396,8 @@ model = 'l_tur'
 print_errors_CIC(pt, model, ns)
 
 
-print('\CARPETS STRETCHED\n')
-print('DL')
+print(Fore.BLUE + '\CARPETS STRETCHED\n')
+print(Fore.WHITE + 'DL')
 print('\nPU = 0.0')
 pt = '../deep_learning' + '/carpet_stretch'
 model = 'l_chin'
@@ -332,8 +424,8 @@ model = 'l_tur'
 print_errors_CIC(pt, model, ns)
 
 
-print('\CARPETS BLANKED\n')
-print('DL')
+print(Fore.BLUE + '\CARPETS BLANKED\n')
+print(Fore.WHITE + 'DL')
 print('\nPU = 0.0')
 pt = '../deep_learning' + '/carpet_blanked'
 model = 'l_chin'
