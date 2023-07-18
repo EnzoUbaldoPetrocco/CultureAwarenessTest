@@ -7,5 +7,5 @@ from standard.strings import Strings
 strings = Strings()
 paths = strings.paths
 
-cc = ClassificatorClass(1,1,paths,'SVC',30,'rbf', fileName='rbf_fren.csv')
+cc = ClassificatorClass(1,1,paths,'SVC',20,'rbf',times = 10, fileName='rbf_fren.csv')
 cc.executenineone(percent=0.05)
