@@ -181,11 +181,11 @@ def print_stats(errs_pu, stds_pu, lamb, accs):
     errors = []
     for j in range(3):
         acc, _ = retrieve_mean_dev_std_accs_pu(accs[j][lamb])
-        print(f'Accuracy is {acc:.4f}+-{stds_pu[j][lamb]:.4f} on Culture {j}')
-        print(f'Error is {errs_pu[j][lamb]:.4f}+-{stds_pu[j][lamb]:.4f} on Culture {j}')
+        #print(f'Accuracy is {acc:.1f}+-{stds_pu[j][lamb]:.1f} on Culture {j}')
+        print(f'Error is {errs_pu[j][lamb]*100:.1f}%+-{stds_pu[j][lamb]*100:.1f}% on Culture {j}')
         errors.append(errs_pu[j][lamb])
     CIC = calc_CIC(errors)
-    print(f'CIC is {CIC:.4f} on culture {j}\n\n')
+    print(f'CIC is {CIC*100:.1f} on culture {j}\n\n')
 
 def retrieve_statistics(p, model, ns, pu):
     print(Fore.WHITE + f'MODEL IS {model}')
@@ -207,7 +207,20 @@ def retrieve_statistics(p, model, ns, pu):
             lambdas.append(l)
             print('LAMBDA FOR MINIMUM CIC')
             print_stats(errs_pu, stds_pu, l, accs_pu)
-        
+
+            print('PRINT LAMBDA FOR SOME FIXED VALUES OF LAMBDA')
+            try:
+                print_stats(errs_pu, stds_pu, 0, accs_pu)
+            except:
+                ...
+            try:
+                print_stats(errs_pu, stds_pu, 12, accs_pu)
+            except:
+                ...
+            try:
+                print_stats(errs_pu, stds_pu, 24, accs_pu)
+            except:
+                ...
 
 
 
@@ -288,14 +301,13 @@ def print_errors_CIC(p, model, ns):
     for j in range(3):
         l = np.multiply(accs[j], 0.01)  
         acc, std = retrieve_mean_dev_std_accs_pu(l)
-        print(f'Acc: {acc:.4f} on Culture {j}')
+        #print(f'Acc: {acc:.1f} on Culture {j}')
         er = calc_ERR(acc)
         errs.append(er)
-        print(f'Error is {er:.4f}')
-        print(f'With std:+-{std:.4f}')
+        print(f'Error is {er*100:.1f}%+-{std*100:.1f}% on Culture {j}')
     if len(errs)>=3:
         cic = calc_CIC(errs)
-        print(f'CIC for this model is {cic:.4f}\n')
+        print(f'CIC for this model is {cic*100:.1f}%\n')
 
 print(Fore.BLUE + '\nLAMPS\n')
 
