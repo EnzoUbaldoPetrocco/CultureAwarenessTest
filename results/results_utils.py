@@ -490,27 +490,27 @@ print(Fore.BLUE + '\CARPETS STRETCHED\n')
 print(Fore.WHITE + 'DL')
 print('\nPU = 0.0')
 pt = '../deep_learning' + '/carpet_stretch'
-model = 'l_chin'
+model = 'c_ind'
 print_errors_CIC(pt, model, ns)
-model = 'l_fren'
+model = 'c_jap'
 print_errors_CIC(pt, model, ns)
-model = 'l_tur'
+model = 'c_scan'
 print_errors_CIC(pt, model, ns)
 print('\nPU = 0.1')
 pt = '../deep_learning' + '/9010/carpet_stretch/percent0,1'
-model = 'l_chin'
+model = 'c_ind'
 print_errors_CIC(pt, model, ns)
-model = 'l_fren'
+model = 'c_jap'
 print_errors_CIC(pt, model, ns)
-model = 'l_tur'
+model = 'c_scan'
 print_errors_CIC(pt, model, ns)
 print('\nPU = 0.05')
 pt = '../deep_learning' + '/9010/carpet_stretch/percent0,05'
-model = 'l_chin'
+model = 'c_ind'
 print_errors_CIC(pt, model, ns)
-model = 'l_fren'
+model = 'c_jap'
 print_errors_CIC(pt, model, ns)
-model = 'l_tur'
+model = 'c_scan'
 print_errors_CIC(pt, model, ns)
 
 
@@ -518,25 +518,25 @@ print(Fore.BLUE + '\CARPETS blank\n')
 print(Fore.WHITE + 'DL')
 print('\nPU = 0.0')
 pt = '../deep_learning' + '/carpet_blank'
-model = 'l_chin'
+model = 'c_ind'
 print_errors_CIC(pt, model, ns)
-model = 'l_fren'
+model = 'c_jap'
 print_errors_CIC(pt, model, ns)
-model = 'l_tur'
+model = 'c_scan'
 print_errors_CIC(pt, model, ns)
 print('\nPU = 0.1')
 pt = '../deep_learning' + '/9010/carpet_blank/percent0,1'
-model = 'l_chin'
+model = 'c_ind'
 print_errors_CIC(pt, model, ns)
-model = 'l_fren'
+model = 'c_jap'
 print_errors_CIC(pt, model, ns)
-model = 'l_tur'
+model = 'c_scan'
 print_errors_CIC(pt, model, ns)
 print('\nPU = 0.05')
 pt = '../deep_learning' + '/9010/carpet_blank/percent0,05'
-model = 'l_chin'
+model = 'c_ind'
 print_errors_CIC(pt, model, ns)
-model = 'l_fren'
+model = 'c_jap'
 print_errors_CIC(pt, model, ns)
-model = 'l_tur'
+model = 'c_scan'
 print_errors_CIC(pt, model, ns)
