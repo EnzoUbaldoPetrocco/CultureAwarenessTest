@@ -20,7 +20,7 @@ def run(culture, paths, file_name, i, percent):
                                 epochs=40,
                                 learning_rate=6e-5,
                                 lambda_index=i,
-                                times=12,
+                                times=10,
                                 percent=percent)
     cc.execute()
     cc = None
@@ -30,9 +30,7 @@ strings = Strings()
 paths = strings.lamp_paths
 file_name = 'l_chin.csv'
 culture = 0
-space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
-j = 2
-for i in range(21, 25):
-        percent = space[j]
+for i in range(5, 25):
+        percent = 0.05
         run(culture, paths, file_name, i, percent)
         
