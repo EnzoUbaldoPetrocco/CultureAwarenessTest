@@ -264,3 +264,47 @@ class ClassificatorClass:
                 print(j)
             accuracy = statistic[0][0][0] + statistic[0][1][1]
             print(f'Accuracy is {accuracy} %')
+
+    def execute_indipendent(self, percent=0.1):
+        for i in range(self.times):
+            print(f'CICLE {i}')
+            obj = DS.ds.DSClass()
+            obj.build_dataset(self.paths, self.greyscale)
+            obj.indipendent_dataset(self.culture, percent=percent)
+            # I have to select a culture
+            TS = obj.TS[self.culture]
+            # I have to test on every culture
+            TestSets = obj.TestS
+            # Name of the file management for results
+            fileNames = []
+            for l in range(len(TestSets)):
+                name = self.fileName.split('.')[0] + str(
+                    l) + self.fileName.split('.')[1]
+                fileNames.append(name)
+            if self.type == 'SVC':
+                model = self.SVC(TS)
+            elif self.type == 'RFC':
+                model = self.RFC(TS)
+            else:
+                model = self.SVC(TS)
+            cms = []
+            for k, TestSet in enumerate(TestSets):
+                cm = self.test(model, TestSet)
+                self.save_cm(fileNames[k], cm)
+                cms.append(cm)
+            #results.append(cms)
+
+        #results = np.array(results, dtype = object)
+        for i in range(len(obj.TS)):
+            #result = results[:,i]
+            result = self.get_results(fileNames[i])
+            result = np.array(result, dtype=object)
+            print(f'RESULTS OF CULTURE {i}')
+            tot = self.resultsObj.return_tot_elements(result[0])
+            pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
+                result, tot)
+            statistic = self.resultsObj.return_statistics_pcm(pcm_list)
+            for j in statistic:
+                print(j)
+            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            print(f'Accuracy is {accuracy} %')

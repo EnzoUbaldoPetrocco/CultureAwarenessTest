@@ -1,191 +1,295 @@
 import sys
 
 sys.path.insert(1, '../')
-from deep_learning_mitigation.classificator import ClassificatorClass
-import numpy as np
-import os
+import results_utils
 from matplotlib import pyplot as plt
-import matplotlib.colors as mcolors
+import colorama
+from colorama import Fore
+from Utils.utils import FileClass, ResultsClass
+import glob
+import numpy as np
 
-
-def get_right_folders(base):
-    subs = []
-    lambdas = []
-    for root, subdirs, files in os.walk(base):
-        #print(f'Root is {root}')
-        #print(f'Subdirs is {subdirs}')
-        #print(f'files is {files}')
-        try:
-            d = os.path.basename(os.path.normpath(root))
-            d = int(d)
-            subs.append(root)
-            lambdas.append(d)
-        except:
-            pass
-    return subs, lambdas
-
-
-def get_mean_accuracy(file_name):
-    cc = ClassificatorClass(gpu=False)
-    result = cc.get_results(file_name)
-    result = np.array(result, dtype=object)
-    tot = cc.resultsObj.return_tot_elements(result[0])
-    pcm_list = cc.resultsObj.calculate_percentage_confusion_matrix(result, tot)
-    statistic = cc.resultsObj.return_statistics_pcm(pcm_list)
-    accuracy = statistic[0][0][0] + statistic[0][1][1]
-    return accuracy
-
-
-def extract_accuracies(base, root):
-    subfolders, lambdas = get_right_folders(root)
-    # For each lambda I have to extract accuracy for each culture
-    # and for each output
-    accuracies = []
-    for j in range(len(lambdas)):
-        fileNames = []
-        for l in range(3):
-            fileNamesOut = []
-            for o in range(3):
-                name = root + str(
-                    lambdas[j]) + '/' + base + str(l) + f'/out{o}.csv'
-                if os.path.exists(name):
-                    fileNamesOut.append(name)
-            if len(fileNamesOut) > 0:
-                fileNames.append(fileNamesOut)
-        accuracies_culture = []
-        if np.shape(fileNames) == (3, 3):
-            for i in range(3):
-                try:
-                    accuracies_output = []
-                    for o in range(3):
-                        acc = get_mean_accuracy(fileNames[i][o])
-                        accuracies_output.append(acc)
-                    accuracies_culture.append(accuracies_output)
-
-                except:
-                    accuracies_output = []
-                    print(f'No data in this directory: {fileNames[i]}')
-
-            accuracies.append(accuracies_culture)
-    return accuracies
-
-
-def extract_accuracies_on_culture(base, root, culture):
-    temp_accs = extract_accuracies(base, root)
-    accs = []
-    for acc in temp_accs:
-        a = acc[culture][culture]
-        accs.append(a)
-    return accs
-
-
-def plot_acc(title, accs, refs, refs_labels):
+def plot_cic_err_ref(cics, cicstds, errs, errstds, ref):
     fig, ax = plt.subplots()
-    plt.xlabel("Lambda parameter")
-    plt.ylabel("Accuracy")
-    miny = min(accs + refs)
-    maxy = max(accs + refs)
-    plt.ylim([miny - 0.5, maxy + 0.5])
-    plt.grid(True)
-    n_points = len(accs)
-    ax.set_title(title)
-    ticks_label = []
-    logspac = np.logspace(-3, 2, 31)
-    ticks_label.append(0)
-    for i in range(0, n_points - 1):
-        ticks_label.append(str(logspac[i])[0:5])
-    x = np.linspace(0, 100, n_points)
-    plt.xticks(ticks=x, labels=ticks_label)
-    ax.plot(x, accs, linewidth=2.0, color='k')
-    for i, ref in enumerate(refs):
-        plt.axhline(y=ref,
-                    color=list(mcolors.BASE_COLORS)[i],
-                    linestyle='--',
-                    label=refs_labels[i])
-    #ax.set_xscale('log')
-    plt.legend()
+    plt.errorbar(errs, cics, cicstds, errstds, linestyle='None', marker='^')
+    for tau in ref:
+        circle = plt.Circle((0, 0), tau, color='r')
+        ax.add_patch(circle)
+    plt.xlim(0,1)
+    plt.ylim(0,1)
     plt.show()
 
+def plot_cic_err_gamma(p, model, ns, pu):
+    accs = results_utils.retrievs_accs(p, model, ns, pu)
+    clerrs, clstds = results_utils.get_errs_stds_for_every_lambda(accs, pu)
+    CICs, stdsCIC = results_utils.get_CICs_stds_for_every_lambda(accs, pu)
 
-def plot_accuracies_per_culture(base, root, refs, refs_labels, pre_title):
-    chin_accs = extract_accuracies_on_culture(base, root, 0)
-    #print(chin_accs)
-    fren_accs = extract_accuracies_on_culture(base, root, 1)
-    #print(fren_accs)
-    tur_accs = extract_accuracies_on_culture(base, root, 2)
-    #print(tur_accs)
-    plot_acc(f'{pre_title} Accuracy on Chinese Culture', chin_accs, refs[0],
-             refs_labels[0])
-    plot_acc(f'{pre_title} Accuracy on French Culture', fren_accs, refs[1],
-             refs_labels[1])
-    plot_acc(f'{pre_title} Accuracy on Turkish Culture', tur_accs, refs[2],
-             refs_labels[2])
-
-
-def extract_accuracies_per_test_culture(base, root, culture):
-    temp_accs = extract_accuracies(base, root)
-    accs = []
-    for acc in temp_accs:
-        a = acc[culture]
-        accs.append(a)
-    return accs
-
-
-def plot_all_accuracies(base, root):
-    chin_on_chin = extract_accuracies_per_test_culture(base, root, 0)
-    fren_on_fren = extract_accuracies_per_test_culture(base, root, 1)
-    turn_on_tur = extract_accuracies_per_test_culture(base, root, 2)
-    chin_on_chin = np.asarray(chin_on_chin, dtype=object)
-    fren_on_fren = np.asarray(fren_on_fren, dtype=object)
-    turn_on_tur = np.asarray(turn_on_tur, dtype=object)
-    plot_acc('Accuracy on Chinese Culture out 0', chin_on_chin[:, 0])
-    plot_acc('Accuracy on Chinese Culture out 1', chin_on_chin[:, 1])
-    plot_acc('Accuracy on Chinese Culture out 2', chin_on_chin[:, 2])
-    plot_acc('Accuracy on French Culture out 0', fren_on_fren[:, 0])
-    plot_acc('Accuracy on French Culture out 1', fren_on_fren[:, 1])
-    plot_acc('Accuracy on French Culture out 2', fren_on_fren[:, 2])
-    plot_acc('Accuracy on Turkish Culture out 0', turn_on_tur[:, 0])
-    plot_acc('Accuracy on Turkish Culture out 1', turn_on_tur[:, 1])
-    plot_acc('Accuracy on Turkish Culture out 2', turn_on_tur[:, 2])
+def plot_cic_err_tau(p, model, ns, pu):
+    accs = results_utils.retrievs_accs(p, model, ns, pu)
+    clerrs, clstds = results_utils.get_errs_stds_for_every_lambda(accs, pu)
+    CICs, stdsCIC = results_utils.get_CICs_stds_for_every_lambda(accs, pu)
+    taus = [0.01, 0.05, 0.1, 0.2, 0.5,
+            0.8]  # 5%, 10% and 20% of the minimum error
+    for i in range(len(pu)):
+        print(f'\nREFERRING TO PU={pu[i]}')
+        # I want lambda for min errs (for each culture) and min CIC and their values
+        accs_pu = accs[i]
+        errs_pu, stds_pu = clerrs[i], clstds[i]
+        CICs_pu, stds_CIC_pu = CICs[i], stdsCIC[i]
+        lambs = []
+        if len(errs_pu) > 0:
+            # Calculate the minimum CIC in the first tau% of errors
+            for tau in taus:
+                lamb = results_utils.get_lamb_metric(errs_pu, tau, CICs_pu)
+                lambs.append(lamb)
+                #results_utils.print_stats(errs_pu, stds_pu, lamb, CICs_pu,
+                                          #stds_CIC_pu, tau)
+            ERRS = []
+            ERRSSTD = []
+            CICS = []
+            CICSSTD = []
+            for lam in lambs:
+                ERRS.append(errs_pu[lam])
+                ERRSSTD.append(stds_pu[lam])
+                CICS.append(CICs_pu[lam])
+                CICSSTD.append(stds_CIC_pu[lam])
+            plot_cic_err_ref(CICS, CICSSTD, ERRS, ERRSSTD, taus)
 
 
-def main():
-    chin_base = 'l_chin'
-    fren_base = 'l_fren'
-    tur_base = 'l_tur'
-    root = f'../deep_learning_mitigation/lamp/'
-    chin_on_chin_ref = 87.21
-    chin_on_fren_ref = 83.79
-    chin_on_tur_ref = 75.33
-    fren_on_chin_ref = 81.04
-    fren_on_fren_ref = 89.22
-    fren_on_tur_ref = 74.60
-    tur_on_chin_ref = 78.14
-    tur_on_fren_ref = 79.33
-    tur_on_tur_ref = 89.13
-    chin_refs = [[chin_on_chin_ref], [chin_on_fren_ref, fren_on_fren_ref],
-                 [chin_on_tur_ref, tur_on_tur_ref]]
-    fren_refs = [[chin_on_chin_ref, fren_on_chin_ref], [fren_on_fren_ref],
-                 [fren_on_tur_ref, tur_on_tur_ref]]
-    tur_refs = [[chin_on_chin_ref, tur_on_chin_ref],
-                [tur_on_fren_ref, fren_on_fren_ref], [tur_on_tur_ref]]
-    chin_refs_labels = [["C Model on C Test Set"],
-                        ["C Model on F Test Set", "F Model on F Test Set"],
-                        ["C Model on T Test Set", "T Model on T Test Set"]]
-    fren_refs_labels = [["C Model on C Test Set", "F Model on F Test Set"],
-                        ["F Model on F Test Set"],
-                        ["F Model on T Test Set", "T Model on T Test Set"]]
-    tur_refs_labels = [["C Model on C Test Set", "T Model on C Test Set"],
-                       ["T Model on F Test Set", "F Model on F Test Set"],
-                       ["T Model on T Test Set"]]
-    plot_accuracies_per_culture(chin_base, root, chin_refs, chin_refs_labels,
-                                'Chinese Model')
-    plot_accuracies_per_culture(fren_base, root, fren_refs, fren_refs_labels,
-                                'French Model')
-    plot_accuracies_per_culture(tur_base, root, tur_refs, tur_refs_labels,
-                                'Turkish Model')
-    #plot_all_accuracies(base, root)
+print_results = True
+if print_results:
+    print(Fore.RED + '\n\nMITIGATION PART\n\n')
+    print(Fore.BLUE + 'LAMPS\n' + Fore.WHITE)
+    p = '../deep_learning_mitigation/lamp'
+    ns = 10
+    pu = ['0,05', '0,1']
+    # CHIN
+    model = 'l_chin'
+    plot_cic_err_tau(p, model, ns, pu)
+    # FREN
+    model = 'l_fren'
+    plot_cic_err_tau(p, model, ns, pu)
+    # TUR
+    model = 'l_tur'
+    plot_cic_err_tau(p, model, ns, pu)
+
+    print(Fore.BLUE + '\CARPETS STRETCHED\n' + Fore.WHITE)
+    p = '../deep_learning_mitigation/carpet_stretch'
+    ns = 10
+    pu = ['0,05', '0,1']
+    # CHIN
+    model = 'l_chin'
+    plot_cic_err_tau(p, model, ns, pu)
+    # FREN
+    model = 'l_fren'
+    plot_cic_err_tau(p, model, ns, pu)
+    # TUR
+    model = 'l_tur'
+    plot_cic_err_tau(p, model, ns, pu)
+
+    print(Fore.BLUE + '\CARPETS blank\n' + Fore.WHITE)
+    p = '../deep_learning_mitigation/carpet_blank'
+    ns = 10
+    pu = ['0,05', '0,1']
+    # CHIN
+    model = 'l_chin'
+    plot_cic_err_tau(p, model, ns, pu)
+    # FREN
+    model = 'l_fren'
+    plot_cic_err_tau(p, model, ns, pu)
+    # TUR
+    model = 'l_tur'
+    plot_cic_err_tau(p, model, ns, pu)
+
+    # TEST FUNCTIONS ANALYSIS PART
+    print(Fore.RED + '\n\n\nANALYSIS PART \n' + Fore.WHITE)
 
 
-if __name__ == "__main__":
-    main()
+def get_cic_err_pu_standard(p, model, ns):
+    print(Fore.WHITE + f'MODEL IS {model}')
+    accs = results_utils.retrieve_accs_standard(p, model, ns)
+    CICs = []
+    if len(accs) > 0:
+        for j in range(ns):  # for each sample
+            errs = []
+            for k in range(3):
+                er = results_utils.calc_ERR(accs[k][j] / 100)
+                errs.append(er)
+            c = results_utils.calc_CIC(errs)
+            CICs.append(c)
+        CIC, CICstd = results_utils.retrieve_mean_dev_std(CICs)
+        errs = []
+        errs_std = []
+        res = []
+        for j in range(3):
+            l = np.multiply(accs[j], 0.01)
+            acc, std = results_utils.retrieve_mean_dev_std(l)
+            #print(f'Acc: {acc:.1f} on Culture {j}')
+            er = results_utils.calc_ERR(acc)
+            errs_std.append(std)
+            errs.append(er)
+            print(f'Error is {er*100:.1f}%+-{std*100:.1f}% on Culture {j}')
+        if len(errs) >= 3:
+            #cic = calc_CIC(errs)
+            #print(f'CIC for this model is {cic*100:.1f}%')
+            print(f'CIC for the model is {CIC*100:.1f}%+-{CICstd*100:.1f}%\n')
+        return errs, errs_std, CIC, CICstd
+    
+
+
+
+if print_results:
+    print(Fore.BLUE + '\nLAMPS\n')
+    
+    # SVM
+    p = '../standard'
+    # pu = 0 and LIN
+    print(Fore.WHITE + '\nPU = 0')
+    print('LSVM')
+    pt = p + '/lin'
+    model = 'lin_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'lin_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'lin_tur'
+    print_errors_CIC(pt, model, ns)
+
+    # pu = 0 and RBF
+    print('GSVM')
+    pt = p + '/rbf'
+    model = 'rbf_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'rbf_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'rbf_tur'
+    print_errors_CIC(pt, model, ns)
+    
+    # pu = 0 and DL
+    print(f'pu = 0')
+    print('DL')
+    pt = '../deep_learning' + '/lamp'
+    model = 'l_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'l_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'l_tur'
+    print_errors_CIC(pt, model, ns)
+
+    print('\nPU = 0.1')
+    # pu = 0.1 and LIN
+    print('LSVM')
+    pt = p + '/9010' + '/lin'
+    model = 'lin_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'lin_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'lin_tur'
+    print_errors_CIC(pt, model, ns)
+
+    # pu = 0.1 and RBF
+    print('GSVM')
+    pt = p + '/9010' + '/rbf'
+    model = 'rbf_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'rbf_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'rbf_tur'
+    print_errors_CIC(pt, model, ns)
+
+    # pu = 0.1 and DL
+    print(f'pu = 0.1')
+    print('DL')
+    pt = '../deep_learning' + '/9010/lamp/percent0,1'
+    model = 'l_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'l_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'l_tur'
+    print_errors_CIC(pt, model, ns)
+
+    print('\nPU = 0.05')
+    # pu = 0.05 and LIN
+    print('LSVM')
+    pt = p + '/50' + '/lin'
+    model = 'lin_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'lin_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'lin_tur'
+    print_errors_CIC(pt, model, ns)
+
+    # pu = 0.1 and RBF
+    print('GSVM')
+    pt = p + '/50' + '/rbf'
+    model = 'rbf_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'rbf_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'rbf_tur'
+    print_errors_CIC(pt, model, ns)
+
+    # pu = 0.05 and DL
+    print(f'pu = 0.05')
+    print('DL')
+    pt = '../deep_learning' + '/9010/lamp/percent0,05'
+    model = 'l_chin'
+    print_errors_CIC(pt, model, ns)
+    model = 'l_fren'
+    print_errors_CIC(pt, model, ns)
+    model = 'l_tur'
+    print_errors_CIC(pt, model, ns)
+
+    print(Fore.BLUE + '\CARPETS STRETCHED\n')
+    print(Fore.WHITE + 'DL')
+    print('\nPU = 0.0')
+    pt = '../deep_learning' + '/carpet_stretch'
+    model = 'c_ind'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_jap'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_scan'
+    print_errors_CIC(pt, model, ns)
+    print('\nPU = 0.1')
+    pt = '../deep_learning' + '/9010/carpet_stretch/percent0,1'
+    model = 'c_ind'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_jap'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_scan'
+    print_errors_CIC(pt, model, ns)
+    print('\nPU = 0.05')
+    pt = '../deep_learning' + '/9010/carpet_stretch/percent0,05'
+    model = 'c_ind'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_jap'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_scan'
+    print_errors_CIC(pt, model, ns)
+
+    print(Fore.BLUE + '\CARPETS blank\n')
+    print(Fore.WHITE + 'DL')
+    print('\nPU = 0.0')
+    pt = '../deep_learning' + '/carpet_blank'
+    model = 'c_ind'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_jap'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_scan'
+    print_errors_CIC(pt, model, ns)
+    print('\nPU = 0.1')
+    pt = '../deep_learning' + '/9010/carpet_blank/percent0,1'
+    model = 'c_ind'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_jap'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_scan'
+    print_errors_CIC(pt, model, ns)
+    print('\nPU = 0.05')
+    pt = '../deep_learning' + '/9010/carpet_blank/percent0,05'
+    model = 'c_ind'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_jap'
+    print_errors_CIC(pt, model, ns)
+    model = 'c_scan'
+    print_errors_CIC(pt, model, ns)
+

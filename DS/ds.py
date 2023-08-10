@@ -248,9 +248,9 @@ class DSClass:
         #self.TS.append(training)
         #self.TestS.append(test)
 
-    def build_dataset(self, paths, greyscale=0, flat=1):
+    def build_dataset(self, paths, greyscale=0, flat=1, proportion = 0.8):
         random.seed(time.time_ns())
-        self.proportion = 0.8
+        self.proportion = proportion
         self.greyscale = greyscale
         self.flat = flat
         # for each path build a dataset
@@ -305,3 +305,13 @@ class DSClass:
                 y = (cultureID, sample[1])
                 sample[1] = y
             cultureID = cultureID + 1
+
+    def indipendent_dataset(self, culture, percent=0.1):
+        TS = self.TS
+        for i, ts in enumerate(TS):
+            if i == culture:
+                TS[i] = ts[0:int(len(ts) * percent)]
+            else:
+                TS[i] = 0
+        self.TS = TS
+

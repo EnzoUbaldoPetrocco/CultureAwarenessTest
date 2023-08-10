@@ -7,7 +7,7 @@ from deep_learning.strings import Strings
 strings = Strings()
 paths = strings.carpet_paths_bla
 
-cc = ClassificatorClass(0, 0, paths,batch_size=2, fileName='c_ind.csv',
+cc = ClassificatorClass(2,0,paths,batch_size=2, fileName='c_scan.csv',
                          verbose = 0, validation_split=0.3, epochs=20,
-                           learning_rate=5e-4, gpu=False, times = 25)
-cc.execute()
+                          learning_rate=5e-4, gpu=False, times=25)
+cc.execute_indipendent()
