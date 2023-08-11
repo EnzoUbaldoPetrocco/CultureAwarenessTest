@@ -534,6 +534,3 @@ if print_results:
     model = 'c_scan'
     print_errors_CIC(pt, model, ns)
 
-
-from matplotlib import pyplot as plt
-plt.figure()
