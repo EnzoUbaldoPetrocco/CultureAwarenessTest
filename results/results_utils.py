@@ -283,7 +283,7 @@ def retrieve_statistics(p, model, ns, pu):
                 ...'''
 
 
-print_results = False
+print_results = True
 if print_results:
     print(Fore.RED + '\n\nMITIGATION PART\n\n')
     print(Fore.BLUE + 'LAMPS\n')
