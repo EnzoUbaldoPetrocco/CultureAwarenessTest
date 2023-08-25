@@ -305,13 +305,13 @@ if print_results:
     ns = 10
     pu = ['0,05', '0,1']
     # CHIN
-    model = 'l_chin'
+    model = 'c_ind'
     retrieve_statistics(p, model, ns, pu)
     # FREN
-    model = 'l_fren'
+    model = 'c_jap'
     retrieve_statistics(p, model, ns, pu)
     # TUR
-    model = 'l_tur'
+    model = 'c_scan'
     retrieve_statistics(p, model, ns, pu)
 
     print(Fore.BLUE + '\CARPETS blank\n')
@@ -319,17 +319,17 @@ if print_results:
     ns = 10
     pu = ['0,05', '0,1']
     # CHIN
-    model = 'l_chin'
+    model = 'c_ind'
     retrieve_statistics(p, model, ns, pu)
     # FREN
-    model = 'l_fren'
+    model = 'c_jap'
     retrieve_statistics(p, model, ns, pu)
     # TUR
-    model = 'l_tur'
+    model = 'c_scan'
     retrieve_statistics(p, model, ns, pu)
 
     # TEST FUNCTIONS ANALYSIS PART
-    print(Fore.RED + '\n\n\nANALYSIS PART \n')
+print(Fore.RED + '\n\n\nANALYSIS PART \n', Fore.WHITE)
 
 
 def retrieve_accs_standard(path, model, ns):
@@ -378,7 +378,7 @@ def print_errors_CIC(p, model, ns):
             #print(f'CIC for this model is {cic*100:.1f}%')
             print(f'CIC for the model is {CIC*100:.1f}%+-{CICstd*100:.1f}%\n')
 
-
+print_results=True
 if print_results:
     print(Fore.BLUE + '\nLAMPS\n')
     '''

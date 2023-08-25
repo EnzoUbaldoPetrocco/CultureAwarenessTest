@@ -78,13 +78,13 @@ if print_results:
     ns = 10
     pu = ['0,05', '0,1']
     # CHIN
-    model = 'l_chin'
+    model = 'c_ind'
     plot_cic_err_tau(p, model, ns, pu)
     # FREN
-    model = 'l_fren'
+    model = 'c_jap'
     plot_cic_err_tau(p, model, ns, pu)
     # TUR
-    model = 'l_tur'
+    model = 'c_scan'
     plot_cic_err_tau(p, model, ns, pu)
 
     print(Fore.BLUE + '\CARPETS blank\n' + Fore.WHITE)
@@ -92,13 +92,13 @@ if print_results:
     ns = 10
     pu = ['0,05', '0,1']
     # CHIN
-    model = 'l_chin'
+    model = 'c_ind'
     plot_cic_err_tau(p, model, ns, pu)
     # FREN
-    model = 'l_fren'
+    model = 'c_jap'
     plot_cic_err_tau(p, model, ns, pu)
     # TUR
-    model = 'l_tur'
+    model = 'c_scan'
     plot_cic_err_tau(p, model, ns, pu)
 
     # TEST FUNCTIONS ANALYSIS PART
@@ -137,7 +137,7 @@ def get_cic_err_pu_standard(p, model, ns):
     
 
 
-
+print_results = False
 if print_results:
     print(Fore.BLUE + '\nLAMPS\n')
     
