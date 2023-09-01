@@ -68,7 +68,7 @@ def retrieve_accs_lamb(path, model, ns):
 
 def retrieve_accs_pu(path, model, ns):
     lamb_accs = []
-    for lamb in range(-1, 25):
+    for lamb in range(0, 25):
         try:
             pth = path + f'/{lamb}'
             lamb_accs.append(retrieve_accs_lamb(pth, model, ns))
@@ -212,7 +212,7 @@ def print_stats(errs_pu, stds_pu, lamb, CICs, stdsCIC, tau):
     #CIC = calc_CIC(errors)
     print(f'Mean error is {np.mean(errs_pu[lamb])*100:.1f}')
     print(
-        f'CIC is {CICs[lamb]*100:.1f}%+-{stdsCIC[lamb]*100:.1f}% on culture {j}\n\n'
+        f'CIC is {CICs[lamb]*100:.1f}%+-{stdsCIC[lamb]*100:.1f}% on culture {j}\n'
     )
 
 
@@ -243,6 +243,8 @@ def retrieve_statistics(p, model, ns, pu):
     accs = retrievs_accs(p, model, ns, pu)
     clerrs, clstds = get_errs_stds_for_every_lambda(accs, pu)
     CICs, stdsCIC = get_CICs_stds_for_every_lambda(accs, pu)
+    #print(CICs)
+    #print(clerrs)
     for i in range(len(pu)):
         print(f'\nREFERRING TO PU={pu[i]}')
         # I want lambda for min errs (for each culture) and min CIC and their values
@@ -281,6 +283,7 @@ def retrieve_statistics(p, model, ns, pu):
                 print_stats(errs_pu, stds_pu, 25, accs_pu)
             except:
                 ...'''
+        print('\n')
 
 
 print_results = True

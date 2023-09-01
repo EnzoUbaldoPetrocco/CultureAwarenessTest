@@ -17,6 +17,7 @@ from keras.models import Model
 import random
 import gc
 import os
+import time
 
 class ClassificatorClass:
     def __init__(self,
@@ -303,4 +304,127 @@ class ClassificatorClass:
                     
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
+    
+    def execute_model_selection(self):
+        for i in range(self.times):
+            gc.collect()
+            print(f'CICLE {i}')
+            obj = DS.ds.DSClass()
+            obj.mitigation_dataset(self.paths, self.greyscale, 0)
+            obj.nineonedivision(self.culture, percent=self.percent)
+            # I have to select a culture
+            TS = obj.TS[self.culture]
+            # I have to test on every culture
+            TestSets = obj.TestS
+            # Name of the file management for results
+            fileNames = []
+            for l in range(len(TestSets)):
+                onPointSplitted = self.fileName.split('.')
+                fileNamesOut = []
+                for o in range(3):
+                    name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                        l) + f'/out{o}.' + onPointSplitted[1]
+                    
+                    fileNamesOut.append(name)
+                fileNames.append(fileNamesOut)
+            model = self.model_selection(TS)
+            cms = []
+            for k, TestSet in enumerate(TestSets):
+                cm = self.test(model, TestSet)
+                for o in range(3):
+                    print(fileNames[k][o])
+                    self.save_cm(fileNames[k][o], cm[o])
+                    cms.append(cm)
+            # Reset Memory each time
+            gc.collect()
+        
+        if self.verbose_param:
+            for i in range(len(obj.TS)):
+                for o in range(3):
+                    result = self.get_results(fileNames[i][o])
+                    result = np.array(result, dtype=object)
+                    print(f'RESULTS OF CULTURE {i}, out {o}')
+                    tot = self.resultsObj.return_tot_elements(result[0])
+                    pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
+                        result, tot)
+                    statistic = self.resultsObj.return_statistics_pcm(pcm_list)
+                    print(statistic[0])
+                    
+                    accuracy = statistic[0][0][0] + statistic[0][1][1]
+                    print(f'Accuracy is {accuracy} %')
 
+    def model_selection(self, TS, batch_size):
+        size = np.shape(TS[0][0])
+        input = Input(size)
+        x = tf.keras.Sequential([
+            ResNet50(input_shape=size, weights='imagenet', include_top=False)
+        ])(input)
+        x = Flatten()(x)
+        y1 = (Dense(1, activation='sigmoid', name='dense'))(x)
+        y2 = (Dense(1, activation='sigmoid', name='dense_1'))(x)
+        y3 = (Dense(1, activation='sigmoid', name='dense_2'))(x)
+        if batch_size:
+            bs_list = [1,2,4] # batch size list
+        else:
+            bs_list = [self.batch_size]
+        lr_list = np.logspace(-6,-3,12)
+        act_val_acc = 0
+        for bs in bs_list:
+            for lr in lr_list:
+                if self.verbose_param:
+                    print(f'For batch size = {bs} and learning rate = {lr}')
+                model = Model(inputs=input,
+                    outputs = [y1,y2,y3],
+                    name = 'model')
+                self.model.trainable = True
+                for layer in self.model.layers[1].layers:
+                    layer.trainable = False
+                for layer in self.model.layers[1].layers[-3:]:
+                    if not isinstance(layer, layers.BatchNormalization):
+                        layer.trainable = True
+                if self.culture == 0:
+                    monitor_val = 'val_dense_accuracy'
+                else:
+                    monitor_val = f'val_dense_{self.culture}_accuracy'
+                lr_reduce = ReduceLROnPlateau(monitor=monitor_val,
+                                      factor=0.1,
+                                      patience=int(self.epochs/3) + 1,
+                                      verbose=self.verbose_param,
+                                      mode='max',
+                                      min_lr=1e-8)
+                early = EarlyStopping(monitor=monitor_val,
+                                    min_delta=0.001,
+                                    patience=int(self.epochs/1.7) + 1,
+                                    verbose=self.verbose_param,
+                                    mode='auto')
+                adam = optimizers.Adam(lr)
+                optimizer = adam
+                model.compile(loss="binary_crossentropy",
+                            optimizer=optimizer,
+                            metrics=["accuracy"])
+
+                TS = np.array(TS, dtype=object)
+                X = list(TS[:, 0])
+                y = list(TS[:, 1])
+                X_val = X[int(len(X) * (1-self.validation_split)):len(X) - 1]
+                y_val = y[int(len(y) * (1-self.validation_split)):len(y) - 1]
+                X = X[0:int(len(X) * (1-self.validation_split))]
+                y = y[0:int(len(y) * (1-self.validation_split))]
+                X = tf.stack(X)
+                y = tf.stack(y)
+                X_val = tf.stack(X_val)
+                y_val = tf.stack(y_val)
+                self.history = model.fit(X,y,
+                                        epochs=self.epochs,
+                                        validation_data=(X_val,y_val),
+                                        callbacks=[early, lr_reduce],
+                                        verbose=self.verbose_param,
+                                        batch_size = bs)
+                val_acc = self.history.history['val_accuracy']
+                if act_val_acc < max(val_acc):
+                    best_model = model
+                if self.plot:
+                    self.plot_training()
+                model = None
+                time.sleep(5)
+        return best_model

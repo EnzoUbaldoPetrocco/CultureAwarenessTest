@@ -55,7 +55,7 @@ class ClassificatorClass:
                 try:
                     tf.config.experimental.set_virtual_device_configuration(
                         gpus[0],
-                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2000)])
+                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2800)])
                     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
                 except RuntimeError as e:
@@ -323,6 +323,36 @@ class ClassificatorClass:
             # Reset Memory each time
             gc.collect()
 
+    def executenineone_model_selection(self):
+        for i in range(self.times):
+            gc.collect()
+            print(f'CICLE {i}')
+            obj = DS.ds.DSClass()
+            obj.build_dataset(self.paths, self.greyscale, 0)
+            obj.nineonedivision(self.culture, percent=self.percent)
+            # I have to select a culture
+            TS = obj.TS[self.culture]
+            # I have to test on every culture
+            TestSets = obj.TestS
+            print(np.shape(TestSets))
+            # Name of the file management for results
+            fileNames = []
+            for l in range(len(TestSets)):
+                name = self.fileName.split('.')[0] + str(
+                    l) + self.fileName.split('.')[1]
+                fileNames.append(name)
+
+            model = self.model_selection(TS)
+
+            cms = []
+            for k, TestSet in enumerate(TestSets):
+                cm = self.test(model, TestSet)
+                self.save_cm(fileNames[k], cm)
+                cms.append(cm)
+            
+            # Reset Memory each time
+            gc.collect()
+
         #results = np.array(results, dtype = object)
         for i in range(len(obj.TS)):
             #result = results[:,i]
@@ -359,7 +389,7 @@ class ClassificatorClass:
                               mode='auto')
         
         bs_list = [1,2,4] # batch size list
-        lr_list = np.logspace(-6,-2,20)
+        lr_list = np.logspace(-6,-3,12)
         act_val_acc = 0
         for bs in bs_list:
             for lr in lr_list:
