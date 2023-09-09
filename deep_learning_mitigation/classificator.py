@@ -59,7 +59,7 @@ class ClassificatorClass:
                 try:
                     tf.config.experimental.set_virtual_device_configuration(
                         gpus[0],
-                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2200)])
+                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2600)])
                     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
                 except RuntimeError as e:
@@ -305,7 +305,7 @@ class ClassificatorClass:
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
     
-    def execute_model_selection(self):
+    def execute_model_selection(self, bs= True):
         for i in range(self.times):
             gc.collect()
             print(f'CICLE {i}')
@@ -327,7 +327,7 @@ class ClassificatorClass:
                     
                     fileNamesOut.append(name)
                 fileNames.append(fileNamesOut)
-            model = self.model_selection(TS)
+            model = self.model_selection(TS, bs)
             cms = []
             for k, TestSet in enumerate(TestSets):
                 cm = self.test(model, TestSet)
@@ -353,7 +353,7 @@ class ClassificatorClass:
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
 
-    def model_selection(self, TS, batch_size):
+    def model_selection(self, TS, batch_size=True):
         size = np.shape(TS[0][0])
         input = Input(size)
         x = tf.keras.Sequential([
@@ -373,7 +373,7 @@ class ClassificatorClass:
             for lr in lr_list:
                 if self.verbose_param:
                     print(f'For batch size = {bs} and learning rate = {lr}')
-                model = Model(inputs=input,
+                self.model = Model(inputs=input,
                     outputs = [y1,y2,y3],
                     name = 'model')
                 self.model.trainable = True
@@ -399,9 +399,9 @@ class ClassificatorClass:
                                     mode='auto')
                 adam = optimizers.Adam(lr)
                 optimizer = adam
-                model.compile(loss="binary_crossentropy",
-                            optimizer=optimizer,
-                            metrics=["accuracy"])
+                self.model.compile(optimizer=optimizer,
+                      metrics=["accuracy"],
+                      loss=[self.custom_loss(out=0),self.custom_loss(out=1),self.custom_loss(out=2)], run_eagerly=self.run_eagerly)
 
                 TS = np.array(TS, dtype=object)
                 X = list(TS[:, 0])
@@ -414,17 +414,17 @@ class ClassificatorClass:
                 y = tf.stack(y)
                 X_val = tf.stack(X_val)
                 y_val = tf.stack(y_val)
-                self.history = model.fit(X,y,
+                self.history = self.model.fit(X,y,
                                         epochs=self.epochs,
                                         validation_data=(X_val,y_val),
                                         callbacks=[early, lr_reduce],
                                         verbose=self.verbose_param,
                                         batch_size = bs)
-                val_acc = self.history.history['val_accuracy']
+                val_acc = self.history.history[monitor_val]
                 if act_val_acc < max(val_acc):
-                    best_model = model
+                    best_model = self.model
                 if self.plot:
                     self.plot_training()
-                model = None
+                self.model = None
                 time.sleep(5)
         return best_model

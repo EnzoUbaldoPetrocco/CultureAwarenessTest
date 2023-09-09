@@ -221,21 +221,31 @@ def get_lamb_metric(errs_pu, tau, CICs):
     for i in range(len(errs_pu)):  # per each lambda
         m = np.mean(errs_pu[i])  # ERR metric
         lerrs.append(m)
-    lambdas = np.argwhere(lerrs < (1 + tau) * min(lerrs))
+    #lambdas = np.argwhere(lerrs < (1 + tau) * min(lerrs))
+    values = [x for x in lerrs if x < tau]
+    lambdas = []
+    for value in values:
+        lambdas.append(lerrs.index(value))
+    #lambdas = np.argwhere( )
+    #print(tau)
+    #print(lerrs)
     cs = []
-    for l in lambdas:  # select the CICs that are in the ball desiderd
-        cs.append(CICs[l[0]])
-    optIndex = np.argmin(cs)
-    optIndex = list(CICs).index(cs[optIndex])
-    #optIndex = np.where(CICs == cs[optIndex])
-    optValue = CICs[optIndex]
-    #print(f'lerrs are {lerrs}')
-    #print(f'minimum err is {min(lerrs)}')
-    #print(f'lambdas are {lambdas}')
-    #print(f'rrs are {cs}')
-    #print(f'optIndex is {optIndex}')
-    #print(f'optValue is {optValue}')
-    return optIndex
+    if len(lambdas) > 0:
+        #if len(lambdas[0]) > 0:
+            for l in lambdas:  # select the CICs that are in the ball desiderd
+                cs.append(CICs[l])
+            optIndex = np.argmin(cs)
+            optIndex = list(CICs).index(cs[optIndex])
+            #optIndex = np.where(CICs == cs[optIndex])
+            optValue = CICs[optIndex]
+            #print(f'lerrs are {lerrs}')
+            #print(f'minimum err is {min(lerrs)}')
+            #print(f'lambdas are {lambdas}')
+            #print(f'rrs are {cs}')
+            #print(f'optIndex is {optIndex}')
+            #print(f'optValue is {optValue}')
+            return optIndex
+    return -1
 
 
 def retrieve_statistics(p, model, ns, pu):
@@ -252,13 +262,16 @@ def retrieve_statistics(p, model, ns, pu):
         errs_pu, stds_pu = clerrs[i], clstds[i]
         CICs_pu, stds_CIC_pu = CICs[i], stdsCIC[i]
         lambdas = []
-        taus = [0.01, 0.05, 0.1, 0.2, 0.5,
+        taus = [0.1, 0.15, 0.2, 0.5,
                 0.8]  # 5%, 10% and 20% of the minimum error
         if len(errs_pu) > 0:
             # Calculate the minimum CIC in the first tau% of errors
             for tau in taus:
                 lamb = get_lamb_metric(errs_pu, tau, CICs_pu)
-                print_stats(errs_pu, stds_pu, lamb, CICs_pu, stds_CIC_pu, tau)
+                if lamb >= 0:
+                    print_stats(errs_pu, stds_pu, lamb, CICs_pu, stds_CIC_pu, tau)
+                else:
+                    print(f'For tau = {tau} no ERR detected')
             '''
             for j in range(3):
                 print(f'LAMBDA FOR MINIMUM ERROR ON CULTURE {j}')
@@ -381,7 +394,7 @@ def print_errors_CIC(p, model, ns):
             #print(f'CIC for this model is {cic*100:.1f}%')
             print(f'CIC for the model is {CIC*100:.1f}%+-{CICstd*100:.1f}%\n')
 
-print_results=True
+print_results=False
 if print_results:
     print(Fore.BLUE + '\nLAMPS\n')
     '''
