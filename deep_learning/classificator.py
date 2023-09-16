@@ -389,7 +389,7 @@ class ClassificatorClass:
                               mode='auto')
         
         bs_list = [1,2,4] # batch size list
-        lr_list = np.logspace(-6,-3,12)
+        lr_list = np.logspace(-5.5,-3,10)
         act_val_acc = 0
         for bs in bs_list:
             for lr in lr_list:
