@@ -5,7 +5,7 @@ from deep_learning.classificator import ClassificatorClass
 from deep_learning.strings import Strings
 
 strings = Strings()
-paths = strings.lamp_paths
+paths = strings.carpet_paths_str
 space = [0.0, 0.05, 0.1]
 for i in range(1,len(space)):
     j = space[i]
