@@ -304,7 +304,6 @@ class ClassificatorClass:
             TS = obj.TS[self.culture]
             # I have to test on every culture
             TestSets = obj.TestS
-            print(np.shape(TestSets))
             # Name of the file management for results
             fileNames = []
             for l in range(len(TestSets)):
