@@ -12,28 +12,8 @@ def main():
     # CARPET
     print('STR Carpets mitigation')
     paths = strings.carpet_paths_str
-    file_name = 'c_ind_mit.csv'
-    culture = 0
+    
     space = [0.05, 0.1]
-    for i in range(-1, 25):
-      percent = space[1]
-      cc = ClassificatorClass(culture,
-                              0,
-                              paths,
-                              batch_size=4,
-                              fileName=file_name,
-                              verbose=0,
-                              gpu=False,
-                              plot=0,
-                              validation_split=0.2,
-                              epochs=7,
-                              learning_rate=6e-5,
-                              lambda_index=i,
-                              times=10,
-                              percent=percent)
-      cc.execute()
-      cc = None
-      sleep(5)
     file_name = 'c_jap_mit.csv'
     culture = 1
     for i in range(-1, 25):

@@ -15,7 +15,7 @@ paths = strings.carpet_paths_str
 
 
 # SCANDINAVIAN
-cc = ClassificatorClass(2,0,paths,batch_size=4, fileName='c_scan_0,0str.csv', verbose = 0, times=4, validation_split=0.2, epochs=7, learning_rate=5e-4, percent=percent)
+cc = ClassificatorClass(2,0,paths,batch_size=4, fileName='c_scan_0,0str.csv', verbose = 0, times=1, validation_split=0.2, epochs=7, learning_rate=5e-4, percent=percent)
 cc.executenineone_model_selection()
 cc = None
 sleep(5)
