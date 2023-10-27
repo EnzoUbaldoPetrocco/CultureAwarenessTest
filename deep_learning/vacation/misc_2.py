@@ -24,7 +24,7 @@ def main():
                               batch_size=4,
                               fileName=file_name,
                               verbose=0,
-                              gpu=False,
+                              gpu=True,
                               plot=0,
                               validation_split=0.2,
                               epochs=7,
@@ -32,7 +32,7 @@ def main():
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute()
+      cc.execute_model_selection()
       cc = None
       sleep(5)
       percent = space[1]
@@ -42,7 +42,7 @@ def main():
                               batch_size=4,
                               fileName=file_name,
                               verbose=0,
-                              gpu=False,
+                              gpu=True,
                               plot=0,
                               validation_split=0.2,
                               epochs=7,
@@ -50,7 +50,7 @@ def main():
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute()
+      cc.execute_model_selection()
       cc = None
       sleep(5)
     file_name = 'c_scan_mit.csv'
@@ -66,12 +66,12 @@ def main():
                               plot=0,
                               validation_split=0.2,
                               epochs=7,
-                              gpu=False,
+                              gpu=True,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute()
+      cc.execute_model_selection()
       cc = None
       sleep(5)
       percent = space[1]
@@ -84,12 +84,12 @@ def main():
                               plot=0,
                               validation_split=0.2,
                               epochs=7,
-                              gpu=False,
+                              gpu=True,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute()
+      cc.execute_model_selection()
       cc = None
       sleep(5)
 
