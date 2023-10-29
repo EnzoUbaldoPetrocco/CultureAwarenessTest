@@ -301,6 +301,7 @@ def retrieve_statistics(p, model, ns, pu):
 
 print_results = True
 if print_results:
+    '''
     print(Fore.RED + '\n\nMITIGATION PART\n\n')
     print(Fore.BLUE + 'LAMPS\n')
     p = '../deep_learning_mitigation/lamp'
@@ -315,6 +316,8 @@ if print_results:
     # TUR
     model = 'l_tur'
     retrieve_statistics(p, model, ns, pu)
+    '''
+
 
     print(Fore.BLUE + '\CARPETS STRETCHED\n')
     p = '../deep_learning_mitigation/carpet_stretch'
@@ -330,19 +333,7 @@ if print_results:
     model = 'c_scan'
     retrieve_statistics(p, model, ns, pu)
 
-    print(Fore.BLUE + '\CARPETS blank\n')
-    p = '../deep_learning_mitigation/carpet_blank'
-    ns = 10
-    pu = ['0,05', '0,1']
-    # CHIN
-    model = 'c_ind'
-    retrieve_statistics(p, model, ns, pu)
-    # FREN
-    model = 'c_jap'
-    retrieve_statistics(p, model, ns, pu)
-    # TUR
-    model = 'c_scan'
-    retrieve_statistics(p, model, ns, pu)
+
 
     # TEST FUNCTIONS ANALYSIS PART
 print(Fore.RED + '\n\n\nANALYSIS PART \n', Fore.WHITE)
@@ -394,10 +385,10 @@ def print_errors_CIC(p, model, ns):
             #print(f'CIC for this model is {cic*100:.1f}%')
             print(f'CIC for the model is {CIC*100:.1f}%+-{CICstd*100:.1f}%\n')
 
-print_results=False
-if print_results:
-    print(Fore.BLUE + '\nLAMPS\n')
+print_results=True
+if print_results:    
     '''
+    print(Fore.BLUE + '\nLAMPS\n')
     # SVM
     p = '../standard'
     # pu = 0 and LIN
@@ -420,7 +411,6 @@ if print_results:
     print_errors_CIC(pt, model, ns)
     model = 'rbf_tur'
     print_errors_CIC(pt, model, ns)
-    '''
     # pu = 0 and DL
     print(f'pu = 0')
     print('DL')
@@ -431,7 +421,6 @@ if print_results:
     print_errors_CIC(pt, model, ns)
     model = 'l_tur'
     print_errors_CIC(pt, model, ns)
-    '''
     print('\nPU = 0.1')
     # pu = 0.1 and LIN
     print('LSVM')
@@ -452,7 +441,7 @@ if print_results:
     print_errors_CIC(pt, model, ns)
     model = 'rbf_tur'
     print_errors_CIC(pt, model, ns)
-    '''
+
     # pu = 0.1 and DL
     print(f'pu = 0.1')
     print('DL')
@@ -463,7 +452,6 @@ if print_results:
     print_errors_CIC(pt, model, ns)
     model = 'l_tur'
     print_errors_CIC(pt, model, ns)
-    '''
     print('\nPU = 0.05')
     # pu = 0.05 and LIN
     print('LSVM')
@@ -484,7 +472,6 @@ if print_results:
     print_errors_CIC(pt, model, ns)
     model = 'rbf_tur'
     print_errors_CIC(pt, model, ns)
-    '''
     # pu = 0.05 and DL
     print(f'pu = 0.05')
     print('DL')
@@ -495,6 +482,7 @@ if print_results:
     print_errors_CIC(pt, model, ns)
     model = 'l_tur'
     print_errors_CIC(pt, model, ns)
+    '''
 
     print(Fore.BLUE + '\CARPETS STRETCHED\n')
     print(Fore.WHITE + 'DL')
@@ -523,30 +511,4 @@ if print_results:
     model = 'c_scan'
     print_errors_CIC(pt, model, ns)
 
-    print(Fore.BLUE + '\CARPETS blank\n')
-    print(Fore.WHITE + 'DL')
-    print('\nPU = 0.0')
-    pt = '../deep_learning' + '/carpet_blank'
-    model = 'c_ind'
-    print_errors_CIC(pt, model, ns)
-    model = 'c_jap'
-    print_errors_CIC(pt, model, ns)
-    model = 'c_scan'
-    print_errors_CIC(pt, model, ns)
-    print('\nPU = 0.1')
-    pt = '../deep_learning' + '/9010/carpet_blank/percent0,1'
-    model = 'c_ind'
-    print_errors_CIC(pt, model, ns)
-    model = 'c_jap'
-    print_errors_CIC(pt, model, ns)
-    model = 'c_scan'
-    print_errors_CIC(pt, model, ns)
-    print('\nPU = 0.05')
-    pt = '../deep_learning' + '/9010/carpet_blank/percent0,05'
-    model = 'c_ind'
-    print_errors_CIC(pt, model, ns)
-    model = 'c_jap'
-    print_errors_CIC(pt, model, ns)
-    model = 'c_scan'
-    print_errors_CIC(pt, model, ns)
 

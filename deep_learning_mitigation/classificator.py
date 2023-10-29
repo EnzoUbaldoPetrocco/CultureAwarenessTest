@@ -61,7 +61,7 @@ class ClassificatorClass:
                         gpus[0],
                         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=2600)])
                     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                    tf.config.experimental.set_memory_growth(gpus[0], True)
+                    #tf.config.experimental.set_memory_growth(gpus[0], True)
                     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
                 except RuntimeError as e:
                     # Virtual devices must be set before GPUs have been initialized
