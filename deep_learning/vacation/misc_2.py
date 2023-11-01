@@ -35,6 +35,7 @@ def main():
       cc.execute_model_selection()
       cc = None
       sleep(5)
+    for i in range(-1, 25):
       percent = space[1]
       cc = ClassificatorClass(culture,
                               0,
@@ -74,6 +75,7 @@ def main():
       cc.execute_model_selection()
       cc = None
       sleep(5)
+    for i in range(-1, 25):
       percent = space[1]
       cc = ClassificatorClass(culture,
                               0,
