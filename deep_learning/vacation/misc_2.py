@@ -4,6 +4,7 @@ sys.path.insert(1, '../../')
 from deep_learning_mitigation.classificator import ClassificatorClass
 from deep_learning_mitigation.strings import Strings
 from time import sleep
+from time import time
 
 def main():
     # LAMPS
@@ -18,21 +19,24 @@ def main():
     culture = 1
     for i in range(-1, 25):
       percent = space[0]
+      tm1 = time()
       cc = ClassificatorClass(culture,
                               0,
                               paths,
                               batch_size=4,
                               fileName=file_name,
-                              verbose=0,
+                              verbose=1,
                               gpu=True,
                               plot=0,
-                              validation_split=0.2,
-                              epochs=7,
+                              validation_split=0.3,
+                              epochs=12,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute_model_selection()
+      cc.exe_intellig_model_selection()
+      tm2 = time()
+      
       cc = None
       sleep(5)
     for i in range(-1, 25):
@@ -45,13 +49,13 @@ def main():
                               verbose=0,
                               gpu=True,
                               plot=0,
-                              validation_split=0.2,
-                              epochs=7,
+                              validation_split=0.3,
+                              epochs=12,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute_model_selection()
+      cc.exe_intellig_model_selection()
       cc = None
       sleep(5)
     file_name = 'c_scan_mit.csv'
@@ -65,14 +69,14 @@ def main():
                               fileName=file_name,
                               verbose=0,
                               plot=0,
-                              validation_split=0.2,
-                              epochs=7,
+                              validation_split=0.3,
+                              epochs=12,
                               gpu=True,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute_model_selection()
+      cc.exe_intellig_model_selection()
       cc = None
       sleep(5)
     for i in range(-1, 25):
@@ -84,14 +88,14 @@ def main():
                               fileName=file_name,
                               verbose=0,
                               plot=0,
-                              validation_split=0.2,
-                              epochs=7,
+                              validation_split=0.3,
+                              epochs=12,
                               gpu=True,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.execute_model_selection()
+      cc.exe_intellig_model_selection()
       cc = None
       sleep(5)
 

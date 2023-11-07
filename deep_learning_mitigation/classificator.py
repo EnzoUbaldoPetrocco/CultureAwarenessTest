@@ -19,6 +19,7 @@ import gc
 import os
 import time
 
+
 class ClassificatorClass:
     def __init__(self,
                  culture=0,
@@ -256,6 +257,7 @@ class ClassificatorClass:
             
         if self.plot:
             self.plot_training()
+        self.save_models(self.model)
         return self.model
 
     def execute(self):
@@ -354,6 +356,22 @@ class ClassificatorClass:
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
 
+    def save_models(self, model):
+        culture_path = './' + self.fileName.split('.')[0]
+        percent_path = culture_path + '/' + self.percent
+        model_path = percent_path + '/' + self.lambda_index
+        fileUtil = FileClass(self.fileName)
+        fileUtil.mkdir(culture_path)
+        fileUtil.mkdir(percent_path)
+        fileUtil.mkdir(model_path)
+        count = 0
+        # Iterate directory
+        for path in os.listdir(model_path):
+            # check if current path is a file
+            if os.path.isfile(os.path.join(model_path, path)):
+                count += 1
+        model.save_weights(f'{model_path}/checkpoint_{count}')
+
     def model_selection(self, TS, batch_size=True):
         size = np.shape(TS[0][0])
         input = Input(size)
@@ -365,10 +383,10 @@ class ClassificatorClass:
         y2 = (Dense(1, activation='sigmoid', name='dense_1'))(x)
         y3 = (Dense(1, activation='sigmoid', name='dense_2'))(x)
         if batch_size:
-            bs_list = [1,2,4] # batch size list
+            bs_list = [1] # batch size list
         else:
             bs_list = [self.batch_size]
-        lr_list = np.logspace(-6,-3,12)
+        lr_list = np.logspace(-7.5,-2.5,18)
         act_val_acc = 0
         for bs in bs_list:
             for lr in lr_list:
@@ -422,10 +440,93 @@ class ClassificatorClass:
                                         verbose=self.verbose_param,
                                         batch_size = bs)
                 val_acc = self.history.history[monitor_val]
-                if act_val_acc < max(val_acc):
+                if act_val_acc < val_acc[-1]:
                     best_model = self.model
+                    self.batch_size = bs
+                    self.learning_rate = lr
                 if self.plot:
                     self.plot_training()
                 self.model = None
                 time.sleep(5)
+        print(f'best hyperparams are: lr: {self.learning_rate}, bs: {self.batch_size}')
+        self.save_models(best_model)
         return best_model
+    
+    def exe_intellig_model_selection(self, bs= True):
+        gc.collect()
+        print(f'CICLE {0}')
+        obj = DS.ds.DSClass()
+        obj.mitigation_dataset(self.paths, self.greyscale, 0)
+        obj.nineonedivision(self.culture, percent=self.percent)
+        # I have to select a culture
+        TS = obj.TS[self.culture]
+        # I have to test on every culture
+        TestSets = obj.TestS
+        # Name of the file management for results
+        fileNames = []
+        for l in range(len(TestSets)):
+            onPointSplitted = self.fileName.split('.')
+            fileNamesOut = []
+            for o in range(3):
+                name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                    l) + f'/out{o}.' + onPointSplitted[1]
+                
+                fileNamesOut.append(name)
+            fileNames.append(fileNamesOut)
+        model = self.model_selection(TS, bs)
+        cms = []
+        for k, TestSet in enumerate(TestSets):
+            cm = self.test(model, TestSet)
+            for o in range(3):
+                print(fileNames[k][o])
+                self.save_cm(fileNames[k][o], cm[o])
+                cms.append(cm)
+        # Reset Memory each time
+        gc.collect()
+        if self.times > 1:
+            for i in range(self.times-1):
+                gc.collect()
+                print(f'CICLE {i}')
+                obj = DS.ds.DSClass()
+                obj.mitigation_dataset(self.paths, self.greyscale, 0)
+                obj.nineonedivision(self.culture, percent=self.percent)
+                # I have to select a culture
+                TS = obj.TS[self.culture]
+                # I have to test on every culture
+                TestSets = obj.TestS
+                # Name of the file management for results
+                fileNames = []
+                for l in range(len(TestSets)):
+                    onPointSplitted = self.fileName.split('.')
+                    fileNamesOut = []
+                    for o in range(3):
+                        name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                            l) + f'/out{o}.' + onPointSplitted[1]
+                        
+                        fileNamesOut.append(name)
+                    fileNames.append(fileNamesOut)
+                model = self.train(TS)
+                cms = []
+                for k, TestSet in enumerate(TestSets):
+                    cm = self.test(model, TestSet)
+                    for o in range(3):
+                        print(fileNames[k][o])
+                        self.save_cm(fileNames[k][o], cm[o])
+                        cms.append(cm)
+                # Reset Memory each time
+                gc.collect()
+    
+        if self.verbose_param:
+            for i in range(len(obj.TS)):
+                for o in range(3):
+                    result = self.get_results(fileNames[i][o])
+                    result = np.array(result, dtype=object)
+                    print(f'RESULTS OF CULTURE {i}, out {o}')
+                    tot = self.resultsObj.return_tot_elements(result[0])
+                    pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
+                        result, tot)
+                    statistic = self.resultsObj.return_statistics_pcm(pcm_list)
+                    print(statistic[0])
+                    
+                    accuracy = statistic[0][0][0] + statistic[0][1][1]
+                    print(f'Accuracy is {accuracy} %')
