@@ -25,10 +25,10 @@ def main():
                               paths,
                               batch_size=4,
                               fileName=file_name,
-                              verbose=1,
+                              verbose=0,
                               gpu=True,
                               plot=0,
-                              validation_split=0.3,
+                              validation_split=0.2,
                               epochs=12,
                               learning_rate=6e-5,
                               lambda_index=i,
@@ -36,7 +36,7 @@ def main():
                               percent=percent)
       cc.exe_intellig_model_selection()
       tm2 = time()
-      
+
       cc = None
       sleep(5)
     for i in range(-1, 25):
@@ -49,8 +49,8 @@ def main():
                               verbose=0,
                               gpu=True,
                               plot=0,
-                              validation_split=0.3,
-                              epochs=12,
+                              validation_split=0.2,
+                              epochs=10,
                               learning_rate=6e-5,
                               lambda_index=i,
                               times=10,
@@ -69,7 +69,7 @@ def main():
                               fileName=file_name,
                               verbose=0,
                               plot=0,
-                              validation_split=0.3,
+                              validation_split=0.2,
                               epochs=12,
                               gpu=True,
                               learning_rate=6e-5,
@@ -88,7 +88,7 @@ def main():
                               fileName=file_name,
                               verbose=0,
                               plot=0,
-                              validation_split=0.3,
+                              validation_split=0.2,
                               epochs=12,
                               gpu=True,
                               learning_rate=6e-5,

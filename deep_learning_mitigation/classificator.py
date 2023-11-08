@@ -358,8 +358,8 @@ class ClassificatorClass:
 
     def save_models(self, model):
         culture_path = './' + self.fileName.split('.')[0]
-        percent_path = culture_path + '/' + self.percent
-        model_path = percent_path + '/' + self.lambda_index
+        percent_path = culture_path + '/' + str(self.percent)
+        model_path = percent_path + '/' + str(self.lambda_index)
         fileUtil = FileClass(self.fileName)
         fileUtil.mkdir(culture_path)
         fileUtil.mkdir(percent_path)
@@ -383,7 +383,7 @@ class ClassificatorClass:
         y2 = (Dense(1, activation='sigmoid', name='dense_1'))(x)
         y3 = (Dense(1, activation='sigmoid', name='dense_2'))(x)
         if batch_size:
-            bs_list = [1] # batch size list
+            bs_list = [2] # batch size list
         else:
             bs_list = [self.batch_size]
         lr_list = np.logspace(-7.5,-2.5,18)
