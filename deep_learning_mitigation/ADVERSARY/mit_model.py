@@ -64,9 +64,9 @@ class MitigationModel:
         self.verbose = verbose
         self.plot = plot
 
-    def save_models(self, fileName, percent):
+    def save_models(self, fileName):
         culture_path = './' + fileName.split('.')[0]
-        percent_path = culture_path + '/' + str(percent)
+        percent_path = culture_path + '/' + str(self.percent)
         model_path = percent_path + '/' + str(self.lambda_index)
         fileUtil = FileClass(fileName)
         fileUtil.mkdir(culture_path)
@@ -116,7 +116,7 @@ class MitigationModel:
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         self.train_loss(loss)
 
-    def fit(self, data, adv_train, std_data_augmentation):
+    def fit(self, data, adv_train, std_data_augmentation, save_model=0, model_path='./model'):
         # Train model with adversarial training
         for epoch in range(self.nb_epochs):
             # keras like display of progress
@@ -140,6 +140,8 @@ class MitigationModel:
                 self.train_step(std_x, y)
                 progress_bar_train.add(x.shape[0],
                                     values=[("loss", self.train_loss.result())])
+        if save_model:
+            self.save_models(model_path)
                 
                 
     def save_cm(self, fileName, cm):
