@@ -7,7 +7,7 @@ from time import sleep
 from time import time
 
 def main():
-    # LAMPS
+
     strings = Strings()
 
     # CARPET
@@ -15,9 +15,9 @@ def main():
     paths = strings.carpet_paths_str
     
     space = [0.05, 0.1]
-    file_name = 'c_jap_mit.csv'
-    culture = 1
-    for i in range(-1, 25):
+    file_name = 'c_ind_mit.csv'
+    culture = 0
+    for i in range(9, 25):
       percent = space[0]
       tm1 = time()
       cc = ClassificatorClass(culture,
@@ -29,12 +29,12 @@ def main():
                               gpu=True,
                               plot=0,
                               validation_split=0.2,
-                              epochs=12,
-                              learning_rate=6e-5,
+                              epochs=15,
+                              learning_rate=4e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.exe_intellig_model_selection()
+      cc.execute()
       tm2 = time()
 
       cc = None
@@ -50,12 +50,98 @@ def main():
                               gpu=True,
                               plot=0,
                               validation_split=0.2,
-                              epochs=10,
-                              learning_rate=6e-5,
+                              epochs=15,
+                              learning_rate=4e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.exe_intellig_model_selection()
+      cc.execute()
+      cc = None
+      sleep(5)
+    file_name = 'c_scan_mit.csv'
+    culture = 2
+    for i in range(-1, 25):
+      percent = space[0]
+      cc = ClassificatorClass(culture,
+                              0,
+                              paths,
+                              batch_size=2,
+                              fileName=file_name,
+                              verbose=0,
+                              plot=0,
+                              validation_split=0.2,
+                              epochs=15,
+                              gpu=True,
+                              learning_rate=8e-5,
+                              lambda_index=i,
+                              times=10,
+                              percent=percent)
+      cc.execute()
+      cc = None
+      sleep(5)
+    for i in range(-1, 25):
+      percent = space[1]
+      cc = ClassificatorClass(culture,
+                              0,
+                              paths,
+                              batch_size=2,
+                              fileName=file_name,
+                              verbose=0,
+                              plot=0,
+                              validation_split=0.2,
+                              epochs=15,
+                              gpu=True,
+                              learning_rate=8e-5,
+                              lambda_index=i,
+                              times=10,
+                              percent=percent)
+      cc.execute()
+      cc = None
+      sleep(5)
+
+
+    space = [0.05, 0.1]
+    file_name = 'c_jap_mit.csv'
+    culture = 1
+    for i in range(-1, 25):
+      percent = space[0]
+      tm1 = time()
+      cc = ClassificatorClass(culture,
+                              0,
+                              paths,
+                              batch_size=4,
+                              fileName=file_name,
+                              verbose=0,
+                              gpu=True,
+                              plot=0,
+                              validation_split=0.2,
+                              epochs=15,
+                              learning_rate=4e-5,
+                              lambda_index=i,
+                              times=10,
+                              percent=percent)
+      cc.execute()
+      tm2 = time()
+
+      cc = None
+      sleep(5)
+    for i in range(-1, 25):
+      percent = space[1]
+      cc = ClassificatorClass(culture,
+                              0,
+                              paths,
+                              batch_size=4,
+                              fileName=file_name,
+                              verbose=0,
+                              gpu=True,
+                              plot=0,
+                              validation_split=0.2,
+                              epochs=15,
+                              learning_rate=4e-5,
+                              lambda_index=i,
+                              times=10,
+                              percent=percent)
+      cc.execute()
       cc = None
       sleep(5)
     file_name = 'c_scan_mit.csv'
@@ -70,13 +156,13 @@ def main():
                               verbose=0,
                               plot=0,
                               validation_split=0.2,
-                              epochs=12,
+                              epochs=15,
                               gpu=True,
-                              learning_rate=6e-5,
+                              learning_rate=4e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.exe_intellig_model_selection()
+      cc.execute()
       cc = None
       sleep(5)
     for i in range(-1, 25):
@@ -89,13 +175,13 @@ def main():
                               verbose=0,
                               plot=0,
                               validation_split=0.2,
-                              epochs=12,
+                              epochs=15,
                               gpu=True,
-                              learning_rate=6e-5,
+                              learning_rate=4e-5,
                               lambda_index=i,
                               times=10,
                               percent=percent)
-      cc.exe_intellig_model_selection()
+      cc.execute()
       cc = None
       sleep(5)
 

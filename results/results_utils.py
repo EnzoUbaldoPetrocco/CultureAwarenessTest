@@ -262,8 +262,7 @@ def retrieve_statistics(p, model, ns, pu):
         errs_pu, stds_pu = clerrs[i], clstds[i]
         CICs_pu, stds_CIC_pu = CICs[i], stdsCIC[i]
         lambdas = []
-        taus = [0.1, 0.15, 0.2, 0.5,
-                0.8]  # 5%, 10% and 20% of the minimum error
+        taus = [0.1, 0.15, 0.2,0.3,0.4, 0.5]  # 5%, 10% and 20% of the minimum error
         if len(errs_pu) > 0:
             # Calculate the minimum CIC in the first tau% of errors
             for tau in taus:
@@ -324,13 +323,13 @@ if print_results:
     ns = 10
     pu = ['0,05', '0,1']
     # CHIN
-    model = 'c_ind'
+    model = 'c_ind_mit'
     retrieve_statistics(p, model, ns, pu)
     # FREN
-    model = 'c_jap'
+    model = 'c_jap_mit'
     retrieve_statistics(p, model, ns, pu)
     # TUR
-    model = 'c_scan'
+    model = 'c_scan_mit'
     retrieve_statistics(p, model, ns, pu)
 
 
