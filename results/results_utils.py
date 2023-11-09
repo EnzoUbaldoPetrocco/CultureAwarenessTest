@@ -486,7 +486,7 @@ if print_results:
     print(Fore.BLUE + '\CARPETS STRETCHED\n')
     print(Fore.WHITE + 'DL')
     print('\nPU = 0.0')
-    pt = '../deep_learning' + '/carpet_stretch'
+    pt = '../deep_learning' + '/carpet_stretch/no_ms'
     model = 'c_ind'
     print_errors_CIC(pt, model, ns)
     model = 'c_jap'
