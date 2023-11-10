@@ -494,7 +494,7 @@ if print_results:
     model = 'c_scan'
     print_errors_CIC(pt, model, ns)
     print('\nPU = 0.1')
-    pt = '../deep_learning' + '/9010/carpet_stretch/percent0,1'
+    pt = '../deep_learning' + '/9010/carpet_stretch/no_ms/percent0,1'
     model = 'c_ind'
     print_errors_CIC(pt, model, ns)
     model = 'c_jap'
@@ -502,7 +502,7 @@ if print_results:
     model = 'c_scan'
     print_errors_CIC(pt, model, ns)
     print('\nPU = 0.05')
-    pt = '../deep_learning' + '/9010/carpet_stretch/percent0,05'
+    pt = '../deep_learning' + '/9010/carpet_stretch/no_ms/percent0,05'
     model = 'c_ind'
     print_errors_CIC(pt, model, ns)
     model = 'c_jap'
