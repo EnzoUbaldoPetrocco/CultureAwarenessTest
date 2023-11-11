@@ -15,52 +15,10 @@ def main():
     paths = strings.carpet_paths_str
     
     space = [0.05, 0.1]
-    file_name = 'c_ind_mit.csv'
-    culture = 0
-    for i in range(9, 25):
-      percent = space[0]
-      tm1 = time()
-      cc = ClassificatorClass(culture,
-                              0,
-                              paths,
-                              batch_size=4,
-                              fileName=file_name,
-                              verbose=0,
-                              gpu=True,
-                              plot=0,
-                              validation_split=0.2,
-                              epochs=15,
-                              learning_rate=4e-5,
-                              lambda_index=i,
-                              times=10,
-                              percent=percent)
-      cc.execute()
-      tm2 = time()
-
-      cc = None
-      sleep(5)
-    for i in range(-1, 25):
-      percent = space[1]
-      cc = ClassificatorClass(culture,
-                              0,
-                              paths,
-                              batch_size=4,
-                              fileName=file_name,
-                              verbose=0,
-                              gpu=True,
-                              plot=0,
-                              validation_split=0.2,
-                              epochs=15,
-                              learning_rate=4e-5,
-                              lambda_index=i,
-                              times=10,
-                              percent=percent)
-      cc.execute()
-      cc = None
-      sleep(5)
+    
     file_name = 'c_scan_mit.csv'
     culture = 2
-    for i in range(-1, 25):
+    for i in range(12, 25):
       percent = space[0]
       cc = ClassificatorClass(culture,
                               0,
