@@ -28,7 +28,8 @@ class AdversaryClassificator:
         run_eagerly=False,
         lambda_index=0,
         gpu=True,
-        eps = 0.3
+        eps = 0.3,
+        w_path = './'
     ):
         self.culture = culture
         self.greyscale = greyscale
@@ -47,6 +48,7 @@ class AdversaryClassificator:
         self.lambda_index = lambda_index
         self.gpu = gpu
         self.eps = eps
+        self.w_path = w_path
         if self.gpu:
             gpus = tf.config.experimental.list_physical_devices("GPU")
             if gpus:
@@ -84,18 +86,19 @@ class AdversaryClassificator:
             percent=self.percent,
             batch=self.batch_size,
         )
-        self.size = np.shape(data.train[0][0])
+        self.size = np.shape(np.asarray(data.train[0][0][0], dtype=object))
         print(f"size is {self.size}")
         # ind = 0
         # if iteration!=0:
         #    ind = iteration*2+1
         path_weights = (
-            self.fileName.split(".")[0]
+            self.w_path
+            + self.fileName.split(".")[0]
             + "/"
             + str(self.percent)
             + "/"
-            + str(self.lamb)
-            + "checkpoint_"
+            + str(self.lambda_index)
+            + "/checkpoint_"
             + str(checkpoint_m)
         )
         # for every cycle I must evaluate the model:
@@ -203,7 +206,7 @@ class AdversaryClassificator:
         # I have to test on every culture
         TestSets = obj.TestS
         TS = split_list(TS, batch)
-        print(np.shape(TestSets))
+        print(np.shape(np.asarray(TestSets, dtype=object)))
         for k, TestSet in enumerate(TestSets):
             # print(np.shape(TestSets))
             # print(np.shape(TestSet))
