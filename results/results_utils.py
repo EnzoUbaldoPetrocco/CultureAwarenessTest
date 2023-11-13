@@ -299,7 +299,7 @@ def retrieve_statistics(p, model, ns, pu):
 
 
 print_results = True
-lamps = True
+lamps = False
 carpets = True
 if print_results:
     if lamps:
@@ -388,7 +388,7 @@ def print_errors_CIC(p, model, ns):
 
 print_results=True
 lamps = False
-carpets = False
+carpets = True
 if print_results:   
     if lamps:
     
