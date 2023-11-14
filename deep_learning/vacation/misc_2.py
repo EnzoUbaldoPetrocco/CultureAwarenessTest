@@ -19,7 +19,7 @@ def main():
     file_name = 'c_scan_mit.csv'
     culture = 2
     
-    for i in range(2, 25):
+    for i in range(15, 25):
       percent = space[1]
       cc = ClassificatorClass(culture,
                               0,
