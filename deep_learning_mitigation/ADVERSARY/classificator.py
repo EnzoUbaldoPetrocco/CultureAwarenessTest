@@ -119,6 +119,7 @@ class AdversaryClassificator:
             prev_weights=True,
             path_weights=path_weights,
         )
+        '''
         clas.test(
             data,
             self.fileName.split(".")[0] + "/standard" + self.fileName.split(".")[1],
@@ -180,7 +181,7 @@ class AdversaryClassificator:
         avd_clas.fit(data, True, True)
         clas.test(
             data, self.fileName.split(".")[0] + "/both" + self.fileName.split(".")[1]
-        )
+        )'''
 
     def execute(self):
         for i in range(self.times):
@@ -206,7 +207,7 @@ class AdversaryClassificator:
         # I have to test on every culture
         TestSets = obj.TestS
         TS = split_list(TS, batch)
-        print(np.shape(np.asarray(TestSets, dtype=object)))
+        #print(np.shape(np.asarray(TestSets, dtype=object)))
         for k, TestSet in enumerate(TestSets):
             # print(np.shape(TestSets))
             # print(np.shape(TestSet))

@@ -41,10 +41,14 @@ class Net(Model):
 class MitigationModel:
     def __init__(self, lr, lambda_index, bs, nb_epochs, eps, size, verbose, plot, percent, prev_weights, path_weights):
         self.model = Net(size)
-        if prev_weights:
-            self.model.load_weights(path_weights)
-        self.loss_object = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
         self.optimizer = tf.optimizers.Adam(learning_rate=lr)
+        self.model.compile(optimizer=self.optimizer,
+                metrics=["accuracy"],
+                loss=self.loss)
+        if prev_weights:
+            self.model.load_weights(path_weights).expect_partial() 
+        self.loss_object = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
+        
         # Metrics to track the different accuracies.
         self.train_loss = tf.metrics.Mean(name="train_loss")
         self.test_acc_clean = tf.metrics.SparseCategoricalAccuracy()
@@ -80,9 +84,7 @@ class MitigationModel:
                 count += 1
         self.model.save_weights(f'{model_path}/checkpoint_{count}')
 
-    @tf.function
-    def train_step(self,x, y_true):
-        def loss(y_true, y_pred, out):
+    def loss(self, y_true, y_pred, out):
             weights1 = self.model.layers[len(self.model.layers) - 1].kernel
             weights2 = self.model.layers[len(self.model.layers) - 2].kernel
             weights3 = self.model.layers[len(self.model.layers) - 3].kernel
@@ -106,15 +108,18 @@ class MitigationModel:
             else:
                 return res
 
+    @tf.function
+    def train_step(self,x, y_true):
+
         with tf.GradientTape() as tape:
             # TODO:
             # apply custom loss
             y_pred = self.model(x)
             for culture, y_hat in enumerate(y_pred):
-                loss = loss(y_true, y_hat, culture)
-        gradients = tape.gradient(loss, self.model.trainable_variables)
+                lss = self.loss(y_true, y_hat, culture)
+        gradients = tape.gradient(self.loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-        self.train_loss(loss)
+        self.train_loss(lss)
 
     def fit(self, data, adv_train, std_data_augmentation, save_model=0, model_path='./model'):
         # Train model with adversarial training
