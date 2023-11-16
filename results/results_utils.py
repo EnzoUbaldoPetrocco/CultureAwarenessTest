@@ -131,6 +131,8 @@ def get_CIC_std_for_every_lambda(accs_pu_cult):
                 c = calc_CIC(errs)
                 CICs.append(c)
 
+                print(f"accs related to errs[{i}]: {(100-accs[i])}")
+                print(f"CIC related: {c}")
             CIC, std = retrieve_mean_dev_std(CICs)
             lCIC.append(CIC)
             lstds.append(std)
@@ -262,7 +264,7 @@ def retrieve_statistics(p, model, ns, pu):
         errs_pu, stds_pu = clerrs[i], clstds[i]
         CICs_pu, stds_CIC_pu = CICs[i], stdsCIC[i]
         lambdas = []
-        taus = [0.1, 0.15, 0.2,0.3,0.4, 0.5]  # 5%, 10% and 20% of the minimum error
+        taus = [0.15, 0.2,0.3,0.4]  # 5%, 10% and 20% of the minimum error
         if len(errs_pu) > 0:
             # Calculate the minimum CIC in the first tau% of errors
             for tau in taus:
@@ -386,7 +388,7 @@ def print_errors_CIC(p, model, ns):
             #print(f'CIC for this model is {cic*100:.1f}%')
             print(f'CIC for the model is {CIC*100:.1f}%+-{CICstd*100:.1f}%\n')
 
-print_results=True
+print_results=False
 lamps = False
 carpets = True
 if print_results:   

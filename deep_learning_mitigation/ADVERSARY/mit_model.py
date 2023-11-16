@@ -20,21 +20,19 @@ class Net(Model):
     def __init__(self, size):
         super(Net, self).__init__()
 
-        self.inp = Input(size)
-        self.base = tf.keras.Sequential([
-            ResNet50(input_shape=size, weights='imagenet', include_top=False)
-        ])
+        self.base = ResNet50(input_shape=size, weights='imagenet', include_top=False)
         self.flatten = Flatten()
         self.y1 = (Dense(1, activation='sigmoid', name='dense'))
         self.y2 = (Dense(1, activation='sigmoid', name='dense_1'))
         self.y3 = (Dense(1, activation='sigmoid', name='dense_2'))
 
     def call(self, x):
-        x = self.inp(x)
-        x = self.base(x)
         x = self.base(x)
         x = self.flatten(x)
-        return [self.y1(x), self.y2(x), self.y3(x)]
+        out1 = self.y1(x)[0]
+        out2 = self.y2(x)[0]
+        out3 = self.y3(x)[0]
+        return [out1, out2, out3]
     
 
 
@@ -153,10 +151,17 @@ class MitigationModel:
         f = FileClass(fileName)
         f.writecm(cm)
 
-    def test(self, data, fileName):
+    def quantize(self, y_pred):
+        if y_pred>0.5:
+            return 1
+        else: 
+            return 0
+
+    def test(self, data, fileName, culture):
         # Evaluate on clean and adversarial data
         progress_bar_test = tf.keras.utils.Progbar(10000)
         fileNames = []
+
         for l in range(len(data.test[culture])):
             onPointSplitted = fileName.split('.')
             fileNamesOut = []
@@ -165,35 +170,54 @@ class MitigationModel:
                     l) + f'/out{o}.' + onPointSplitted[1]
                 fileNamesOut.append(name)
             fileNames.append(fileNamesOut)
-
+    
         for culture in range(3):
             print(f"Results on culture {culture}")
+            m = tf.keras.metrics.Accuracy()
+            #x = list(np.asarray(data.test[culture], dtype=object)[:,0])
+            y_trues = list(np.asarray(data.test[culture], dtype=object)[:,1])
+
+            y_preds_clean = []
+            y_preds_fgm = []
+            y_preds_pdg = []
             for x, y in data.test[culture]:
-                y_pred = self.model(x)
-                self.test_acc_clean(y[0], y_pred[culture])
-                cm = confusion_matrix(y[0], y_pred[culture])
-                self.save_cm(fileNames[culture][o], cm)
+                y_pred = self.model(np.expand_dims(np.asarray(x, dtype=float), axis=0))
+                y_preds_clean.append(self.quantize(y_pred[culture]))
 
-                x_fgm = fast_gradient_method(self.model, x, self.eps, np.inf)
+                x_fgm = fast_gradient_method(self.model, np.expand_dims(np.asarray(x, dtype=float), axis=0), self.eps, np.inf)
                 y_pred_fgm = self.model(x_fgm)
-                self.test_acc_fgsm(y[0], y_pred_fgm[culture])
-                cm = confusion_matrix(y[0], y_pred[culture])
-                self.save_cm(fileNames[culture][o], cm)
+                y_preds_fgm.append(self.quantize(y_pred_fgm[culture]))
+                
 
-                x_pgd = projected_gradient_descent(self.model, x, self.eps, 0.01, 40, np.inf)
+                x_pgd = projected_gradient_descent(self.model, np.expand_dims(np.asarray(x, dtype=float), axis=0), self.eps, 0.01, 40, np.inf)
                 y_pred_pgd = self.model(x_pgd)
-                self.test_acc_pgd(y[0], y_pred_pgd[culture])
-                cm = confusion_matrix(y[0], y_pred[culture])
-                self.save_cm(fileNames[culture][o], cm)
+                y_preds_pdg.append(self.quantize(y_pred_pgd[culture]))
 
-                progress_bar_test.add(x.shape[0])
+            print(y_trues)
+            print(y_preds_clean)
+            cm_clean = confusion_matrix(y_trues, y_preds_clean)
+            self.save_cm(fileNames[culture][o], cm_clean)
+            m.update_state(y_trues, y_preds_clean)
+            mean_acc_clean = m.result().numpy()
+
+            cm_fgm = confusion_matrix(y_trues, y_preds_fgm)
+            self.save_cm(fileNames[culture][o], cm_fgm)
+            m.update_state(y_trues, y_preds_fgm)
+            mean_acc_fgm = m.result().numpy()
+
+            cm_pdg = confusion_matrix(y_trues, y_preds_pdg)
+            self.save_cm(fileNames[culture][o], cm_pdg)
+            m.update_state(y_trues, y_preds_pdg)
+            mean_acc_pdg = m.result().numpy()
+
+            progress_bar_test.add(x.shape[0])
             if self.verbose:
                 print(f"CULTURE {culture}" + " test acc on clean examples           (%): {:.3f}".format(
-                    self.test_acc_clean.result() * 100))
+                    mean_acc_clean * 100))
                 print(f"CULTURE {culture}" + " test acc on FGM adversarial examples (%): {:.3f}".format(
-                    self.test_acc_fgsm.result() * 100))
+                    mean_acc_fgm * 100))
                 print(f"CULTURE {culture}" + " test acc on PGD adversarial examples (%): {:.3f}".format(
-                    self.test_acc_pgd.result() * 100))
+                    mean_acc_pdg * 100))
             if self.plot:
 
                 for culture in range(3):

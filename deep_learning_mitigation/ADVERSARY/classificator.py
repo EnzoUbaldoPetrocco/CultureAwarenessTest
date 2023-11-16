@@ -87,7 +87,6 @@ class AdversaryClassificator:
             batch=self.batch_size,
         )
         self.size = np.shape(np.asarray(data.train[0][0][0], dtype=object))
-        print(f"size is {self.size}")
         # ind = 0
         # if iteration!=0:
         #    ind = iteration*2+1
@@ -119,11 +118,13 @@ class AdversaryClassificator:
             prev_weights=True,
             path_weights=path_weights,
         )
-        '''
+        
         clas.test(
             data,
-            self.fileName.split(".")[0] + "/standard" + self.fileName.split(".")[1],
+            self.fileName.split(".")[0] + "/standard." + self.fileName.split(".")[1],
+            self.culture
         )
+        '''
         # With ADV
         avd_clas = MitigationModel(
             lr=self.learning_rate,
@@ -141,7 +142,7 @@ class AdversaryClassificator:
         avd_clas.fit(data, True, False)
         clas.test(
             data,
-            self.fileName.split(".")[0] + "/adversarial" + self.fileName.split(".")[1],
+            self.fileName.split(".")[0] + "/adversarial." + self.fileName.split(".")[1],
         )
         # With DA
         avd_clas = MitigationModel(
@@ -161,7 +162,7 @@ class AdversaryClassificator:
         clas.test(
             data,
             self.fileName.split(".")[0]
-            + "/data_augmentation"
+            + "/data_augmentation."
             + self.fileName.split(".")[1],
         )
         # With ADV
@@ -180,7 +181,7 @@ class AdversaryClassificator:
         )
         avd_clas.fit(data, True, True)
         clas.test(
-            data, self.fileName.split(".")[0] + "/both" + self.fileName.split(".")[1]
+            data, self.fileName.split(".")[0] + "/both." + self.fileName.split(".")[1]
         )'''
 
     def execute(self):
@@ -208,8 +209,9 @@ class AdversaryClassificator:
         TestSets = obj.TestS
         TS = split_list(TS, batch)
         #print(np.shape(np.asarray(TestSets, dtype=object)))
-        for k, TestSet in enumerate(TestSets):
+        #for k, TestSet in enumerate(TestSets):
             # print(np.shape(TestSets))
             # print(np.shape(TestSet))
-            TestSets[k] = split_list(TestSet, batch)
+        #    TestSets[k] = split_list(TestSet, batch)
+        TestSets = list(np.asarray(TestSets,dtype=object)[:,0:10])
         return EasyDict(train=TS, test=TestSets)
