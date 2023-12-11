@@ -10,6 +10,14 @@ import glob
 import colorama
 from colorama import Fore
 
+taus = [0.0, 0.1, 0.2]  # 0%, 10% and 20% of the minimum error
+analysis_print = False
+analysis_lamps = False
+analysis_carpets = True
+mitigation_print = True
+mitigation_lamps = True
+mitigation_carpets = True
+
 
 def l_value(index):
     ls = np.logspace(-3,2,31)
@@ -131,8 +139,8 @@ def get_CIC_std_for_every_lambda(accs_pu_cult):
                 c = calc_CIC(errs)
                 CICs.append(c)
 
-                print(f"accs related to errs[{i}]: {(100-accs[i])}")
-                print(f"CIC related: {c}")
+                #print(f"accs related to errs[{i}]: {(100-accs[i])}")
+                #print(f"CIC related: {c}")
             CIC, std = retrieve_mean_dev_std(CICs)
             lCIC.append(CIC)
             lstds.append(std)
@@ -201,7 +209,7 @@ def get_lamb_for_min_err(errs_pu, culture):
 
 def print_stats(errs_pu, stds_pu, lamb, CICs, stdsCIC, tau):
     print(
-        f'LAMBDA INDEX = {lamb} LAMBDA VALUE = {l_value(lamb)} AND TAU = {tau}'
+        Fore.GREEN + f'LAMBDA INDEX = {lamb} LAMBDA VALUE = {l_value(lamb)} AND TAU = {tau}' + Fore.WHITE
     )
     errors = []
     for j in range(3):
@@ -224,7 +232,7 @@ def get_lamb_metric(errs_pu, tau, CICs):
         m = np.mean(errs_pu[i])  # ERR metric
         lerrs.append(m)
     #lambdas = np.argwhere(lerrs < (1 + tau) * min(lerrs))
-    values = [x for x in lerrs if x < tau]
+    values = [x for x in lerrs if x <= (1 + tau) * min(lerrs)]
     lambdas = []
     for value in values:
         lambdas.append(lerrs.index(value))
@@ -251,7 +259,7 @@ def get_lamb_metric(errs_pu, tau, CICs):
 
 
 def retrieve_statistics(p, model, ns, pu):
-    print(Fore.WHITE + f'MODEL IS {model}')
+    print(Fore.CYAN + f'MODEL IS {model}' + Fore.WHITE)
     accs = retrievs_accs(p, model, ns, pu)
     clerrs, clstds = get_errs_stds_for_every_lambda(accs, pu)
     CICs, stdsCIC = get_CICs_stds_for_every_lambda(accs, pu)
@@ -264,7 +272,7 @@ def retrieve_statistics(p, model, ns, pu):
         errs_pu, stds_pu = clerrs[i], clstds[i]
         CICs_pu, stds_CIC_pu = CICs[i], stdsCIC[i]
         lambdas = []
-        taus = [0.15, 0.2,0.3,0.4]  # 5%, 10% and 20% of the minimum error
+        
         if len(errs_pu) > 0:
             # Calculate the minimum CIC in the first tau% of errors
             for tau in taus:
@@ -300,16 +308,15 @@ def retrieve_statistics(p, model, ns, pu):
         print('\n')
 
 
-print_results = True
-lamps = False
-carpets = True
-if print_results:
-    if lamps:
+pu = ['0,05', '0,1']
+ns = 10
+if mitigation_print:
+    if mitigation_lamps:
         print(Fore.RED + '\n\nMITIGATION PART\n\n')
         print(Fore.BLUE + 'LAMPS\n')
         p = '../deep_learning_mitigation/lamp'
-        ns = 10
-        pu = ['0,05', '0,1']
+
+
         # CHIN
         model = 'l_chin'
         retrieve_statistics(p, model, ns, pu)
@@ -321,7 +328,7 @@ if print_results:
         retrieve_statistics(p, model, ns, pu)
     
 
-    if carpets:
+    if mitigation_carpets:
         print(Fore.BLUE + '\CARPETS STRETCHED\n')
         p = '../deep_learning_mitigation/carpet_stretch'
         ns = 10
@@ -363,7 +370,7 @@ def retrieve_accs_standard(path, model, ns):
 
 
 def print_errors_CIC(p, model, ns):
-    print(Fore.WHITE + f'MODEL IS {model}')
+    print(Fore.CYAN + f'MODEL IS {model}' + Fore.WHITE)
     accs = retrieve_accs_standard(p, model, ns)
     CICs = []
     if len(accs) > 0:
@@ -388,17 +395,15 @@ def print_errors_CIC(p, model, ns):
             #print(f'CIC for this model is {cic*100:.1f}%')
             print(f'CIC for the model is {CIC*100:.1f}%+-{CICstd*100:.1f}%\n')
 
-print_results=False
-lamps = False
-carpets = True
-if print_results:   
-    if lamps:
+
+if analysis_print:   
+    if analysis_lamps:
     
         print(Fore.BLUE + '\nLAMPS\n')
         # SVM
         p = '../standard'
         # pu = 0 and LIN
-        print(Fore.WHITE + '\nPU = 0')
+        print(Fore.MAGENTA + '\nPU = 0' + Fore.WHITE)
         print('LSVM')
         pt = p + '/lin'
         model = 'lin_chin'
@@ -427,7 +432,7 @@ if print_results:
         print_errors_CIC(pt, model, ns)
         model = 'l_tur'
         print_errors_CIC(pt, model, ns)
-        print('\nPU = 0.1')
+        print(Fore.MAGENTA + '\nPU = 0.1' + Fore.WHITE)
         # pu = 0.1 and LIN
         print('LSVM')
         pt = p + '/9010' + '/lin'
@@ -458,7 +463,7 @@ if print_results:
         print_errors_CIC(pt, model, ns)
         model = 'l_tur'
         print_errors_CIC(pt, model, ns)
-        print('\nPU = 0.05')
+        print(Fore.MAGENTA + '\nPU = 0.05' + Fore.WHITE)
         # pu = 0.05 and LIN
         print('LSVM')
         pt = p + '/50' + '/lin'
@@ -489,10 +494,10 @@ if print_results:
         model = 'l_tur'
         print_errors_CIC(pt, model, ns)
     
-    if carpets:
+    if analysis_carpets:
         print(Fore.BLUE + '\CARPETS STRETCHED\n')
         print(Fore.WHITE + 'DL')
-        print('\nPU = 0.0')
+        print(Fore.MAGENTA + '\nPU = 0.0' + Fore.WHITE)
         pt = '../deep_learning' + '/carpet_stretch/no_ms'
         model = 'c_ind'
         print_errors_CIC(pt, model, ns)
@@ -500,7 +505,7 @@ if print_results:
         print_errors_CIC(pt, model, ns)
         model = 'c_scan'
         print_errors_CIC(pt, model, ns)
-        print('\nPU = 0.1')
+        print(Fore.MAGENTA + '\nPU = 0.1' + Fore.WHITE)
         pt = '../deep_learning' + '/9010/carpet_stretch/no_ms/percent0,1'
         model = 'c_ind'
         print_errors_CIC(pt, model, ns)
@@ -508,7 +513,7 @@ if print_results:
         print_errors_CIC(pt, model, ns)
         model = 'c_scan'
         print_errors_CIC(pt, model, ns)
-        print('\nPU = 0.05')
+        print(Fore.MAGENTA + '\nPU = 0.05' + Fore.WHITE)
         pt = '../deep_learning' + '/9010/carpet_stretch/no_ms/percent0,05'
         model = 'c_ind'
         print_errors_CIC(pt, model, ns)

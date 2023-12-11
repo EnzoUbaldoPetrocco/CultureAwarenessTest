@@ -19,12 +19,11 @@ from tensorflow.keras import layers
 class Net(Model):
     def __init__(self, size):
         super(Net, self).__init__()
-
         self.base = ResNet50(input_shape=size, weights='imagenet', include_top=False)
         self.flatten = Flatten()
-        self.y1 = (Dense(1, activation='sigmoid', name='dense'))
-        self.y2 = (Dense(1, activation='sigmoid', name='dense_1'))
-        self.y3 = (Dense(1, activation='sigmoid', name='dense_2'))
+        self.y1 = (Dense(1, activation='sigmoid', name='culture_0'))
+        self.y2 = (Dense(1, activation='sigmoid', name='culture_1'))
+        self.y3 = (Dense(1, activation='sigmoid', name='culture_2'))
 
     def call(self, x):
         x = self.base(x)
@@ -100,7 +99,6 @@ class MitigationModel:
             loss = tf.keras.losses.binary_crossentropy(y_true[0][1], y_pred[0])
             res = tf.math.add(loss, dist)
             mask = tf.reduce_all(tf.equal(y_true[0][0], out))
-
             if not mask:
                 return 0.0
             else:
@@ -124,24 +122,33 @@ class MitigationModel:
         for epoch in range(self.nb_epochs):
             # keras like display of progress
             progress_bar_train = tf.keras.utils.Progbar(60000)
-            for (x, y) in data.train:
-                adv_x = []
-                std_x = []
+            for batch in range(self.batch_size):
+                X = list(np.asarray(data.train, dtype=object)[:,batch,0])
+                Y = list(np.asarray(data.train, dtype=object)[:,batch,1])
+                for i in range(len(X)):
+                    x = np.expand_dims(np.asarray(X[i], dtype=float), axis=0)
+                    adv_x = []
+                    std_x = []
+                    if adv_train:
+                        # Add adversarial example for adversarial training
+                        adv_x.append(projected_gradient_descent(self.model, x, self.eps, 0.01, 40, np.inf)[0])
+                    if std_data_augmentation:
+                        # Add augmented samples for adversarial training
+                        data_augmentation = tf.keras.Sequential([
+                                            layers.RandomFlip("horizontal_and_vertical"),
+                                            layers.RandomRotation(0.2),
+                                            layers.GaussianNoise(0.1)
+                                            ])
+                        std_x.append(data_augmentation(x)[0])
+                print(np.shape(X))
+                print(np.shape(adv_x))
+                print(np.shape(std_x))
+                self.train_step(X, Y)
                 if adv_train:
-                    # Add adversarial example for adversarial training
-                    adv_x = projected_gradient_descent(self.model, x, self.eps, 0.01, 40, np.inf)
+                    self.train_step(adv_x, Y)
                 if std_data_augmentation:
-                    # Add augmented samples for adversarial training
-                    data_augmentation = tf.keras.Sequential([
-                                        layers.RandomFlip("horizontal_and_vertical"),
-                                        layers.RandomRotation(0.2),
-                                        layers.GaussianNoise(0.1)
-                                        ])
-                    std_x = data_augmentation(x)
-                self.train_step(x, y)
-                self.train_step(adv_x, y)
-                self.train_step(std_x, y)
-                progress_bar_train.add(x.shape[0],
+                    self.train_step(std_x, Y)
+                progress_bar_train.add(X.shape[0],
                                     values=[("loss", self.train_loss.result())])
         if save_model:
             self.save_models(model_path)
@@ -156,9 +163,10 @@ class MitigationModel:
             return 1
         else: 
             return 0
-
+    
     def test(self, data, fileName, culture):
         # Evaluate on clean and adversarial data
+
         progress_bar_test = tf.keras.utils.Progbar(10000)
         fileNames = []
 
@@ -173,9 +181,10 @@ class MitigationModel:
     
         for culture in range(3):
             print(f"Results on culture {culture}")
-            m = tf.keras.metrics.Accuracy()
+            
             #x = list(np.asarray(data.test[culture], dtype=object)[:,0])
             y_trues = list(np.asarray(data.test[culture], dtype=object)[:,1])
+            y_trues_onoffs = list(np.asarray(y_trues, dtype=int)[:,1])
 
             y_preds_clean = []
             y_preds_fgm = []
@@ -193,26 +202,28 @@ class MitigationModel:
                 y_pred_pgd = self.model(x_pgd)
                 y_preds_pdg.append(self.quantize(y_pred_pgd[culture]))
 
-            print(y_trues)
-            print(y_preds_clean)
-            cm_clean = confusion_matrix(y_trues, y_preds_clean)
+
+            cm_clean = confusion_matrix(y_trues_onoffs, y_preds_clean)
             self.save_cm(fileNames[culture][o], cm_clean)
-            m.update_state(y_trues, y_preds_clean)
+            m = tf.keras.metrics.Accuracy()
+            m.update_state(y_trues_onoffs, y_preds_clean)
             mean_acc_clean = m.result().numpy()
 
-            cm_fgm = confusion_matrix(y_trues, y_preds_fgm)
+            cm_fgm = confusion_matrix(y_trues_onoffs, y_preds_fgm)
             self.save_cm(fileNames[culture][o], cm_fgm)
-            m.update_state(y_trues, y_preds_fgm)
+            m = tf.keras.metrics.Accuracy()
+            m.update_state(y_trues_onoffs, y_preds_fgm)
             mean_acc_fgm = m.result().numpy()
 
-            cm_pdg = confusion_matrix(y_trues, y_preds_pdg)
+            cm_pdg = confusion_matrix(y_trues_onoffs, y_preds_pdg)
             self.save_cm(fileNames[culture][o], cm_pdg)
-            m.update_state(y_trues, y_preds_pdg)
+            m = tf.keras.metrics.Accuracy()
+            m.update_state(y_trues_onoffs, y_preds_pdg)
             mean_acc_pdg = m.result().numpy()
 
             progress_bar_test.add(x.shape[0])
             if self.verbose:
-                print(f"CULTURE {culture}" + " test acc on clean examples           (%): {:.3f}".format(
+                print(f"\nCULTURE {culture}" + " test acc on clean examples           (%): {:.3f}".format(
                     mean_acc_clean * 100))
                 print(f"CULTURE {culture}" + " test acc on FGM adversarial examples (%): {:.3f}".format(
                     mean_acc_fgm * 100))

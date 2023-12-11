@@ -79,8 +79,11 @@ class ClassificatorClass:
         #4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
         #2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
         #1.00000000e+02]
-        lambda_grid = np.logspace(-3,2,31)
-        self.lamb = lambda_grid[lambda_index]
+        if lambda_grid>=0:
+            lambda_grid = np.logspace(-3,2,31)
+            self.lamb = lambda_grid[lambda_index]
+        else:
+            self.lamb = 0
 
     def custom_loss(self, out):
         def loss(y_true, y_pred):

@@ -28,8 +28,8 @@ class AdversaryClassificator:
         run_eagerly=False,
         lambda_index=0,
         gpu=True,
-        eps = 0.3,
-        w_path = './'
+        eps=0.3,
+        w_path="./",
     ):
         self.culture = culture
         self.greyscale = greyscale
@@ -105,6 +105,7 @@ class AdversaryClassificator:
         #   - With Gradient Approach
         #   - Classical Data Augmentation
         #   - Coupled method
+
         clas = MitigationModel(
             lr=self.learning_rate,
             lambda_index=self.lambda_index,
@@ -118,13 +119,12 @@ class AdversaryClassificator:
             prev_weights=True,
             path_weights=path_weights,
         )
-        
-        clas.test(
-            data,
-            self.fileName.split(".")[0] + "/standard." + self.fileName.split(".")[1],
-            self.culture
+        fileName = (
+            self.fileName.split(".")[0] + "/standard." + self.fileName.split(".")[1]
         )
-        '''
+        clas.test(data=data, fileName=fileName, culture=self.culture)
+
+        """
         # With ADV
         avd_clas = MitigationModel(
             lr=self.learning_rate,
@@ -140,10 +140,11 @@ class AdversaryClassificator:
             path_weights=path_weights,
         )
         avd_clas.fit(data, True, False)
-        clas.test(
+        avd_clas.test(
             data,
             self.fileName.split(".")[0] + "/adversarial." + self.fileName.split(".")[1],
         )
+        
         # With DA
         avd_clas = MitigationModel(
             lr=self.learning_rate,
@@ -182,7 +183,7 @@ class AdversaryClassificator:
         avd_clas.fit(data, True, True)
         clas.test(
             data, self.fileName.split(".")[0] + "/both." + self.fileName.split(".")[1]
-        )'''
+        )"""
 
     def execute(self):
         for i in range(self.times):
@@ -208,10 +209,7 @@ class AdversaryClassificator:
         # I have to test on every culture
         TestSets = obj.TestS
         TS = split_list(TS, batch)
-        #print(np.shape(np.asarray(TestSets, dtype=object)))
-        #for k, TestSet in enumerate(TestSets):
-            # print(np.shape(TestSets))
-            # print(np.shape(TestSet))
-        #    TestSets[k] = split_list(TestSet, batch)
-        TestSets = list(np.asarray(TestSets,dtype=object)[:,0:10])
+
+        # TestSets = list(np.asarray(TestSets,dtype=object)[:,0:10])
+        # TS = list(np.asarray(TS,dtype=object)[0:10])
         return EasyDict(train=TS, test=TestSets)
