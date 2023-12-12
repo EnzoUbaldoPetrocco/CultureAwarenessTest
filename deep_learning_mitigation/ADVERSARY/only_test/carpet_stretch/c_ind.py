@@ -10,11 +10,11 @@ strings = Strings()
 paths = strings.carpet_paths_str
 file_name = "c_ind"
 n = 5
-g_rots = np.logspace(1, 3, n)
-g_noises = np.logspace(1, 3, n)
-epss = np.logspace(-1, 0, n**2)
+g_rots = np.logspace(-2, 0, n)
+g_noises = np.logspace(-2, 0, n)
+epss = np.logspace(-2, 0, n**2)
 for i in range(n**2):
-    test_rob = TestRobustness(model_path="./c_ind/0.1/0/checkpoint_0",
+    test_rob = TestRobustness(model_path="./c_ind_mit/0.1/0/checkpoint_0",
                             paths=paths,
                             culture=0,
                             flat=0,
@@ -26,6 +26,5 @@ for i in range(n**2):
     
     test_rob.test_on_augmented(g_rots[int(i/5)],g_noises[i%5])
     test_rob.test_on_FGMA(epss[i])
-    
-#test_rob.test_on_PGDA(eps=0.3)
+    test_rob.test_on_PGDA(eps=0.3)
 

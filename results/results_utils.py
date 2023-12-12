@@ -281,30 +281,7 @@ def retrieve_statistics(p, model, ns, pu):
                     print_stats(errs_pu, stds_pu, lamb, CICs_pu, stds_CIC_pu, tau)
                 else:
                     print(f'For tau = {tau} no ERR detected')
-            '''
-            for j in range(3):
-                print(f'LAMBDA FOR MINIMUM ERROR ON CULTURE {j}')
-                l = get_lamb_for_min_err(errs_pu, j)
-                print_stats(errs_pu, stds_pu, l, accs_pu)
-                lambdas.append(l)
-            l = get_lamb_for_min_CIC(errs_pu)
-            lambdas.append(l)
-            print('LAMBDA FOR MINIMUM CIC')
-            print_stats(errs_pu, stds_pu, l, accs_pu)
 
-            print('PRINT LAMBDA FOR SOME FIXED VALUES OF LAMBDA')
-            try:
-                print_stats(errs_pu, stds_pu, 0, accs_pu)
-            except:
-                ...
-            try:
-                print_stats(errs_pu, stds_pu, 13, accs_pu)
-            except:
-                ...
-            try:
-                print_stats(errs_pu, stds_pu, 25, accs_pu)
-            except:
-                ...'''
         print('\n')
 
 

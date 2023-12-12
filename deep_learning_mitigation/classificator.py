@@ -36,7 +36,8 @@ class ClassificatorClass:
                  plot = False,
                  run_eagerly = False,
                  lambda_index = 0,
-                 gpu = True):
+                 gpu = True,
+                 sv_model = False):
         self.culture = culture
         self.greyscale = greyscale
         self.paths = paths
@@ -53,6 +54,7 @@ class ClassificatorClass:
         self.run_eagerly = run_eagerly
         self.lambda_index = lambda_index
         self.gpu = gpu
+        self.sv_model = sv_model
         if self.gpu:
             gpus = tf.config.experimental.list_physical_devices('GPU')
             if gpus:
@@ -79,7 +81,7 @@ class ClassificatorClass:
         #4.64158883e+00, 6.81292069e+00, 1.00000000e+01, 1.46779927e+01,
         #2.15443469e+01, 3.16227766e+01, 4.64158883e+01, 6.81292069e+01,
         #1.00000000e+02]
-        if lambda_grid>=0:
+        if lambda_index>=0:
             lambda_grid = np.logspace(-3,2,31)
             self.lamb = lambda_grid[lambda_index]
         else:
@@ -249,18 +251,19 @@ class ClassificatorClass:
         X_val = tf.stack(X_val)
         y_val = tf.stack(y_val)
         tf.get_logger().setLevel('ERROR')
-        print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
+        #print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
         self.history = self.model.fit(X,y,
                                  epochs=self.epochs,
                                  validation_data=(X_val,y_val),
                                  callbacks=[early, lr_reduce],
                                  verbose=self.verbose_param,
                                  batch_size = self.batch_size)
-        print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
+        #print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
             
         if self.plot:
             self.plot_training()
-        self.save_models(self.model)
+        if self.sv_model:
+            self.save_models(self.model)
         return self.model
 
     def execute(self):
@@ -294,6 +297,7 @@ class ClassificatorClass:
                     self.save_cm(fileNames[k][o], cm[o])
                     cms.append(cm)
             # Reset Memory each time
+            self.TestSet = TestSets
             gc.collect()
         
         if self.verbose_param:
@@ -310,6 +314,9 @@ class ClassificatorClass:
                     
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
+    
+    def resetTestSet(self):
+        self.TestSets = None
     
     def execute_model_selection(self, bs= True):
         for i in range(self.times):

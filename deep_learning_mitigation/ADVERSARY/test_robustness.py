@@ -19,6 +19,7 @@ from matplotlib import pyplot as plt
 class TestRobustness:
     def __init__(
         self,
+        model = None,
         model_path="",
         paths=None,
         greyscale=0,
@@ -39,8 +40,11 @@ class TestRobustness:
         self.verbose_param = verbose_param
         self.culture = culture
         self.percent = percent
-        self.ld_model(model_path)
-        self.robds = Robust_ds(paths, greyscale, culture, flat, percent, self.model)
+        if model:
+             self.model = model
+        else:
+            self.model = self.ld_model(model_path)
+        
         self.fileName = fileName
         self.lambda_index = lambda_index
 
@@ -49,6 +53,8 @@ class TestRobustness:
             self.lamb = lambda_grid[lambda_index]
         else:
             self.lamb = 0
+
+        self.robds = Robust_ds(paths, greyscale, culture, flat, percent, self.model, self.lamb)
 
 
 
@@ -127,9 +133,8 @@ class TestRobustness:
         )
 
         model.load_weights(model_path)
-        self.model = model
-        model = None
-
+        return model
+       
     def quantize(self, yF):
         values = []
         for y in yF:
@@ -140,6 +145,7 @@ class TestRobustness:
         return values
     
     def test(self, testSet):
+        print("Performing tests")
         testSet = np.array(testSet, dtype=object)
         XT = list(testSet[:, 0])
         yT = list(testSet[:, 1])
@@ -194,7 +200,6 @@ class TestRobustness:
                     self.save_cm(fileNames[culture][o], cm[o])
                     cms.append(cm)
 
-
     def test_on_FGMA(self, eps = 0.3):
         self.robds.fast_gradient_method_augmentation(eps=eps)
         cms = []
@@ -208,7 +213,6 @@ class TestRobustness:
                     print(fileNames[culture][o])
                     self.save_cm(fileNames[culture][o], cm[o])
                     cms.append(cm)
-
 
     def test_on_PGDA(self, eps = 0.3):
         self.robds.projected_gradient_descent_augmentation(eps=eps)
