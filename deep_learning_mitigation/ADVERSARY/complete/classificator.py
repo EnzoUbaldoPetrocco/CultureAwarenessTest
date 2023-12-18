@@ -59,7 +59,7 @@ class Midware():
         
     def execute(self, n):
         g_rots = np.logspace(-4, 0, n)
-        epss = np.logspace(-2, 0, n**2)
+        epss = np.logspace(-3, 0, n**2)
         for i in range(1,n**2):
             self.test_rob.robds.TestS = self.cc.TestSet
             self.cc.resetTestSet()

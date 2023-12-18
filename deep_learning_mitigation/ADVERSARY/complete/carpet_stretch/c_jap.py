@@ -9,10 +9,10 @@ import numpy as np
 culture = 1
 strings = Strings()
 paths = strings.carpet_paths_str
-file_name = "c_jap.csv"
-n = 4
+file_name = "jap.csv"
+n = 5
 percents = [0.05, 0.1]
-lambda_indeces = [[11, 18, 18],[14, 14, 14]]
+lambda_indeces = range(-1, 25)
 for percent in percents:
     for lambda_index in lambda_indeces:
         mid = Midware(culture=culture,
@@ -21,7 +21,7 @@ for percent in percents:
                         times=1,
                         fileName=file_name,
                         validation_split=0.2,
-                        batch_size=4,
+                        batch_size=2,
                         epochs=15,
                         learning_rate=4e-5,
                         verbose=0,
