@@ -46,7 +46,7 @@ class Midware():
         self.times = times
         self.cc.execute()
         self.test_rob = TestRobustness(
-                            model=1,
+                            model=self.cc.model,
                             paths=paths,
                             culture=culture,
                             flat=greyscale,
@@ -58,25 +58,21 @@ class Midware():
                             fileName=file_name)
         
     def execute(self, n):
-        for i in range(1,n):
+        g_rots = np.logspace(-4, 0, n)
+        epss = np.logspace(-2, 0, n**2)
+        for i in range(1,n**2):
             self.test_rob.robds.TestS = self.cc.TestSet
             self.cc.resetTestSet()
             self.test_rob.model = self.cc.model
-            g_rots = np.logspace(-2, 0, n)
-            g_noises = np.logspace(-2, 0, n)
-            epss = np.logspace(-2, 0, n**2)
-            #self.test_rob.test_on_augmented(g_rots[int(i/5)],g_noises[i%5])
+            self.test_rob.test_on_augmented(g_rots[int(i/n)],g_rots[i%n], g_rots[i%n])
             self.test_rob.test_on_FGMA(epss[i])
-            self.test_rob.test_on_PGDA(epss[i])
+            #self.test_rob.test_on_PGDA(epss[i])
         for j in range(1,self.times):
             self.cc.execute()
-            for i in range(1,n):
+            for i in range(1,n**2):
                 self.test_rob.robds.TestS = self.cc.TestSet
                 self.cc.resetTestSet()
                 self.test_rob.model = self.cc.model
-                g_rots = np.logspace(-2, 0, n)
-                g_noises = np.logspace(-2, 0, n)
-                epss = np.logspace(-2, 0, n**2)
-                self.test_rob.test_on_augmented(g_rots[int(i/5)],g_noises[i%5])
+                self.test_rob.test_on_augmented(g_rots[int(i/n)],g_rots[i%n], g_rots[i%n])
                 self.test_rob.test_on_FGMA(epss[i])
-                self.test_rob.test_on_PGDA(epss[i])
+                #self.test_rob.test_on_PGDA(epss[i])

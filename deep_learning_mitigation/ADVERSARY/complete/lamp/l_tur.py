@@ -1,32 +1,35 @@
 import sys
-sys.path.insert(1, '../../')
 
-from deep_learning_mitigation.classificator import ClassificatorClass
+sys.path.insert(1, "../../../../")
+
+from deep_learning_mitigation.ADVERSARY.complete.classificator import Midware
 from deep_learning_mitigation.strings import Strings
-import gc
+import numpy as np
 
+culture = 2
 strings = Strings()
 paths = strings.lamp_paths
-file_name = 'l_tur.csv'
-culture = 2
-space = [0.1, 0.2, 0.5, 0.7, 0.8, 0.9]
-for i in range(0, 25):
-    for j in range(2, 3):
-        gc.collect()
-        percent = space[j]
-        cc = ClassificatorClass(culture,
-                                0,
-                                paths,
-                                batch_size=4,
-                                fileName=file_name,
-                                verbose=0,
-                                plot=0,
-                                validation_split=0.2,
-                                epochs=40,
-                                learning_rate=6e-5,
-                                lambda_index=i,
-                                times=12,
-                                percent=percent)
-        cc.execute()
-        cc = None
-        gc.collect()
+file_name = "l_tur.csv"
+n = 4
+percents = [0.05, 0.1]
+lambda_indeces = [[11, 18, 18],[14, 14, 14]]
+for percent in percents:
+    for lambda_index in lambda_indeces:
+        mid = Midware(culture=culture,
+                        greyscale=0,
+                        paths=paths,
+                        times=1,
+                        fileName=file_name,
+                        validation_split=0.2,
+                        batch_size=4,
+                        epochs=15,
+                        learning_rate=4e-5,
+                        verbose=0,
+                        percent=percent,
+                        plot = False,
+                        run_eagerly = False,
+                        lambda_index = 0,
+                        gpu = True)
+        mid.execute(n)
+    
+

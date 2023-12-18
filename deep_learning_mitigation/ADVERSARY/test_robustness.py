@@ -180,15 +180,15 @@ class TestRobustness:
                         onPointSplitted = self.fileName.split('.')
                         fileNamesOut = []
                         for o in range(3):
-                            name = prefix +'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                            name =  'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + prefix + onPointSplitted[0] + str(
                                 l) + f'/out{o}.' + onPointSplitted[1]
                             
                             fileNamesOut.append(name)
                         fileNames.append(fileNamesOut)
         return fileNames
 
-    def test_on_augmented(self, g_rot=0.2, g_noise=0.1):
-        self.robds.standard_augmentation(g_rot=g_rot, g_noise=g_noise)
+    def test_on_augmented(self, g_rot=0.2, g_noise=0.1, g_bright=0.1):
+        self.robds.standard_augmentation(g_rot=g_rot, g_noise=g_noise, g_bright=g_bright)
         cms = []
         TestSets = self.robds.augmented_dataset
         prefix = 'augmented/g_rot=' + str(g_rot) + '/g_noise=' + str(g_noise) + '/'
@@ -218,7 +218,7 @@ class TestRobustness:
         self.robds.projected_gradient_descent_augmentation(eps=eps)
         cms = []
         TestSets = self.robds.projected_gradient_decent_augmented_dataset
-        prefix = 'fgma/pgda=' + str(eps) + '/'
+        prefix = 'pgda/eps=' + str(eps) + '/'
         fileNames = self.get_filenames(len(TestSets), prefix)
         for culture in range(len(TestSets)):
             cm = self.test(TestSets[culture])

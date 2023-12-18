@@ -11,8 +11,8 @@ import colorama
 from colorama import Fore
 
 taus = [0.0, 0.1, 0.2]  # 0%, 10% and 20% of the minimum error
-analysis_print = False
-analysis_lamps = False
+analysis_print = True
+analysis_lamps = True
 analysis_carpets = True
 mitigation_print = True
 mitigation_lamps = True

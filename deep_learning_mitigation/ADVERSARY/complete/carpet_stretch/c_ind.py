@@ -10,7 +10,7 @@ culture = 0
 strings = Strings()
 paths = strings.carpet_paths_str
 file_name = "c_ind.csv"
-n = 5
+n = 4
 percents = [0.05, 0.1]
 lambda_indeces = [[11, 18, 18],[14, 14, 14]]
 for percent in percents:

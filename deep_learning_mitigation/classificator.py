@@ -283,7 +283,7 @@ class ClassificatorClass:
                 onPointSplitted = self.fileName.split('.')
                 fileNamesOut = []
                 for o in range(3):
-                    name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
+                    name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + 'normal_test/' +  onPointSplitted[0] + str(
                         l) + f'/out{o}.' + onPointSplitted[1]
                     
                     fileNamesOut.append(name)
