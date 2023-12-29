@@ -24,6 +24,7 @@ class FileClass:
                 csvreader = csv.reader(file)
                 for row in csvreader:
                     csvlist.append(row)
+                file.close()
         except:
             print(f'Error in reading file {self.name}')
         return csvlist
@@ -33,6 +34,7 @@ class FileClass:
             with open(self.name, 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(row)
+                file.close()
         except Exception as e:
             print(f'Error in writing file {self.name} due to Exception:\n{e}')
 

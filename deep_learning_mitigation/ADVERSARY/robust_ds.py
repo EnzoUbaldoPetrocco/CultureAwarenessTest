@@ -124,11 +124,11 @@ class Robust_ds(DSClass):
             cultureTS = []
             for X, y in self.TestS[culture]:
                 X = X[None, ...]
-                y = y[1]*2-1
-                y = tf.constant(y, dtype=tf.int32)
-                y = y[None, ...]
+                y_i = y[1]*2-1
+                y_i = tf.constant(y_i, dtype=tf.int32)
+                y_i = y_i[None, ...]
                 X_augmented = my_fast_gradient_method(
-                    self.model, X, eps, np.inf, y=y, culture=culture, loss_fn=bce)
+                    self.model, X, eps, np.inf, y=y_i, culture=culture, loss_fn=bce)
                 #print(f'X=Xaugmented = {X==X_augmented}')
                 #f, axarr = plt.subplots(2,1)
                 #axarr[0].imshow(X[0][:, :, ::-1])
