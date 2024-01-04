@@ -18,7 +18,7 @@ for percent in percents:
         mid = Midware(culture=culture,
                         greyscale=0,
                         paths=paths,
-                        times=1,
+                        times=10,
                         fileName=file_name,
                         validation_split=0.2,
                         batch_size=2,
