@@ -46,6 +46,12 @@ class AdversaryClassificator:
         self.plot = plot
         self.run_eagerly = run_eagerly
         self.lambda_index = lambda_index
+        if lambda_index<0:
+            self.lamb = 0
+        else:
+            lambda_grid = np.logspace(-3, 2, 31)
+            self.lamb = lambda_grid[lambda_index]
+            
         self.gpu = gpu
         self.eps = eps
         self.w_path = w_path
@@ -75,8 +81,7 @@ class AdversaryClassificator:
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-        lambda_grid = np.logspace(-3, 2, 31)
-        self.lamb = lambda_grid[lambda_index]
+        
 
     def unit_cicle(self, iteration, checkpoint_m=0):
         data = self.load_ds(

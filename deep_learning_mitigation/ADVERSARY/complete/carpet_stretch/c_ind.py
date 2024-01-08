@@ -28,7 +28,7 @@ for percent in percents:
                         percent=percent,
                         plot = False,
                         run_eagerly = False,
-                        lambda_index = 0,
+                        lambda_index = lambda_index,
                         gpu = True)
         mid.execute(n)
     
