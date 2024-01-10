@@ -12,7 +12,8 @@ paths = strings.carpet_paths_str
 file_name = "c_ind.csv"
 n = 5
 percents = [0.05, 0.1]
-lambda_indeces = range(0, 25)
+lambda_indeces = range(1, 25)
+
 for percent in percents:
     for lambda_index in lambda_indeces:
         mid = Midware(culture=culture,
