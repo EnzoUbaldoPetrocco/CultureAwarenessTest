@@ -12,25 +12,60 @@ paths = strings.carpet_paths_str
 file_name = "c_ind.csv"
 n = 5
 percents = [0.05, 0.1]
-lambda_indeces = range(1, 25)
+lambda_indeces = range(2, 25)
 
-for percent in percents:
-    for lambda_index in lambda_indeces:
-        mid = Midware(culture=culture,
-                        greyscale=0,
-                        paths=paths,
-                        times=10,
-                        fileName=file_name,
-                        validation_split=0.2,
-                        batch_size=2,
-                        epochs=15,
-                        learning_rate=4e-5,
-                        verbose=0,
-                        percent=percent,
-                        plot = False,
-                        run_eagerly = False,
-                        lambda_index = lambda_index,
-                        gpu = True)
-        mid.execute(n)
+mid = Midware(culture=culture,
+                    greyscale=0,
+                    paths=paths,
+                    times=1,
+                    fileName=file_name,
+                    validation_split=0.2,
+                    batch_size=2,
+                    epochs=15,
+                    learning_rate=4e-5,
+                    verbose=0,
+                    percent=percents[0],
+                    plot = False,
+                    run_eagerly = False,
+                    lambda_index = 1,
+                    gpu = True)
+mid.execute(n)
+
+for lambda_index in lambda_indeces:
+    mid = Midware(culture=culture,
+                    greyscale=0,
+                    paths=paths,
+                    times=10,
+                    fileName=file_name,
+                    validation_split=0.2,
+                    batch_size=2,
+                    epochs=15,
+                    learning_rate=4e-5,
+                    verbose=0,
+                    percent=percents[0],
+                    plot = False,
+                    run_eagerly = False,
+                    lambda_index = lambda_index,
+                    gpu = True)
+    mid.execute(n)
+
+lambda_indeces = range(0, 25)
+for lambda_index in lambda_indeces:
+    mid = Midware(culture=culture,
+                    greyscale=0,
+                    paths=paths,
+                    times=10,
+                    fileName=file_name,
+                    validation_split=0.2,
+                    batch_size=2,
+                    epochs=15,
+                    learning_rate=4e-5,
+                    verbose=0,
+                    percent=percents[1],
+                    plot = False,
+                    run_eagerly = False,
+                    lambda_index = lambda_index,
+                    gpu = True)
+    mid.execute(n)
     
 
