@@ -5,6 +5,7 @@ sys.path.insert(1, "../../../../")
 from deep_learning_mitigation.ADVERSARY.complete.classificator import Midware
 from deep_learning_mitigation.strings import Strings
 import numpy as np
+import gc
 
 culture = 0
 strings = Strings()
@@ -31,5 +32,7 @@ for percent in percents:
                         lambda_index = 0,
                         gpu = True)
         mid.execute(n)
+        del mid
+        gc.collect()
     
 

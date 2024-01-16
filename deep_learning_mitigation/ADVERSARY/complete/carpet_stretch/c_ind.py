@@ -5,6 +5,7 @@ sys.path.insert(1, "../../../../")
 from deep_learning_mitigation.ADVERSARY.complete.classificator import Midware
 from deep_learning_mitigation.strings import Strings
 import numpy as np
+import gc
 
 culture = 0
 strings = Strings()
@@ -17,7 +18,7 @@ lambda_indeces = range(3, 25)
 mid = Midware(culture=culture,
                     greyscale=0,
                     paths=paths,
-                    times=8,
+                    times=4,
                     fileName=file_name,
                     validation_split=0.2,
                     batch_size=2,
@@ -30,6 +31,9 @@ mid = Midware(culture=culture,
                     lambda_index = 2,
                     gpu = True)
 mid.execute(n)
+del mid
+gc.collect()
+
 
 for lambda_index in lambda_indeces:
     mid = Midware(culture=culture,
@@ -48,6 +52,8 @@ for lambda_index in lambda_indeces:
                     lambda_index = lambda_index,
                     gpu = True)
     mid.execute(n)
+    del mid
+    gc.collect()
 
 lambda_indeces = range(0, 25)
 for lambda_index in lambda_indeces:
@@ -67,5 +73,7 @@ for lambda_index in lambda_indeces:
                     lambda_index = lambda_index,
                     gpu = True)
     mid.execute(n)
+    del mid
+    gc.collect()
     
 

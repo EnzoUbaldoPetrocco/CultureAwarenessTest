@@ -265,6 +265,89 @@ class ClassificatorClass:
         if self.sv_model:
             self.save_models(self.model)
         return self.model
+    
+    def train_augmented(self, TS):
+        size = np.shape(TS[0][0])
+        input = Input(size)
+        x = tf.keras.Sequential([
+            ResNet50(input_shape=size, weights='imagenet', include_top=False)
+        ])(input)
+        x = Flatten()(x)
+        y1 = (Dense(1, activation='sigmoid', name='dense'))(x)
+        y2 = (Dense(1, activation='sigmoid', name='dense_1'))(x)
+        y3 = (Dense(1, activation='sigmoid', name='dense_2'))(x)
+        self.model = Model(inputs=input,
+                    outputs = [y1,y2,y3],
+                    name = 'model')
+        self.model.trainable = True
+        for layer in self.model.layers[1].layers:
+            layer.trainable = False
+        for layer in self.model.layers[1].layers[-3:]:
+            if not isinstance(layer, layers.BatchNormalization):
+                layer.trainable = True
+        if self.culture == 0:
+            monitor_val = 'val_dense_accuracy'
+        else:
+            monitor_val = f'val_dense_{self.culture}_accuracy'
+        lr_reduce = ReduceLROnPlateau(monitor=monitor_val,
+                                      factor=0.1,
+                                      patience=int(self.epochs/3) + 1,
+                                      verbose=self.verbose_param,
+                                      mode='max',
+                                      min_lr=1e-8)
+        early = EarlyStopping(monitor=monitor_val,
+                              min_delta=0.001,
+                              patience=int(self.epochs/1.7) + 1,
+                              verbose=self.verbose_param,
+                              mode='auto')
+        adam = optimizers.Adam(self.learning_rate)
+        optimizer = adam
+        
+        self.model.compile(optimizer=optimizer,
+                      metrics=["accuracy"],
+                      loss=[self.custom_loss(out=0),self.custom_loss(out=1),self.custom_loss(out=2)], run_eagerly=self.run_eagerly)
+
+        TS = np.array(TS, dtype=object)
+        random.shuffle(TS)
+        X = list(TS[:, 0])
+        y = list(TS[:, 1])
+        X_val = X[int(len(X) * (1-self.validation_split)):len(X) - 1]
+        y_val = y[int(len(y) * (1-self.validation_split)):len(y) - 1]
+        X = X[0:int(len(X) * (1-self.validation_split))]
+        y = y[0:int(len(y) * (1-self.validation_split))]
+        
+        '''X = tf.stack(X)
+        augmented_dataset = []
+        data_augmentation = tf.keras.Sequential([
+                 tf.keras.layers.RandomFlip("horizontal_and_vertical"),
+                 tf.keras.layers.RandomRotation(self.g_rot),
+                 tf.keras.layers.GaussianNoise(self.g_noise),
+                 tf.keras.layers.RandomBrightness(self.g_bright)
+            ])
+        for culture in range(len(self.TestS)):
+            cultureTS = []
+            for X, y in self.TestS[culture]:
+                X_augmented = data_augmentation(X, training=True)
+                cultureTS.append((X_augmented, y))
+            augmented_dataset.append(cultureTS)'''
+        y = tf.stack(y)
+        X_val = tf.stack(X_val)
+        y_val = tf.stack(y_val)
+        tf.get_logger().setLevel('ERROR')
+        #print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
+        self.history = self.model.fit(X,y,
+                                 epochs=self.epochs,
+                                 validation_data=(X_val,y_val),
+                                 callbacks=[early, lr_reduce],
+                                 verbose=self.verbose_param,
+                                 batch_size = self.batch_size)
+        #print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
+            
+        if self.plot:
+            self.plot_training()
+        if self.sv_model:
+            self.save_models(self.model)
+        return self.model
 
     def execute(self):
         for i in range(self.times):
