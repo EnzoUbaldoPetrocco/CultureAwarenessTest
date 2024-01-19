@@ -76,3 +76,7 @@ class Midware():
                 self.test_rob.test_on_augmented(g_rots[int(i/n)],g_rots[i%n], g_rots[i%n])
                 self.test_rob.test_on_FGMA(epss[i])
                 #self.test_rob.test_on_PGDA(epss[i])
+        del self.cc
+        del self.test_rob
+        del g_rots
+        del epss

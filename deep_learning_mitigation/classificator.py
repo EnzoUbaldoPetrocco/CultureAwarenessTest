@@ -18,6 +18,7 @@ import random
 import gc
 import os
 import time
+from cleverhans.tf2.utils import optimize_linear
 
 
 class ClassificatorClass:
@@ -266,6 +267,116 @@ class ClassificatorClass:
             self.save_models(self.model)
         return self.model
     
+    def augment_ds(self, lv_set):
+        augmented_dataset = []
+        data_augmentation = tf.keras.Sequential([
+                 tf.keras.layers.RandomFlip("horizontal_and_vertical"),
+                 tf.keras.layers.RandomRotation(self.g_rot),
+                 tf.keras.layers.GaussianNoise(self.g_noise),
+                 tf.keras.layers.RandomBrightness(self.g_bright)
+            ])
+        for culture in range(3):
+            cultureTS = []
+            for X, y in lv_set:
+                X_augmented = data_augmentation(X, training=True)
+                cultureTS.append((X_augmented, y))
+        X = tf.stack(augmented_dataset)
+        return X
+    
+    @tf.function
+    def my_compute_gradient(self, model_fn, loss_fn, x, y, targeted, culture=0):
+
+        with tf.GradientTape() as g:
+            g.watch(x)
+            # Compute loss
+            loss = loss_fn(y, model_fn(x)[culture])
+            if (
+                targeted
+            ):  # attack is targeted, minimize loss of target label rather than maximize loss of correct label
+                loss = -loss
+
+        # Define gradient of loss wrt input
+        grad = g.gradient(loss, x)
+        return grad
+    
+    def my_fast_gradient_method(
+        self,
+        model_fn,
+        x,
+        eps,
+        norm,
+        loss_fn=None,
+        clip_min=None,
+        clip_max=None,
+        y=None,
+        targeted=False,
+        sanity_checks=False,
+        culture=0,
+        plot = None
+    ):
+        if norm not in [np.inf, 1, 2]:
+            raise ValueError("Norm order must be either np.inf, 1, or 2.")
+
+        if loss_fn is None:
+            loss_fn = tf.nn.sparse_softmax_cross_entropy_with_logits
+
+        asserts = []
+
+        # If a data range was specified, check that the input was in that range
+        if clip_min is not None:
+            asserts.append(tf.math.greater_equal(x, clip_min))
+
+        if clip_max is not None:
+            asserts.append(tf.math.less_equal(x, clip_max))
+
+        # cast to tensor if provided as numpy array
+        x = tf.cast(x, tf.float32)
+
+        if y is None:
+            # Using model predictions as ground truth to avoid label leaking
+            y = tf.argmax(model_fn(x)[culture], 1)
+
+        grad = self.my_compute_gradient(model_fn, loss_fn, x, y, targeted, culture=culture)
+
+        optimal_perturbation = optimize_linear(grad, eps, norm)
+
+        if plot is not None:
+            plt.imshow(optimal_perturbation[0])
+            plt.show()
+
+        # Add perturbation to original example to obtain adversarial example
+        adv_x = x + optimal_perturbation
+
+        # If clipping is needed, reset all values outside of [clip_min, clip_max]
+        if (clip_min is not None) or (clip_max is not None):
+            # We don't currently support one-sided clipping
+            assert clip_min is not None and clip_max is not None
+            adv_x = tf.clip_by_value(adv_x, clip_min, clip_max)
+
+        if sanity_checks:
+            assert np.all(asserts)
+        return adv_x
+
+    def fast_gradient_method_augmentation(self, lv_set, eps=0.3):
+        augmented_dataset = []
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+        for X, y in lv_set:
+            X = X[None, ...]
+            y_i = y[1]*2-1
+            y_i = tf.constant(y_i, dtype=tf.int32)
+            y_i = y_i[None, ...]
+            X_augmented = self.my_fast_gradient_method(
+                self.model, X, eps, np.inf, y=y_i, culture=y[0], loss_fn=bce)
+            #print(f'X=Xaugmented = {X==X_augmented}')
+            #f, axarr = plt.subplots(2,1)
+            #axarr[0].imshow(X[0][:, :, ::-1])
+            #axarr[1].imshow(X_augmented[0][:, :, ::-1])
+            #plt.show()
+
+            augmented_dataset.append((X_augmented[0], y))
+
+    
     def train_augmented(self, TS):
         size = np.shape(TS[0][0])
         input = Input(size)
@@ -308,29 +419,26 @@ class ClassificatorClass:
                       loss=[self.custom_loss(out=0),self.custom_loss(out=1),self.custom_loss(out=2)], run_eagerly=self.run_eagerly)
 
         TS = np.array(TS, dtype=object)
+
+        ###################################################
+        # AUGMENT DATASET #################################
+        augmented_dataset = self.augment_ds(TS)
+        ###################################################
+        TS = np.append(TS, augmented_dataset, axis=0)
+
         random.shuffle(TS)
         X = list(TS[:, 0])
         y = list(TS[:, 1])
+
         X_val = X[int(len(X) * (1-self.validation_split)):len(X) - 1]
         y_val = y[int(len(y) * (1-self.validation_split)):len(y) - 1]
         X = X[0:int(len(X) * (1-self.validation_split))]
         y = y[0:int(len(y) * (1-self.validation_split))]
         
-        '''X = tf.stack(X)
-        augmented_dataset = []
-        data_augmentation = tf.keras.Sequential([
-                 tf.keras.layers.RandomFlip("horizontal_and_vertical"),
-                 tf.keras.layers.RandomRotation(self.g_rot),
-                 tf.keras.layers.GaussianNoise(self.g_noise),
-                 tf.keras.layers.RandomBrightness(self.g_bright)
-            ])
-        for culture in range(len(self.TestS)):
-            cultureTS = []
-            for X, y in self.TestS[culture]:
-                X_augmented = data_augmentation(X, training=True)
-                cultureTS.append((X_augmented, y))
-            augmented_dataset.append(cultureTS)'''
+        X = tf.stack(X)
         y = tf.stack(y)
+        
+
         X_val = tf.stack(X_val)
         y_val = tf.stack(y_val)
         tf.get_logger().setLevel('ERROR')
@@ -381,6 +489,10 @@ class ClassificatorClass:
                     cms.append(cm)
             # Reset Memory each time
             self.TestSet = TestSets
+            del TS
+            del obj
+            del model
+            del TestSets
             gc.collect()
         
         if self.verbose_param:
@@ -400,6 +512,7 @@ class ClassificatorClass:
     
     def resetTestSet(self):
         self.TestSets = None
+        
     
     def execute_model_selection(self, bs= True):
         for i in range(self.times):
@@ -420,9 +533,11 @@ class ClassificatorClass:
                 for o in range(3):
                     name = 'percent' + str(self.percent).replace('.', ',') + '/' +  str(self.lambda_index) + '/' + onPointSplitted[0] + str(
                         l) + f'/out{o}.' + onPointSplitted[1]
-                    
                     fileNamesOut.append(name)
+                    del name
                 fileNames.append(fileNamesOut)
+                del onPointSplitted
+                del fileNamesOut
             model = self.model_selection(TS, bs)
             cms = []
             for k, TestSet in enumerate(TestSets):
@@ -432,6 +547,10 @@ class ClassificatorClass:
                     self.save_cm(fileNames[k][o], cm[o])
                     cms.append(cm)
             # Reset Memory each time
+            del TS
+            del obj
+            del model
+            del TestSets
             gc.collect()
         
         if self.verbose_param:
@@ -575,6 +694,8 @@ class ClassificatorClass:
                 self.save_cm(fileNames[k][o], cm[o])
                 cms.append(cm)
         # Reset Memory each time
+        
+                
         gc.collect()
         if self.times > 1:
             for i in range(self.times-1):
@@ -607,6 +728,10 @@ class ClassificatorClass:
                         self.save_cm(fileNames[k][o], cm[o])
                         cms.append(cm)
                 # Reset Memory each time
+                del TS
+                del obj
+                del model
+                del TestSets
                 gc.collect()
     
         if self.verbose_param:
