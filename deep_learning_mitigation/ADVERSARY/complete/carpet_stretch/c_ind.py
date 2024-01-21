@@ -14,7 +14,7 @@ paths = strings.carpet_paths_str
 file_name = "c_ind.csv"
 n = 5
 percents = [0.05, 0.1]
-lambda_indeces = range(4, 25)
+lambda_indeces = range(6, 25)
 
 mid = Midware(culture=culture,
                     greyscale=0,
@@ -29,7 +29,7 @@ mid = Midware(culture=culture,
                     percent=percents[0],
                     plot = False,
                     run_eagerly = False,
-                    lambda_index = 3,
+                    lambda_index = 5,
                     gpu = True)
 mid.execute(n)
 mid = None
