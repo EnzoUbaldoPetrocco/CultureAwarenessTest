@@ -14,12 +14,12 @@ paths = strings.carpet_paths_str
 file_name = "c_ind.csv"
 n = 5
 percents = [0.05, 0.1]
-lambda_indeces = range(7, 25)
+lambda_indeces = range(8, 25)
 
 mid = Midware(culture=culture,
                     greyscale=0,
                     paths=paths,
-                    times=6,
+                    times=8,
                     fileName=file_name,
                     validation_split=0.2,
                     batch_size=2,
@@ -29,7 +29,7 @@ mid = Midware(culture=culture,
                     percent=percents[0],
                     plot = False,
                     run_eagerly = False,
-                    lambda_index = 6,
+                    lambda_index = 7,
                     gpu = True)
 mid.execute(n)
 mid = None
@@ -58,7 +58,10 @@ for lambda_index in lambda_indeces:
     mid = None
     del mid
     sleep(5)
-    gc.collect()
+    
+    collected = gc.collect()
+    print("Garbage collector: collected",
+            "%d objects." % collected)
 
 lambda_indeces = range(0, 25)
 for lambda_index in lambda_indeces:
@@ -81,6 +84,9 @@ for lambda_index in lambda_indeces:
     mid = None
     del mid
     sleep(5)
-    gc.collect()
+    
+    collected = gc.collect()
+    print("Garbage collector: collected",
+            "%d objects." % collected)
     
 
