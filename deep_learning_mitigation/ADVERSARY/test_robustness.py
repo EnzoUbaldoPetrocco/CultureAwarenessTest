@@ -149,21 +149,17 @@ class TestRobustness:
         testSet = np.array(testSet, dtype=object)
         XT = list(testSet[:, 0])
         yT = list(testSet[:, 1])
-
+        del testSet
         XT = tf.stack(XT)
         yT = np.asarray(yT, dtype=float)
         yT = yT[:, 1]
-        
         yT = self.quantize(yT)
-        
         yT = tf.stack(yT)
-
-
         yFs = self.model.predict(XT)
         yFs = np.array(yFs, dtype=object)
         yFs = yFs[:,:,0]
+
         cms = []
-        
         for yF in yFs:
             yF = self.quantize(yF)
             cm = confusion_matrix(yT, yF)
@@ -189,7 +185,6 @@ class TestRobustness:
 
     def test_on_augmented(self, g_rot=0.2, g_noise=0.1, g_bright=0.1):
         self.robds.standard_augmentation(g_rot=g_rot, g_noise=g_noise, g_bright=g_bright)
-        cms = []
         TestSets = self.robds.augmented_dataset
         prefix = 'augmented/g_rot=' + str(g_rot) + '/g_noise=' + str(g_noise) + '/'
         fileNames = self.get_filenames(len(TestSets), prefix)
@@ -198,11 +193,10 @@ class TestRobustness:
             for o in range(3):
                     print(fileNames[culture][o])
                     self.save_cm(fileNames[culture][o], cm[o])
-                    cms.append(cm)
+                    
 
     def test_on_FGMA(self, eps = 0.3):
         self.robds.fast_gradient_method_augmentation(eps=eps)
-        cms = []
         TestSets = self.robds.fast_gradient_method_augmented_dataset
         prefix = 'fgma/eps=' + str(eps) + '/'
         fileNames = self.get_filenames(len(TestSets), prefix)
@@ -212,11 +206,10 @@ class TestRobustness:
             for o in range(3):
                     print(fileNames[culture][o])
                     self.save_cm(fileNames[culture][o], cm[o])
-                    cms.append(cm)
+
 
     def test_on_PGDA(self, eps = 0.3):
         self.robds.projected_gradient_descent_augmentation(eps=eps)
-        cms = []
         TestSets = self.robds.projected_gradient_decent_augmented_dataset
         prefix = 'pgda/eps=' + str(eps) + '/'
         fileNames = self.get_filenames(len(TestSets), prefix)
@@ -225,7 +218,6 @@ class TestRobustness:
             for o in range(3):
                     print(fileNames[culture][o])
                     self.save_cm(fileNames[culture][o], cm[o])
-                    cms.append(cm)
 
 
         

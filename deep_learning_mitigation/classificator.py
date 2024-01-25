@@ -135,7 +135,7 @@ class ClassificatorClass:
                 values.append(0)
         return values
 
-    def test(self, model, testSet):
+    def test(self, testSet):
         testSet = np.array(testSet, dtype=object)
         XT = list(testSet[:, 0])
         yT = list(testSet[:, 1])
@@ -143,7 +143,7 @@ class ClassificatorClass:
         yT = tf.stack(yT)
         yT = yT[:, 1]
         
-        yFs = model.predict(XT)
+        yFs = self.model.predict(XT)
         yFs = np.array(yFs, dtype=object)
         yFs = yFs[:,:,0]
         cms = []
@@ -242,6 +242,7 @@ class ClassificatorClass:
         random.shuffle(TS)
         X = list(TS[:, 0])
         y = list(TS[:, 1])
+        del TS
         X_val = X[int(len(X) * (1-self.validation_split)):len(X) - 1]
         y_val = y[int(len(y) * (1-self.validation_split)):len(y) - 1]
         X = X[0:int(len(X) * (1-self.validation_split))]
@@ -264,8 +265,7 @@ class ClassificatorClass:
         if self.plot:
             self.plot_training()
         if self.sv_model:
-            self.save_models(self.model)
-        return self.model
+            self.save_models()
     
     def augment_ds(self, lv_set):
         augmented_dataset = []
@@ -284,12 +284,11 @@ class ClassificatorClass:
         return X
     
     @tf.function
-    def my_compute_gradient(self, model_fn, loss_fn, x, y, targeted, culture=0):
-
+    def my_compute_gradient(self, loss_fn, x, y, targeted, culture=0):
         with tf.GradientTape() as g:
             g.watch(x)
             # Compute loss
-            loss = loss_fn(y, model_fn(x)[culture])
+            loss = loss_fn(y, self.model(x)[culture])
             if (
                 targeted
             ):  # attack is targeted, minimize loss of target label rather than maximize loss of correct label
@@ -301,7 +300,6 @@ class ClassificatorClass:
     
     def my_fast_gradient_method(
         self,
-        model_fn,
         x,
         eps,
         norm,
@@ -334,9 +332,9 @@ class ClassificatorClass:
 
         if y is None:
             # Using model predictions as ground truth to avoid label leaking
-            y = tf.argmax(model_fn(x)[culture], 1)
+            y = tf.argmax(self.model(x)[culture], 1)
 
-        grad = self.my_compute_gradient(model_fn, loss_fn, x, y, targeted, culture=culture)
+        grad = self.my_compute_gradient( loss_fn, x, y, targeted, culture=culture)
 
         optimal_perturbation = optimize_linear(grad, eps, norm)
 
@@ -366,8 +364,8 @@ class ClassificatorClass:
             y_i = y[1]*2-1
             y_i = tf.constant(y_i, dtype=tf.int32)
             y_i = y_i[None, ...]
-            X_augmented = self.my_fast_gradient_method(
-                self.model, X, eps, np.inf, y=y_i, culture=y[0], loss_fn=bce)
+            X_augmented = self.my_fast_gradient_method(X,
+                 eps, np.inf, y=y_i, culture=y[0], loss_fn=bce)
             #print(f'X=Xaugmented = {X==X_augmented}')
             #f, axarr = plt.subplots(2,1)
             #axarr[0].imshow(X[0][:, :, ::-1])
@@ -376,7 +374,6 @@ class ClassificatorClass:
 
             augmented_dataset.append((X_augmented[0], y))
 
-    
     def train_augmented(self, TS):
         size = np.shape(TS[0][0])
         input = Input(size)
@@ -429,7 +426,8 @@ class ClassificatorClass:
         random.shuffle(TS)
         X = list(TS[:, 0])
         y = list(TS[:, 1])
-
+        del TS
+        del augmented_dataset
         X_val = X[int(len(X) * (1-self.validation_split)):len(X) - 1]
         y_val = y[int(len(y) * (1-self.validation_split)):len(y) - 1]
         X = X[0:int(len(X) * (1-self.validation_split))]
@@ -454,8 +452,7 @@ class ClassificatorClass:
         if self.plot:
             self.plot_training()
         if self.sv_model:
-            self.save_models(self.model)
-        return self.model
+            self.save_models()
 
     def execute(self):
         for i in range(self.times):
@@ -478,11 +475,14 @@ class ClassificatorClass:
                         l) + f'/out{o}.' + onPointSplitted[1]
                     
                     fileNamesOut.append(name)
+                    del name
                 fileNames.append(fileNamesOut)
-            model = self.train(TS)
+                del onPointSplitted
+                
+            self.train(TS)
             cms = []
             for k, TestSet in enumerate(TestSets):
-                cm = self.test(model, TestSet)
+                cm = self.test(self.model, TestSet)
                 for o in range(3):
                     print(fileNames[k][o])
                     self.save_cm(fileNames[k][o], cm[o])
@@ -491,12 +491,11 @@ class ClassificatorClass:
             self.TestSet = TestSets
             del TS
             del obj
-            del model
             del TestSets
             gc.collect()
         
         if self.verbose_param:
-            for i in range(len(obj.TS)):
+            for i in range(3):
                 for o in range(3):
                     result = self.get_results(fileNames[i][o])
                     result = np.array(result, dtype=object)
@@ -506,14 +505,12 @@ class ClassificatorClass:
                         result, tot)
                     statistic = self.resultsObj.return_statistics_pcm(pcm_list)
                     print(statistic[0])
-                    
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
     
     def resetTestSet(self):
         self.TestSets = None
         
-    
     def execute_model_selection(self, bs= True):
         for i in range(self.times):
             gc.collect()
@@ -538,10 +535,10 @@ class ClassificatorClass:
                 fileNames.append(fileNamesOut)
                 del onPointSplitted
                 del fileNamesOut
-            model = self.model_selection(TS, bs)
+            self.model_selection(TS, bs)
             cms = []
             for k, TestSet in enumerate(TestSets):
-                cm = self.test(model, TestSet)
+                cm = self.test(TestSet)
                 for o in range(3):
                     print(fileNames[k][o])
                     self.save_cm(fileNames[k][o], cm[o])
@@ -549,7 +546,6 @@ class ClassificatorClass:
             # Reset Memory each time
             del TS
             del obj
-            del model
             del TestSets
             gc.collect()
         
@@ -568,7 +564,7 @@ class ClassificatorClass:
                     accuracy = statistic[0][0][0] + statistic[0][1][1]
                     print(f'Accuracy is {accuracy} %')
 
-    def save_models(self, model):
+    def save_models(self):
         culture_path = './' + self.fileName.split('.')[0]
         percent_path = culture_path + '/' + str(self.percent)
         model_path = percent_path + '/' + str(self.lambda_index)
@@ -582,7 +578,7 @@ class ClassificatorClass:
             # check if current path is a file
             if os.path.isfile(os.path.join(model_path, path)):
                 count += 1
-        model.save_weights(f'{model_path}/checkpoint_{count}')
+        self.model.save_weights(f'{model_path}/checkpoint_{count}')
 
     def model_selection(self, TS, batch_size=True):
         size = np.shape(TS[0][0])
@@ -661,8 +657,10 @@ class ClassificatorClass:
                 self.model = None
                 time.sleep(5)
         print(f'best hyperparams are: lr: {self.learning_rate}, bs: {self.batch_size}')
-        self.save_models(best_model)
-        return best_model
+        self.model = best_model
+        best_model = None
+        if self.sv_model:
+            self.save_models()
     
     def exe_intellig_model_selection(self, bs= True):
         gc.collect()
@@ -685,10 +683,10 @@ class ClassificatorClass:
                 
                 fileNamesOut.append(name)
             fileNames.append(fileNamesOut)
-        model = self.model_selection(TS, bs)
+        self.model_selection(TS, bs)
         cms = []
         for k, TestSet in enumerate(TestSets):
-            cm = self.test(model, TestSet)
+            cm = self.test(self.model, TestSet)
             for o in range(3):
                 print(fileNames[k][o])
                 self.save_cm(fileNames[k][o], cm[o])
@@ -719,10 +717,10 @@ class ClassificatorClass:
                         
                         fileNamesOut.append(name)
                     fileNames.append(fileNamesOut)
-                model = self.train(TS)
+                self.train(TS)
                 cms = []
                 for k, TestSet in enumerate(TestSets):
-                    cm = self.test(model, TestSet)
+                    cm = self.test(self.model, TestSet)
                     for o in range(3):
                         print(fileNames[k][o])
                         self.save_cm(fileNames[k][o], cm[o])
@@ -730,7 +728,6 @@ class ClassificatorClass:
                 # Reset Memory each time
                 del TS
                 del obj
-                del model
                 del TestSets
                 gc.collect()
     
