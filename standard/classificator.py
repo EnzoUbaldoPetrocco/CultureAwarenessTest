@@ -62,6 +62,7 @@ class ClassificatorClass:
                           verbose=0)
         # training set is divided into (X,y)
         TS = np.array(TS, dtype=object)
+        del TS
         X = list(TS[:, 0])
         y = list(TS[:, 1])
         print('SVC TRAINING')
@@ -69,7 +70,6 @@ class ClassificatorClass:
         # Check that C and gamma are not the extreme values
         print(f"C best param {H.best_params_['C']}")
         #print(f"gamma best param {H.best_params_['gamma']}")
-
         return H
 
     def RFC(self, TS):
@@ -87,12 +87,10 @@ class ClassificatorClass:
         TS = np.array(TS, dtype=object)
         X = list(TS[:, 0])
         y = list(TS[:, 1])
-
+        del TS
         print('RFC TRAINING')
         H = CV_rfc.fit(X, y)
-
-        print(CV_rfc.best_params_)
-
+        #print(CV_rfc.best_params_)
         return H
 
     def test(self, model, testSet):
@@ -150,9 +148,7 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')
 
     def execute_mixed(self, cultures=[1]):
@@ -204,9 +200,7 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')
 
         print('MIXED RESULTS')
@@ -216,9 +210,7 @@ class ClassificatorClass:
         pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
             mixedResults, tot)
         statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-        for j in statistic:
-            print(j)
-        accuracy = statistic[0][0][0] + statistic[0][1][1]
+        accuracy = statistic[0][0] + statistic[1][1]
         print(f'Accuracy is {accuracy} %')
 
     def executenineone(self, percent=0.1):
@@ -260,9 +252,7 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')
 
     def execute_indipendent(self, percent=0.1):
@@ -304,7 +294,5 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')

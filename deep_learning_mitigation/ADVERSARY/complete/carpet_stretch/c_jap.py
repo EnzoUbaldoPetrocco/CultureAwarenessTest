@@ -17,20 +17,20 @@ lambda_indeces = range(-1, 25)
 for percent in percents:
     for lambda_index in lambda_indeces:
         mid = Midware(culture=culture,
-                        greyscale=0,
-                        paths=paths,
-                        times=10,
-                        fileName=file_name,
-                        validation_split=0.2,
-                        batch_size=2,
-                        epochs=15,
-                        learning_rate=4e-5,
-                        verbose=0,
-                        percent=percent,
-                        plot = False,
-                        run_eagerly = False,
-                        lambda_index = 0,
-                        gpu = True)
+                    greyscale=0,
+                    paths=paths,
+                    times=10,
+                    fileName=file_name,
+                    validation_split=0.2,
+                    batch_size=2,
+                    epochs=15,
+                    learning_rate=4e-5,
+                    verbose=0,
+                    percent=percent,
+                    plot = False,
+                    run_eagerly = False,
+                    lambda_index = lambda_index,
+                    gpu = True)
         mid.execute(n)
         del mid
         gc.collect()

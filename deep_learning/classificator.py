@@ -224,9 +224,7 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')
 
     def execute_mixed(self, cultures=[1]):
@@ -274,9 +272,7 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')
 
         print('MIXED RESULTS')
@@ -287,9 +283,7 @@ class ClassificatorClass:
         pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
             mixedResults, tot)
         statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-        for j in statistic:
-            print(j)
-        accuracy = statistic[0][0][0] + statistic[0][1][1]
+        accuracy = statistic[0][0] + statistic[1][1]
         print(f'Accuracy is {accuracy} %')
     
 
@@ -362,9 +356,7 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')
 
     def model_selection(self, TS):
@@ -474,7 +466,5 @@ class ClassificatorClass:
             pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                 result, tot)
             statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-            for j in statistic:
-                print(j)
-            accuracy = statistic[0][0][0] + statistic[0][1][1]
+            accuracy = statistic[0][0] + statistic[1][1]
             print(f'Accuracy is {accuracy} %')

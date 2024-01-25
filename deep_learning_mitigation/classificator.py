@@ -504,8 +504,7 @@ class ClassificatorClass:
                     pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                         result, tot)
                     statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-                    print(statistic[0])
-                    accuracy = statistic[0][0][0] + statistic[0][1][1]
+                    accuracy = statistic[0][0] + statistic[1][1]
                     print(f'Accuracy is {accuracy} %')
     
     def resetTestSet(self):
@@ -550,7 +549,7 @@ class ClassificatorClass:
             gc.collect()
         
         if self.verbose_param:
-            for i in range(len(obj.TS)):
+            for i in range(3):
                 for o in range(3):
                     result = self.get_results(fileNames[i][o])
                     result = np.array(result, dtype=object)
@@ -559,9 +558,7 @@ class ClassificatorClass:
                     pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                         result, tot)
                     statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-                    print(statistic[0])
-                    
-                    accuracy = statistic[0][0][0] + statistic[0][1][1]
+                    accuracy = statistic[0][0] + statistic[1][1]
                     print(f'Accuracy is {accuracy} %')
 
     def save_models(self):
@@ -732,7 +729,7 @@ class ClassificatorClass:
                 gc.collect()
     
         if self.verbose_param:
-            for i in range(len(obj.TS)):
+            for i in range(3):
                 for o in range(3):
                     result = self.get_results(fileNames[i][o])
                     result = np.array(result, dtype=object)
@@ -741,7 +738,5 @@ class ClassificatorClass:
                     pcm_list = self.resultsObj.calculate_percentage_confusion_matrix(
                         result, tot)
                     statistic = self.resultsObj.return_statistics_pcm(pcm_list)
-                    print(statistic[0])
-                    
-                    accuracy = statistic[0][0][0] + statistic[0][1][1]
+                    accuracy = statistic[0][0] + statistic[1][1]
                     print(f'Accuracy is {accuracy} %')

@@ -2,7 +2,6 @@ import csv
 import numpy as np
 import os
 
-
 class FileClass:
     def __init__(self, name):
         self.name = name
@@ -50,7 +49,6 @@ class FileClass:
             cms.append(cm)
         return cms
 
-
 class ResultsClass:
     def calculate_percentage_confusion_matrix(self, confusion_matrix_list,
                                               tot):
@@ -70,14 +68,6 @@ class ResultsClass:
         return tot
 
     def return_statistics_pcm(self, pcms):
-        max_true_negative = 0
-        max_false_negative = 0
-        max_true_positive = 0
-        max_false_positive = 0
-        min_true_negative = 100
-        min_false_negative = 100
-        min_true_positive = 100
-        min_false_positive = 100
         count_true_negative = 0
         count_false_negative = 0
         count_true_positive = 0
@@ -93,24 +83,6 @@ class ResultsClass:
             count_false_positive += false_positive
             count_true_positive += true_positive
 
-            if true_negative > max_true_negative:
-                max_true_negative = true_negative
-            if false_negative > max_false_negative:
-                max_false_negative = false_negative
-            if true_positive > max_true_positive:
-                max_true_positive = true_positive
-            if false_positive > max_false_positive:
-                max_false_positive = false_positive
-
-            if true_negative < min_true_negative:
-                min_true_negative = true_negative
-            if false_negative < min_false_negative:
-                min_false_negative = false_negative
-            if true_positive < min_true_positive:
-                min_true_positive = true_positive
-            if false_positive < min_false_positive:
-                min_false_positive = false_positive
-
         mean_true_negative = count_true_negative / len(pcms)
         mean_false_negative = count_false_negative / len(pcms)
         mean_true_positive = count_true_positive / len(pcms)
@@ -118,13 +90,5 @@ class ResultsClass:
 
         mean_matrix = np.array([[mean_true_negative, mean_false_positive],
                                 [mean_false_negative, mean_true_positive]])
-        max_matrix = np.array([[max_true_negative, max_false_positive],
-                               [max_false_negative, max_true_positive]])
-        min_matrix = np.array([[min_true_negative, min_false_positive],
-                               [min_false_negative, min_true_positive]])
 
-        matrix = []
-        matrix.append(mean_matrix)
-        matrix.append(max_matrix)
-        matrix.append(min_matrix)
-        return matrix
+        return mean_matrix
