@@ -482,7 +482,7 @@ class ClassificatorClass:
             self.train(TS)
             cms = []
             for k, TestSet in enumerate(TestSets):
-                cm = self.test(self.model, TestSet)
+                cm = self.test(TestSet)
                 for o in range(3):
                     print(fileNames[k][o])
                     self.save_cm(fileNames[k][o], cm[o])
@@ -717,7 +717,7 @@ class ClassificatorClass:
                 self.train(TS)
                 cms = []
                 for k, TestSet in enumerate(TestSets):
-                    cm = self.test(self.model, TestSet)
+                    cm = self.test(TestSet)
                     for o in range(3):
                         print(fileNames[k][o])
                         self.save_cm(fileNames[k][o], cm[o])
