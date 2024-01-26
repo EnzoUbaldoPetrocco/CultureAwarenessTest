@@ -130,28 +130,5 @@ class Histograms:
         plt.grid()
         plt.show()
 
-    
-'''rng = np.random.default_rng(12345)
-acc_main_class = []
-acc_second_class = []
-for i in range(0,25):
-    rfloat = rng.random()
-    acc_main_class.append(75 + rfloat%10)
-for i in range(0,25):
-    rfloat = rng.random()
-    acc_second_class.append(60 + rfloat%10)
-x = np.logspace(0,2,25)
-mit = Mitigation(acc_main_class, acc_second_class, x)
-mit.plot_metric()
-mit.plot_main()
-mit.plot_second()
-mit.plot_3d()
-
-labels = ["chinese", "french"]
-percentages = [60, 80]
-y_labels = ["chin", "french"]
-title = "Histogram"
-hist = Histograms(labels, percentages, y_labels, title )
-hist.plot()'''
 
 

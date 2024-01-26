@@ -10,23 +10,20 @@ import time
 import os, shutil
 from PIL import Image
 import random
-from collections import deque
-import tensorflow as tf
 
 n_ims = 1000
-
 
 class DSClass:
     # utils
     def options(self, options=[], default=1):
         if options == None:
-            raise Exception('Options is None')
+            raise Exception("Options is None")
         if len(options) == 0:
-            raise Exception('Options has length 0')
-        print('Which one would you like to choose?')
+            raise Exception("Options has length 0")
+        print("Which one would you like to choose?")
         for i, opt in enumerate(options):
-            print(f'{i+1}) {opt}')
-        x = input('')
+            print(f"{i+1}) {opt}")
+        x = input("")
         for i, option in enumerate(options):
             if x.lower() == option.lower():
                 return i + 1
@@ -43,9 +40,9 @@ class DSClass:
         x = input(text)
         # check if there is yes or no
         x = x.lower()
-        if x == 'yes' or x == 'y':
+        if x == "yes" or x == "y":
             return True
-        if x == 'no' or x == 'n':
+        if x == "no" or x == "n":
             return False
         try:
             x = int(x)
@@ -66,35 +63,35 @@ class DSClass:
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
+                print("Failed to delete %s. Reason: %s" % (file_path, e))
 
     def mkdir(self, dir):
         if not os.path.exists(dir):
-            print(f'Making directory: {str(dir)}')
+            print(f"Making directory: {str(dir)}")
             os.makedirs(dir)
 
     def paths(self):
-        self.starting = input('Enter the starting path: ')
-        self.destination = input('Enter the destination path: ')
+        self.starting = input("Enter the starting path: ")
+        self.destination = input("Enter the destination path: ")
         self.mkdir(self.destination)
-        n = input('Enter the number of the labels, default is 2 (0,1): ')
+        n = input("Enter the number of the labels, default is 2 (0,1): ")
         self.labels = []
         try:
             n = int(n)
             if n > 1:
                 for i in range(n):
-                    self.labels.append(input('Enter label name '))
+                    self.labels.append(input("Enter label name "))
             else:
                 n = 2
-                self.labels = ['0', '1']
+                self.labels = ["0", "1"]
 
         except:
             n = 2
-            self.labels = ['0', '1']
+            self.labels = ["0", "1"]
 
     def acquire_images(self, path, grayscale=False):
         images = []
-        types = ('*.png', '*.jpg', '*.jpeg')
+        types = ("*.png", "*.jpg", "*.jpeg")
         paths = []
         for typ in types:
             paths.extend(pathlib.Path(path).glob(typ))
@@ -150,13 +147,15 @@ class DSClass:
         img = cv2.resize(img, (dim[1], dim[0]), interpolation=cv2.INTER_AREA)
         dimensions = img.shape
         tblr = self.get_dimensions(dimensions[0], dimensions[1])
-        img = cv2.copyMakeBorder(img,
-                                 tblr[0],
-                                 tblr[1],
-                                 tblr[2],
-                                 tblr[3],
-                                 cv2.BORDER_CONSTANT,
-                                 value=[255, 255, 255])
+        img = cv2.copyMakeBorder(
+            img,
+            tblr[0],
+            tblr[1],
+            tblr[2],
+            tblr[3],
+            cv2.BORDER_CONSTANT,
+            value=[255, 255, 255],
+        )
         return img
 
     def modify_size(self, img):
@@ -170,24 +169,31 @@ class DSClass:
         for i, img in enumerate(dataset):
             img = self.modify_size(img)
             img = self.modify_color(img)
-            dest = self.destination + '/' + str(
-                self.size) + '/' + self.opts[self.color - 1] + '/' + label
+            dest = (
+                self.destination
+                + "/"
+                + str(self.size)
+                + "/"
+                + self.opts[self.color - 1]
+                + "/"
+                + label
+            )
             self.mkdir(dest)
             im = Image.fromarray(np.uint8(img))
-            im.save(dest + '/im' + str(i) + '.jpeg')
-            #cv2.imwrite(dest + '/' + str(i) + '.jpg', img)
+            im.save(dest + "/im" + str(i) + ".jpeg")
+            # cv2.imwrite(dest + '/' + str(i) + '.jpg', img)
 
     def preferences(self):
         # get color and size and preferences
-        self.opts = ['RGB', 'HSV', 'Greyscale']
+        self.opts = ["RGB", "HSV", "Greyscale"]
         self.color = self.options(self.opts, default=3)
-        size = input('Enter the size (default 33): ')
+        size = input("Enter the size (default 33): ")
         try:
             self.size = int(size)
         except:
             self.size = 33
         self.stretch = self.accept(
-            'Do you want to stretch the image (default, fill with white pixels) '
+            "Do you want to stretch the image (default, fill with white pixels) "
         )
 
     def prepare(self, arg=[], auto=False):
@@ -195,9 +201,9 @@ class DSClass:
         # prepare path and images
         if auto:
             if arg:
-                self.color = arg['color']
-                self.size = arg['size']
-                self.stretch = arg['stretch']
+                self.color = arg["color"]
+                self.size = arg["size"]
+                self.stretch = arg["stretch"]
             else:
                 self.color = 3
                 self.size = 33
@@ -206,7 +212,7 @@ class DSClass:
             self.preferences()
         # transform images
         for label in self.labels:
-            dataset = self.acquire_images(self.starting + '/' + label)
+            dataset = self.acquire_images(self.starting + "/" + label)
             self.modify(dataset, label)
 
     # ONLINE
@@ -215,40 +221,37 @@ class DSClass:
         for file in os.listdir(path):
             d = os.path.join(path, file)
             if os.path.isdir(d):
-                d = d.split('\\')
+                d = d.split("\\")
                 if len(d) == 1:
-                    d = d[0].split('/')
+                    d = d[0].split("/")
                 d = d[-1]
                 dir_list.append(d)
         return dir_list
 
     def splitting(self, path, i, label):
-        images = self.acquire_images(path + '/' + label, self.greyscale)
+        images = self.acquire_images(path + "/" + label, self.greyscale)
         training = []
         test = []
         if len(images) > 1:
-            for image in images[0:int(len(images) * self.proportion)]:
-                #image = image.flatten()
+            for image in images[0 : int(len(images) * self.proportion)]:
+                # image = image.flatten()
                 if self.greyscale:
                     image = image[0::]
                 if self.flat:
                     image = image.flatten()
                 training.append([image / 255, i])
-            for image in images[int(len(images) *
-                                    self.proportion):len(images) - 1]:
-                #image = image.flatten()
+            for image in images[int(len(images) * self.proportion) : len(images) - 1]:
+                # image = image.flatten()
                 if self.greyscale:
                     image = image[0::]
                 if self.flat:
                     image = image.flatten()
                 test.append([image / 255, i])
         else:
-            print(f'{path} is empty')
+            print(f"{path} is empty")
         return training, test
-        #self.TS.append(training)
-        #self.TestS.append(test)
 
-    def build_dataset(self, paths, greyscale=0, flat=1, proportion = 0.8):
+    def build_dataset(self, paths, greyscale=0, flat=1, proportion=0.8):
         random.seed(time.time_ns())
         self.proportion = proportion
         self.greyscale = greyscale
@@ -274,21 +277,20 @@ class DSClass:
                 tempTestS = []
 
         else:
-            print('Paths is None')
+            print("Paths is None")
 
     def nineonedivision(self, culture, percent=0.1, divide=0):
         if not divide:
             for i, ts in enumerate(self.TS):
                 if i != culture:
-                    self.TS[culture] = self.TS[culture] + ts[
-                        0:int(len(ts) * percent)]
+                    self.TS[culture] = self.TS[culture] + ts[0 : int(len(ts) * percent)]
             for ts in self.TS:
                 random.shuffle(ts)
         else:
             TS = self.TS
             for i, ts in enumerate(TS):
                 if i != culture:
-                    TS[i] = ts[0:int(len(ts) * percent)]
+                    TS[i] = ts[0 : int(len(ts) * percent)]
             self.TS = TS
 
     def mitigation_dataset(self, paths, greyscale=0, flat=1):
@@ -310,8 +312,7 @@ class DSClass:
         TS = self.TS
         for i, ts in enumerate(TS):
             if i == culture:
-                TS[i] = ts[0:int(len(ts) * percent)]
+                TS[i] = ts[0 : int(len(ts) * percent)]
             else:
                 TS[i] = 0
         self.TS = TS
-
