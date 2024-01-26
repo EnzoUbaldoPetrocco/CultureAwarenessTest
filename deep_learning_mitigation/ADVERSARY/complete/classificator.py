@@ -9,7 +9,6 @@ import gc
 
 strings = Strings()
 paths = strings.carpet_paths_str
-file_name = 'c_ind.csv'
 
 
 class Midware():
@@ -116,7 +115,7 @@ class Midware():
                                 lr=self.learning_rate,
                                 epochs=self.epochs,
                                 verbose_param=self.verbose,
-                                fileName=file_name)
+                                fileName=self.fileName)
             for i in range(1,n**2):
                 test_rob.robds.TestS = cc.TestSet
                 cc.resetTestSet()
