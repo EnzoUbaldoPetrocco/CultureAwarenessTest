@@ -13,20 +13,21 @@ paths = strings.lamp_paths
 file_name = "l_chin.csv"
 n = 5
 
+
 mid = Midware(culture=culture,
                     greyscale=0,
                     paths=paths,
-                    times=5,
+                    times=4,
                     fileName=file_name,
                     validation_split=0.2,
                     batch_size=2,
                     epochs=15,
                     learning_rate=4e-5,
                     verbose=0,
-                    percent=0.1,
+                    percent=0.05,
                     plot = False,
                     run_eagerly = False,
-                    lambda_index = -1,
+                    lambda_index = 0,
                     gpu = True)
 mid.execute(n)
 del mid
@@ -42,10 +43,10 @@ mid = Midware(culture=culture,
                     epochs=15,
                     learning_rate=4e-5,
                     verbose=0,
-                    percent=0.05,
+                    percent=0.1,
                     plot = False,
                     run_eagerly = False,
-                    lambda_index = -1,
+                    lambda_index = 0,
                     gpu = True)
 mid.execute(n)
 del mid
