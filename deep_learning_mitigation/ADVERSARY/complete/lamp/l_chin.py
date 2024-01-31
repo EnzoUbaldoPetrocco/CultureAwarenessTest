@@ -17,26 +17,7 @@ n = 5
 mid = Midware(culture=culture,
                     greyscale=0,
                     paths=paths,
-                    times=4,
-                    fileName=file_name,
-                    validation_split=0.2,
-                    batch_size=2,
-                    epochs=15,
-                    learning_rate=4e-5,
-                    verbose=0,
-                    percent=0.05,
-                    plot = False,
-                    run_eagerly = False,
-                    lambda_index = 0,
-                    gpu = True)
-mid.execute(n)
-del mid
-gc.collect()
-
-mid = Midware(culture=culture,
-                    greyscale=0,
-                    paths=paths,
-                    times=10,
+                    times=6,
                     fileName=file_name,
                     validation_split=0.2,
                     batch_size=2,
