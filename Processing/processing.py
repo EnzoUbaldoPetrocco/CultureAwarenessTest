@@ -97,8 +97,8 @@ class ProcessingClass:
 
             self.dataobj.X.extend(X_augmented)
             self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y[0:int(len(self.dataobj.y)/batch_size)])
-            self.dataobj.yv.extend(self.dataobj.yv[0:int(len(self.dataobj.yv)/batch_size)])
+            self.dataobj.y.extend(self.dataobj.y)
+            self.dataobj.yv.extend(self.dataobj.yv)
             del X_augmented
             del Xv_augmented
             del prepObj
