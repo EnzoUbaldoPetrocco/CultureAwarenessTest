@@ -94,7 +94,7 @@ class MitigatedModels(GeneralModelClass):
 
         return loss
     
-    def DL_model_selection(self, TS, VS, adversarial=0, eps=0.05, mult=0.2, learning_rates=[1e-5, 1e-4, 1e-3], batch_sizes=[1,2,4,8]):
+    def DL_model_selection(self, TS, VS, adversarial=0, eps=0.05, mult=0.2, learning_rates=[1e-5, 1e-4, 1e-3], batch_sizes=[2,4,8]):
         best_loss = np.inf
         best_model = None
         for lr in learning_rates:
@@ -177,7 +177,7 @@ class MitigatedModels(GeneralModelClass):
                                 self.custom_loss(out=1),
                                 self.custom_loss(out=2),
                             ],)
-                        self.model.summary()
+                        #self.model.summary()
 
 
                     tf.get_logger().setLevel("ERROR")
@@ -208,9 +208,9 @@ class MitigatedModels(GeneralModelClass):
                             verbose=self.verbose_param,
                             batch_size=bs,
                         )
-                    if self.history.history[monitor_val]<best_loss:
+                    if self.history.history[monitor_val][-1]<best_loss:
                         best_model = self.model
-                        best_loss = self.history.history[monitor_val]
+                        best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
         self.model = best_model

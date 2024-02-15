@@ -19,7 +19,7 @@ test_eps = [0.0001, 0.0005, 0.001]
 val_split = 0.2
 test_split = 0.1
 mult = 0.2
-epochs = 20
+epochs = 15
 procObj = ProcessingClass(shallow=0, lamp=1, gpu=True)
 with tf.device("/CPU:0"):
     for standard in standards:
