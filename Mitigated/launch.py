@@ -11,14 +11,14 @@ standards = [0, 1]
 n = 1000
 bs = 2
 g_aug = 0.1
-test_g_augs = [0.01, 0.05, 0.01]
+test_g_augs = [0.01, 0.05, 0.1]
 verbose_param = 1
 learning_rate = 5e-4
 eps = 0.03
-test_eps = [0.0001, 0.0005, 0.001]
+test_eps = [0.0005, 0.001, 0.005]
 val_split = 0.2
 test_split = 0.1
-mult = 0.2
+mult = 0.25
 epochs = 15
 procObj = ProcessingClass(shallow=0, lamp=1, gpu=True)
 with tf.device("/CPU:0"):
@@ -62,7 +62,7 @@ with tf.device("/CPU:0"):
                                 adversary=0,
                                 eps=test_eps,
                             )
-                            for t, t_g_aug in enumerate(test_g_augs):
+                            for t_g_aug in test_g_augs:
                                 procObj.test(
                                         standard=standard,
                                         culture=c,
@@ -71,18 +71,19 @@ with tf.device("/CPU:0"):
                                         g_noise=t_g_aug,
                                         g_bright=t_g_aug,
                                         adversary=0,
-                                        eps=test_eps[0])
-                                for test_ep in test_eps:
-                                    if t==0:
-                                        procObj.test(
+                                        eps=None)
+                            for test_ep in test_eps:
+                                procObj.test(
                                             standard=standard,
                                             culture=c,
                                             augment=0,
-                                            g_rot=t_g_aug,
-                                            g_noise=t_g_aug,
-                                            g_bright=t_g_aug,
+                                            g_rot=None,
+                                            g_noise=None,
+                                            g_bright=None,
                                             adversary=1,
                                             eps=test_ep)
+                            for t, t_g_aug in enumerate(test_g_augs):
+                                for test_ep in test_eps:  
                                     procObj.test(
                                         standard=standard,
                                         culture=c,

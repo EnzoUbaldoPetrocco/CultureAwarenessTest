@@ -102,11 +102,6 @@ class MitigatedModels(GeneralModelClass):
                 with tf.device("/gpu:0"):
                     size = np.shape(TS[0][0])
                     input = Input(size, name="image")
-                    """
-                    x = tf.keras.Sequential(
-                        [EfficientNetB3(input_shape=size, weights="imagenet", include_top=False)]
-                    )(input)
-                    """
                     x = tf.keras.Sequential(
                         [ResNet50V2(input_shape=size, weights="imagenet", include_top=False)]
                     )(input)
@@ -131,7 +126,8 @@ class MitigatedModels(GeneralModelClass):
                     else:
                         for layer in self.model.layers[-3:]:
                             if not isinstance(layer, layers.BatchNormalization):
-                                print(f"Layer trainable name is: {layer.name}")
+                                if self.verbose_param:
+                                    print(f"Layer trainable name is: {layer.name}")
                                 layer.trainable = True
                     
                     monitor_val = f"val_loss"
@@ -213,6 +209,7 @@ class MitigatedModels(GeneralModelClass):
                         best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
+                    self.model = None
         self.model = best_model
         if self.verbose_param:
             print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}")   
@@ -222,11 +219,6 @@ class MitigatedModels(GeneralModelClass):
         with tf.device("/gpu:0"):
             size = np.shape(TS[0][0])
             input = Input(size, name="image")
-            """
-            x = tf.keras.Sequential(
-                [EfficientNetB3(input_shape=size, weights="imagenet", include_top=False)]
-            )(input)
-            """
             x = tf.keras.Sequential(
                 [ResNet50V2(input_shape=size, weights="imagenet", include_top=False)]
             )(input)
@@ -251,7 +243,8 @@ class MitigatedModels(GeneralModelClass):
             else:
                 for layer in self.model.layers[-3:]:
                     if not isinstance(layer, layers.BatchNormalization):
-                        print(f"Layer trainable name is: {layer.name}")
+                        if self.verbose_param:
+                                    print(f"Layer trainable name is: {layer.name}")
                         layer.trainable = True
             
             monitor_val = f"val_loss"
