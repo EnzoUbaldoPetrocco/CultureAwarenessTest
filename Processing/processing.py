@@ -276,7 +276,7 @@ class ProcessingClass:
                 c = "/CS/"
             else:
                 c = "/CI/"
-        self.basePath = self.basePath + c
+        self.basePath = self.basePath + c + str(percent) + "/"
         if augment:
             if adversary:
                 aug = "TOTAUG/"
