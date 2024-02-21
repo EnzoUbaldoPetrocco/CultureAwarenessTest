@@ -114,6 +114,24 @@ class ResultsClass:
     def get_meanFN_std(self, pcms):
         meanpcm_std = self.get_statistics_pcm(pcms)[1] 
         return meanpcm_std[1, 0]
+        
+    #TP
+    def get_meanTP(self, pcms):
+        meanpcm = self.get_statistics_pcm(pcms)[0] 
+        return meanpcm[0, 0]
+    
+    def get_meanTP_std(self, pcms):
+        meanpcm_std = self.get_statistics_pcm(pcms)[1] 
+        return meanpcm_std[0, 0]
+    
+    #TN
+    def get_meanTN(self, pcms):
+        meanpcm = self.get_statistics_pcm(pcms)[0] 
+        return meanpcm[1, 1]
+    
+    def get_meanTN_std(self, pcms):
+        meanpcm_std = self.get_statistics_pcm(pcms)[1] 
+        return meanpcm_std[1, 1]
     
     # ERROR
     def get_mean_error(self, pcms):
@@ -151,6 +169,42 @@ class ResultsClass:
         i = errors.index(min(errors))
         return np.sum(std_errors) + std_errors[i]
     
+    # Precision = TP / (TP+FP)
+    def get_meanPrecision(self, pcms):
+        meantp = self.get_meanTP(pcms)
+        meanfp = self.get_meanFP(pcms)
+        return meantp / (meantp + meanfp)
+    
+    def get_meanPrecision_std(self, pcms):
+        # stdFP = |dPrec/dtp|stdtp + |dPrec/dfp|stdfp = 
+        # = (FP/(FP+TP)^2)*STDTP + (TP/(FP+TP)^2)*STDFP
+        meantp = self.get_meanTP(pcms)
+        stdtp = self.get_meanTP_std(pcms)
+        meanfp = self.get_meanFP(pcms)
+        stdfp = self.get_meanFP_std(pcms)
+        denominator = (meanfp + meantp)**2
+        numerator = meanfp*stdtp + meantp*stdfp
+        return numerator/denominator
+    
+    # Precision = TP / (TP+FN)
+    def get_meanRecall(self, pcms):
+        meantp = self.get_meanTP(pcms)
+        meanfn = self.get_meanFN(pcms)
+        return meantp / (meantp + meanfn)
+    
+    def get_meanRecall_std(self, pcms):
+        # stdFP = |dPrec/dtp|stdtp + |dPrec/dfn|stdfn = 
+        # = (FN/(FN+TP)^2)*STDTP + (TP/(FN+TP)^2)*STDFN
+        meantp = self.get_meanTP(pcms)
+        stdtp = self.get_meanTP_std(pcms)
+        meanfn = self.get_meanFN(pcms)
+        stdfn = self.get_meanFN_std(pcms)
+        denominator = (meanfn + meantp)**2
+        numerator = meanfn*stdtp + meantp*stdfn
+        return numerator/denominator
+
+
+
 class ResultsPathClass:
     def buildPath(basePath, standard, alg, lamp, culture, augment, adversary, lambda_index, taugment, tadversary, tgaug, teps, t_cult, out):
         if standard:

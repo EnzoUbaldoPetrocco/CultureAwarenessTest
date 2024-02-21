@@ -174,6 +174,12 @@ class DataClass:
         self.yv = None
         self.Xt = None
         self.yt = None
+        del self.X
+        del self.y
+        del self.Xv
+        del self.yv
+        del self.Xt
+        del self.yt
 
 
 ## Preprocessing Class should:

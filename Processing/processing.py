@@ -216,8 +216,9 @@ class ProcessingClass:
             g_bright=g_bright,
             batch_size=15
         )
+        self.model = None
         if standard:
-            model = StandardModels(
+            self.model = StandardModels(
                 type=type,
                 points=points,
                 kernel=kernel,
@@ -229,7 +230,7 @@ class ProcessingClass:
             )
 
         else:
-            model = MitigatedModels(
+            self.model = MitigatedModels(
                 type=type,
                 culture=culture,
                 verbose_param=verbose_param,
@@ -238,14 +239,13 @@ class ProcessingClass:
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
             )
-        model.fit(
+        self.model.fit(
             (self.dataobj.X, self.dataobj.y),
             (self.dataobj.Xv, self.dataobj.yv),
             adversary=adversary,
             eps=eps,
             mult=mult,
         )
-        self.model = model
         # Base path:
         # - STD/MIT
         # - model: SVC, RFC, DL
@@ -373,4 +373,15 @@ class ProcessingClass:
 
     def partial_clear(self):
         self.model = None
+        del self.model
         self.dataobj.clear()
+        self.Xt_totaug = None
+        del self.Xt_totaug
+        self.Xt_adv = None
+        del self.Xt_adv
+        self.Xt_aug = None
+        del self.Xt_aug
+        self.basePath = None
+        del self.basePath
+        
+        
