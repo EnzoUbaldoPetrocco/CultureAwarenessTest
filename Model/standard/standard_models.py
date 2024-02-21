@@ -204,7 +204,10 @@ class StandardModels(GeneralModelClass):
                         best_bs = bs
                         best_lr = lr
                     self.model = None
+                    del self.model
         self.model = best_model
+        best_model = None
+        del best_model
         if self.verbose_param:
             print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}")   
 
