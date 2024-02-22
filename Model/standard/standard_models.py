@@ -112,7 +112,6 @@ class StandardModels(GeneralModelClass):
     
     def DL_model_selection(self, TS, VS, adversary=0, eps=0.05, mult=0.2, learning_rates=[1e-5, 1e-4, 1e-3], batch_sizes=[2,4,8]):
         best_loss = np.inf
-        best_model = None
         for lr in learning_rates:
             for bs in batch_sizes:
                 with tf.device("/gpu:0"):
@@ -160,12 +159,13 @@ class StandardModels(GeneralModelClass):
                         self.model = nsl.keras.AdversarialRegularization(
                             self.model, adv_config=adv_config
                         )
+                        print(f"Before compiling")
                         self.model.compile(
                             optimizer=optimizer,
                             metrics=["accuracy"],
                             loss=[self.adv_custom_loss()],
                         )
-
+                        print(f"After compiling")
                     else:
                         self.model.compile(
                             loss="binary_crossentropy",
@@ -177,8 +177,9 @@ class StandardModels(GeneralModelClass):
                     y = tf.stack(TS[1])
                     Xv = tf.stack(VS[0])
                     yv = tf.stack(VS[1])
-
+                    
                     if adversary:
+                        print("Here")
                         self.history = self.model.fit(
                             x={"image": X, "label": y},
                             epochs=self.epochs,
@@ -199,17 +200,18 @@ class StandardModels(GeneralModelClass):
                             batch_size=bs,
                         )
                     if self.history.history[monitor_val][-1]<best_loss:
-                        best_model = self.model
                         best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
                     self.model = None
                     del self.model
-        self.model = best_model
-        best_model = None
-        del best_model
         if self.verbose_param:
-            print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}")   
+            print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}") 
+
+        self.batch_size = best_bs
+        self.learning_rate = best_lr
+        self.model = None
+        self.DL(self, TS, VS, adversary, eps, mult)  
 
 
     def DL(self, TS, VS, adversary=0, eps=0.05, mult=0.2):

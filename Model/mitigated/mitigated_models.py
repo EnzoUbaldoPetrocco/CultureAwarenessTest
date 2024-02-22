@@ -96,7 +96,6 @@ class MitigatedModels(GeneralModelClass):
     
     def DL_model_selection(self, TS, VS, adversarial=0, eps=0.05, mult=0.2, learning_rates=[1e-5, 1e-4, 1e-3], batch_sizes=[2,4,8]):
         best_loss = np.inf
-        best_model = None
         for lr in learning_rates:
             for bs in batch_sizes:
                 with tf.device("/gpu:0"):
@@ -174,7 +173,6 @@ class MitigatedModels(GeneralModelClass):
                             ],)
                         #self.model.summary()
 
-
                     tf.get_logger().setLevel("ERROR")
 
                     X = tf.stack(TS[0])
@@ -204,17 +202,18 @@ class MitigatedModels(GeneralModelClass):
                             batch_size=bs,
                         )
                     if self.history.history[monitor_val][-1]<best_loss:
-                        best_model = self.model
                         best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
                     self.model = None
                     del self.model
-        self.model = best_model
-        best_model = None
-        del best_model
         if self.verbose_param:
-            print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}")   
+            print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}") 
+
+        self.batch_size = best_bs
+        self.learning_rate = best_lr
+        self.model = None
+        self.DL(self, TS, VS, adversarial, eps, mult)  
             
 
     def DL(self, TS, VS, adversarial=0, eps=0.05, mult=0.2):
