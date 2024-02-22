@@ -24,7 +24,7 @@ procObj = ProcessingClass(shallow=0, lamp=1, gpu=True)
 with tf.device("/CPU:0"):
     for standard in standards:
         for i in range(10):
-            for j in range(-1, 25):
+            for j in range(-1, 13):
                 for percent in percents:
                     for c in range(3):
                         for k in range(4):
