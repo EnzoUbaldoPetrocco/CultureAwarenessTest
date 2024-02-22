@@ -4,14 +4,13 @@ sys.path.insert(1, "../")
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
+
 tf.config.set_soft_device_placement(True)
 
 
-
-
 def main():
-    percents = [0.05, 0.1]
-    standards = [0, 1]
+    # percents = [0.05, 0.1]
+    # standards = [0, 1]
     n = 1000
     bs = 2
     g_aug = 0.1
@@ -33,7 +32,7 @@ def main():
     adv = sys.argv[5]
 
     with tf.device("/CPU:0"):
-        print(f"Training->aug={k%2};adv={floor(k/2)}")
+        print(f"Training->aug={adv%2};adv={floor(adv/2)}")
         procObj.process(
             standard=standard,
             type="DL",
@@ -69,26 +68,28 @@ def main():
         )
         for t_g_aug in test_g_augs:
             procObj.test(
-                    standard=standard,
-                    culture=c,
-                    augment=1,
-                    g_rot=t_g_aug,
-                    g_noise=t_g_aug,
-                    g_bright=t_g_aug,
-                    adversary=0,
-                    eps=None)
+                standard=standard,
+                culture=c,
+                augment=1,
+                g_rot=t_g_aug,
+                g_noise=t_g_aug,
+                g_bright=t_g_aug,
+                adversary=0,
+                eps=None,
+            )
         for test_ep in test_eps:
             procObj.test(
-                        standard=standard,
-                        culture=c,
-                        augment=0,
-                        g_rot=None,
-                        g_noise=None,
-                        g_bright=None,
-                        adversary=1,
-                        eps=test_ep)
+                standard=standard,
+                culture=c,
+                augment=0,
+                g_rot=None,
+                g_noise=None,
+                g_bright=None,
+                adversary=1,
+                eps=test_ep,
+            )
         for t, t_g_aug in enumerate(test_g_augs):
-            for test_ep in test_eps:  
+            for test_ep in test_eps:
                 procObj.test(
                     standard=standard,
                     culture=c,
@@ -97,6 +98,11 @@ def main():
                     g_noise=t_g_aug,
                     g_bright=t_g_aug,
                     adversary=1,
-                    eps=test_ep)
-                    
+                    eps=test_ep,
+                )
+
         procObj.partial_clear()
+
+
+if __name__ == "__main__":
+    main()
