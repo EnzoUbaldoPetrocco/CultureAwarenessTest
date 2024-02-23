@@ -213,7 +213,7 @@ class MitigatedModels(GeneralModelClass):
         self.batch_size = best_bs
         self.learning_rate = best_lr
         self.model = None
-        self.DL(self, TS, VS, adversarial, eps, mult)  
+        self.DL(TS, VS, adversarial, eps, mult)  
             
 
     def DL(self, TS, VS, adversarial=0, eps=0.05, mult=0.2):

@@ -211,7 +211,7 @@ class StandardModels(GeneralModelClass):
         self.batch_size = best_bs
         self.learning_rate = best_lr
         self.model = None
-        self.DL(self, TS, VS, adversary, eps, mult)  
+        self.DL(TS, VS, adversary, eps, mult)  
 
 
     def DL(self, TS, VS, adversary=0, eps=0.05, mult=0.2):
