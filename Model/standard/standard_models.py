@@ -122,7 +122,7 @@ class StandardModels(GeneralModelClass):
                     )(input)
                     
                     x = Flatten()(x)
-                    x = (Dense(1, activation="sigmoid"))(x)
+                    x = (Dense(1, activation="sigmoid", name="dense"))(x)
                     self.model = Model(inputs=input, outputs=x, name="model")
                     self.model.trainable = True
                     for layer in self.model.layers[1].layers:
@@ -177,7 +177,7 @@ class StandardModels(GeneralModelClass):
                     y = tf.stack(TS[1])
                     Xv = tf.stack(VS[0])
                     yv = tf.stack(VS[1])
-                    
+                    print(f"Size of dataobj before fitting the model {sys.getsizeof(self)}")
                     if adversary:
                         print("Here")
                         self.history = self.model.fit(
@@ -203,8 +203,10 @@ class StandardModels(GeneralModelClass):
                         best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
+                    print(f"Size of dataobj before deleting self.model {sys.getsizeof(self)}")
                     self.model = None
                     del self.model
+                    print(f"Size of dataobj before restarting the cycle {sys.getsizeof(self)}")
         if self.verbose_param:
             print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}") 
 

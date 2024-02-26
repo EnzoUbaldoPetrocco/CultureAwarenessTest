@@ -291,7 +291,7 @@ class MitigatedModels(GeneralModelClass):
                         self.custom_loss(out=1),
                         self.custom_loss(out=2),
                     ],)
-                self.model.summary()
+                
 
 
             tf.get_logger().setLevel("ERROR")

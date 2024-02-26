@@ -5,9 +5,9 @@ from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
 
-percents = [0.05, 0.1]
+percents = [0.1, 0.05]
 tf.config.set_soft_device_placement(True)
-standards = [0, 1]
+standards = [1, 0]
 n = 1000
 bs = 2
 g_aug = 0.1
