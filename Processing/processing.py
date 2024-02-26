@@ -12,9 +12,11 @@ from Utils.Data.Data import PreprocessingClass
 import numpy as np
 import tensorflow as tf
 import os
+import gc
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 
 class ProcessingClass:
     def __init__(self, shallow, lamp, gpu=False) -> None:
@@ -75,7 +77,7 @@ class ProcessingClass:
         g_rot: float = 0.1,
         g_noise: float = 0.1,
         g_bright: float = 0.1,
-        batch_size=15
+        batch_size=15,
     ):
         self.dataobj.prepare(
             standard=standard,
@@ -216,7 +218,7 @@ class ProcessingClass:
             g_rot=g_rot,
             g_noise=g_noise,
             g_bright=g_bright,
-            batch_size=15
+            batch_size=15,
         )
         self.model = None
         if standard:
@@ -321,14 +323,20 @@ class ProcessingClass:
             if standard:
                 if augment:
                     if adversary:
-                        cm = self.model.get_model_stats(self.Xt_totaug[culture], self.dataobj.yt[culture])
+                        cm = self.model.get_model_stats(
+                            self.Xt_totaug[culture], self.dataobj.yt[culture]
+                        )
                         testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
                     else:
-                        cm = self.model.get_model_stats(self.Xt_aug[culture], self.dataobj.yt[culture])
+                        cm = self.model.get_model_stats(
+                            self.Xt_aug[culture], self.dataobj.yt[culture]
+                        )
                         testaug = f"TSTDAUG/G_AUG={g_noise}/"
                 else:
                     if adversary:
-                        cm = self.model.get_model_stats(self.Xt_adv[culture], self.dataobj.yt[culture])
+                        cm = self.model.get_model_stats(
+                            self.Xt_adv[culture], self.dataobj.yt[culture]
+                        )
                         testaug = f"TAVD/EPS={eps}/"
                     else:
                         cm = self.model.get_model_stats(
@@ -362,7 +370,7 @@ class ProcessingClass:
                                 self.dataobj.Xt[culture], self.dataobj.yt[culture], i
                             )
                             testaug = f"TNOAUG/"
-                    testaug = testaug + f"CULTURE{culture}/" 
+                    testaug = testaug + f"CULTURE{culture}/"
                     path = self.basePath + testaug + "out " + str(i) + ".csv"
                     self.save_results(cm, path)
                     del path
@@ -385,5 +393,4 @@ class ProcessingClass:
         del self.Xt_aug
         self.basePath = None
         del self.basePath
-        
-        
+        gc.collect()

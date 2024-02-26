@@ -15,7 +15,7 @@ from Model.GeneralModel import GeneralModelClass
 import neural_structured_learning as nsl
 from matplotlib import pyplot as plt
 import random
-
+import gc
 
 class MitigatedModels(GeneralModelClass):
     def __init__(
@@ -207,6 +207,7 @@ class MitigatedModels(GeneralModelClass):
                         best_lr = lr
                     self.model = None
                     del self.model
+                    gc.collect()
         if self.verbose_param:
             print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}") 
 

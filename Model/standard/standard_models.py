@@ -19,7 +19,8 @@ from keras import layers, optimizers
 from Model.GeneralModel import GeneralModelClass
 import neural_structured_learning as nsl
 import os
-
+from Utils.Debug.debugUtils import getsize
+import gc
 
 class StandardModels(GeneralModelClass):
     def __init__(
@@ -177,7 +178,7 @@ class StandardModels(GeneralModelClass):
                     y = tf.stack(TS[1])
                     Xv = tf.stack(VS[0])
                     yv = tf.stack(VS[1])
-                    print(f"Size of dataobj before fitting the model {sys.getsizeof(self)}")
+                    print(f"Size of dataobj before fitting the model {getsize(self)}")
                     if adversary:
                         print("Here")
                         self.history = self.model.fit(
@@ -203,10 +204,11 @@ class StandardModels(GeneralModelClass):
                         best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
-                    print(f"Size of dataobj before deleting self.model {sys.getsizeof(self)}")
+                    print(f"Size of dataobj before deleting self.model {getsize(self)}")
                     self.model = None
                     del self.model
-                    print(f"Size of dataobj before restarting the cycle {sys.getsizeof(self)}")
+                    gc.collect()
+                    print(f"Size of dataobj before restarting the cycle {getsize(self)}")
         if self.verbose_param:
             print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}") 
 

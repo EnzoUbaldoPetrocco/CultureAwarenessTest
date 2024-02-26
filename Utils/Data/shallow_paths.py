@@ -3,8 +3,9 @@ from pathlib import Path
 
 
 class ShallowStrings:
-    def __init__(self):
-        search_root = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+    def __init__(self, search_root=None):
+        if not search_root:
+            search_root = Path(__file__).parent.parent.parent.parent.parent.parent.parent
         found = False
         for root, subdirs, files in os.walk(search_root):
             if found:
