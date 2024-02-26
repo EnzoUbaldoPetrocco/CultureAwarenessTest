@@ -294,7 +294,7 @@ class ProcessingClass:
         
         self.basePath = self.basePath + aug
         if not standard:
-            str(lambda_index) + "/"
+            self.basePath = self.basePath + str(lambda_index) + "/"
         del c
         del aug
 

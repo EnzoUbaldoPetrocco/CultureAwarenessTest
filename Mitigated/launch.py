@@ -24,78 +24,79 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 
-procObj = ProcessingClass(shallow=0, lamp=1, gpu=True)
-with tf.device("/CPU:0"):
-    for standard in standards:
-        for i in range(10):
+for lamp in [0, 1]:
+    procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
+    with tf.device("/CPU:0"):
+        for standard in standards:
             for j in range(-1, 13):
                 for percent in percents:
                     for c in range(3):
                         for k in range(4):
-                            print(f"Training->aug={k%2};adv={floor(k/2)}")
-                            procObj.process(
-                                standard=standard,
-                                type="DL",
-                                verbose_param=verbose_param,
-                                learning_rate=learning_rate,
-                                epochs=epochs,
-                                batch_size=bs,
-                                lambda_index=j,
-                                culture=c,
-                                percent=percent,
-                                val_split=val_split,
-                                test_split=test_split,
-                                n=n,
-                                augment=k % 2,
-                                g_rot=g_aug,
-                                g_noise=g_aug,
-                                g_bright=g_aug,
-                                adversary=floor(k / 2),
-                                eps=eps,
-                                mult=mult,
-                            )
-                            # NoAUg
-                            print(f"Testing->aug={0};adv={0}")
-                            procObj.test(
-                                standard=standard,
-                                culture=c,
-                                augment=0,
-                                g_rot=g_aug,
-                                g_noise=g_aug,
-                                g_bright=g_aug,
-                                adversary=0,
-                                eps=test_eps,
-                            )
-                            for t_g_aug in test_g_augs:
+                            for i in range(10):
+                                print(f"Training->aug={k%2};adv={floor(k/2)}")
+                                procObj.process(
+                                    standard=standard,
+                                    type="DL",
+                                    verbose_param=verbose_param,
+                                    learning_rate=learning_rate,
+                                    epochs=epochs,
+                                    batch_size=bs,
+                                    lambda_index=j,
+                                    culture=c,
+                                    percent=percent,
+                                    val_split=val_split,
+                                    test_split=test_split,
+                                    n=n,
+                                    augment=k % 2,
+                                    g_rot=g_aug,
+                                    g_noise=g_aug,
+                                    g_bright=g_aug,
+                                    adversary=floor(k / 2),
+                                    eps=eps,
+                                    mult=mult,
+                                )
+                                # NoAUg
+                                print(f"Testing->aug={0};adv={0}")
                                 procObj.test(
-                                        standard=standard,
-                                        culture=c,
-                                        augment=1,
-                                        g_rot=t_g_aug,
-                                        g_noise=t_g_aug,
-                                        g_bright=t_g_aug,
-                                        adversary=0,
-                                        eps=None)
-                            for test_ep in test_eps:
-                                procObj.test(
+                                    standard=standard,
+                                    culture=c,
+                                    augment=0,
+                                    g_rot=g_aug,
+                                    g_noise=g_aug,
+                                    g_bright=g_aug,
+                                    adversary=0,
+                                    eps=test_eps,
+                                )
+                                for t_g_aug in test_g_augs:
+                                    procObj.test(
                                             standard=standard,
                                             culture=c,
-                                            augment=0,
-                                            g_rot=None,
-                                            g_noise=None,
-                                            g_bright=None,
+                                            augment=1,
+                                            g_rot=t_g_aug,
+                                            g_noise=t_g_aug,
+                                            g_bright=t_g_aug,
+                                            adversary=0,
+                                            eps=None)
+                                for test_ep in test_eps:
+                                    procObj.test(
+                                                standard=standard,
+                                                culture=c,
+                                                augment=0,
+                                                g_rot=None,
+                                                g_noise=None,
+                                                g_bright=None,
+                                                adversary=1,
+                                                eps=test_ep)
+                                for t, t_g_aug in enumerate(test_g_augs):
+                                    for test_ep in test_eps:  
+                                        procObj.test(
+                                            standard=standard,
+                                            culture=c,
+                                            augment=1,
+                                            g_rot=t_g_aug,
+                                            g_noise=t_g_aug,
+                                            g_bright=t_g_aug,
                                             adversary=1,
                                             eps=test_ep)
-                            for t, t_g_aug in enumerate(test_g_augs):
-                                for test_ep in test_eps:  
-                                    procObj.test(
-                                        standard=standard,
-                                        culture=c,
-                                        augment=1,
-                                        g_rot=t_g_aug,
-                                        g_noise=t_g_aug,
-                                        g_bright=t_g_aug,
-                                        adversary=1,
-                                        eps=test_ep)
-                                        
-                            procObj.partial_clear()
+                                            
+                                procObj.partial_clear()
