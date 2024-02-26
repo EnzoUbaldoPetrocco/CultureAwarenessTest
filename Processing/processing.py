@@ -291,7 +291,10 @@ class ProcessingClass:
                 aug = "AVD/"
             else:
                 aug = "NOAUG/"
-        self.basePath = self.basePath + aug + str(lambda_index) + "/"
+        
+        self.basePath = self.basePath + aug
+        if not standard:
+            str(lambda_index) + "/"
         del c
         del aug
 
