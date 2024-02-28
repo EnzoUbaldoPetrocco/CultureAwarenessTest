@@ -116,15 +116,17 @@ class ProcessingClass:
         adversary=0,
         culture=None,
         eps=0.3,
-        model=None,
+        nt = None
     ):
         self.Xt_totaug = []
         self.Xt_adv = []
         self.Xt_aug = []
+        if nt != None and nt < len(self.dataobj.Xt):
+            self.dataobj.Xt = self.dataobj.Xt[0:nt]
         for culture in range(3):
             if augment:
                 if adversary:
-                    if model != None and culture != None:
+                    if self.model != None and culture != None:
                         with tf.device("/gpu:0"):
                             print("Preparing Tot Aug for Testing...")
                             prepObj = PreprocessingClass()
@@ -163,7 +165,7 @@ class ProcessingClass:
                         del prepObj
             else:
                 if adversary:
-                    if model != None and culture != None:
+                    if self.model != None and culture != None:
                         print("Preparing Adv for Testing...")
                         with tf.device("/gpu:0"):
                             prepObj = PreprocessingClass()
@@ -171,7 +173,7 @@ class ProcessingClass:
                                 prepObj.adversarial_augmentation(
                                     X=self.dataobj.Xt[culture],
                                     y=self.dataobj.yt[culture],
-                                    model=model,
+                                    model=self.model,
                                     culture=culture,
                                     eps=eps,
                                 )
@@ -318,7 +320,6 @@ class ProcessingClass:
                 adversary=adversary,
                 culture=culture,
                 eps=eps,
-                model=self.model,
             )
         else:
             print("Pay attention: no model information given for tests")

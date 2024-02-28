@@ -4,13 +4,14 @@ sys.path.insert(1, "../")
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
+from GradCam.gradCam import GradCAM
 
 tf.config.set_soft_device_placement(True)
 
-percents = [0.1, 0.05]
+percents = [0.05, 0.1]
 standards = [1, 0]
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -24,7 +25,9 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 
-for lamp in [1, 0]:
+nt = 10
+
+for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
     with tf.device("/CPU:0"):
         for standard in standards:
@@ -55,10 +58,12 @@ for lamp in [1, 0]:
                                     eps=eps,
                                     mult=mult,
                                 )
+                                ###############################
+                                ## TODO: run gradcam and save results
+                                ##############################
                                 # NoAUg
                                 print(f"Testing->aug={0};adv={0}")
-                                procObj.test(
-                                    standard=standard,
+                                procObj.prepare_test(
                                     culture=c,
                                     augment=0,
                                     g_rot=g_aug,
@@ -66,40 +71,41 @@ for lamp in [1, 0]:
                                     g_bright=g_aug,
                                     adversary=0,
                                     eps=test_eps,
+                                    nt = nt
                                 )
                                 print(f"Testing->aug={1};adv={0}")
                                 for t_g_aug in test_g_augs:
-                                    procObj.test(
-                                            standard=standard,
+                                    procObj.prepare_test(
                                             culture=c,
                                             augment=1,
                                             g_rot=t_g_aug,
                                             g_noise=t_g_aug,
                                             g_bright=t_g_aug,
                                             adversary=0,
-                                            eps=None)
+                                            eps=None,
+                                            nt = nt)
                                 print(f"Testing->aug={0};adv={1}")
                                 for test_ep in test_eps:
-                                    procObj.test(
-                                                standard=standard,
+                                    procObj.prepare_test(
                                                 culture=c,
                                                 augment=0,
                                                 g_rot=None,
                                                 g_noise=None,
                                                 g_bright=None,
                                                 adversary=1,
-                                                eps=test_ep)
+                                                eps=test_ep,
+                                                nt = nt)
                                 print(f"Testing->aug={1};adv={1}")
                                 for t, t_g_aug in enumerate(test_g_augs):
                                     for test_ep in test_eps:  
-                                        procObj.test(
-                                            standard=standard,
+                                        procObj.prepare_test(
                                             culture=c,
                                             augment=1,
                                             g_rot=t_g_aug,
                                             g_noise=t_g_aug,
                                             g_bright=t_g_aug,
                                             adversary=1,
-                                            eps=test_ep)
-                                            
+                                            eps=test_ep,
+                                            nt = nt)  
+                                     
                                 procObj.partial_clear()
