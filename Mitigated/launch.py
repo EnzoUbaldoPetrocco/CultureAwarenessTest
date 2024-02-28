@@ -7,10 +7,10 @@ import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
-percents = [0.05, 0.1]
+percents = [0.1, 0.05]
 standards = [1, 0]
 
-verbose_param = 1
+verbose_param = 0
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -24,7 +24,7 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 
-for lamp in [0, 1]:
+for lamp in [1, 0]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
     with tf.device("/CPU:0"):
         for standard in standards:
