@@ -22,6 +22,8 @@ import os
 from Utils.Debug.debugUtils import getsize
 import gc
 from tf_explain.callbacks.grad_cam import GradCAMCallback
+# Import explainer
+from tf_explain.core.grad_cam import GradCAM
 
 class StandardModels(GeneralModelClass):
     def __init__(
@@ -165,13 +167,13 @@ class StandardModels(GeneralModelClass):
                         self.model = nsl.keras.AdversarialRegularization(
                             self.model, adv_config=adv_config
                         )
-                        print(f"Before compiling")
+
                         self.model.compile(
                             optimizer=optimizer,
                             metrics=["accuracy"],
                             loss=[self.adv_custom_loss()],
                         )
-                        print(f"After compiling")
+
                     else:
                         self.model.compile(
                             loss="binary_crossentropy",
@@ -179,9 +181,7 @@ class StandardModels(GeneralModelClass):
                             metrics=["accuracy"],
                         )
 
-                    print(f"Size of dataobj before fitting the model {getsize(self)}")
                     if adversary:
-                        print("Here")
                         self.history = self.model.fit(
                             x={"image": X, "label": y},
                             epochs=self.epochs,
@@ -205,11 +205,9 @@ class StandardModels(GeneralModelClass):
                         best_loss = self.history.history[monitor_val][-1]
                         best_bs = bs
                         best_lr = lr
-                    print(f"Size of dataobj before deleting self.model {getsize(self)}")
                     self.model = None
                     del self.model
                     gc.collect()
-                    print(f"Size of dataobj before restarting the cycle {getsize(self)}")
         if self.verbose_param:
             print(f"Best bs={best_bs}; best lr={best_lr}, best loss={best_loss}") 
 
@@ -245,16 +243,6 @@ class StandardModels(GeneralModelClass):
                     gradcam_layers.append(layer.name)
                     if self.verbose_param:
                                     print(f"Layer trainable name is: {layer.name}")
-            """grad0 = GradCAMCallback(
-                validation_data=(Xv, yv),
-                class_index=0,
-                output_dir=out_dir + 'class0',
-                )
-            grad1 = GradCAMCallback(
-                validation_data=(Xv, yv),
-                class_index=1,
-                output_dir=out_dir + 'class0',
-                )"""
             lr_reduce = ReduceLROnPlateau(
                 monitor="val_loss",
                 factor=0.1,
@@ -270,20 +258,7 @@ class StandardModels(GeneralModelClass):
                 verbose=self.verbose_param,
                 mode="auto",
             )
-            tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=out_dir, histogram_freq=1)
-            if gradcam:
-                callbacks = [early, lr_reduce, tensorboard_callback]
-                for name in gradcam_layers:
-                    grad_call = GradCAMCallback(
-                        validation_data=(Xv, yv),
-                        class_index=0,
-                        output_dir=out_dir + 'gradcam_' + name,
-                        layer_name=name
-                        )
-                    print(f"Layer name is {name}")
-                    callbacks.append(grad_call)
-            else:
-                callbacks = [early, lr_reduce, tensorboard_callback]
+            callbacks = [lr_reduce, early]
             adam = optimizers.Adam(self.learning_rate)
             optimizer = adam
             # Wrap the model with adversarial regularization.
@@ -328,6 +303,21 @@ class StandardModels(GeneralModelClass):
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
+            
+            if gradcam:
+                # Instantiation of the explainer
+                for name in gradcam_layers:
+                    # Call to explain() method
+                    print("Before GradCAM explaining")
+                    output = self.explain(validation_data=(Xv, yv),
+                                            class_index=0,
+                                            layer_name=name)
+                    print(np.shape(output))
+                    print(output)
+                     # Save output
+                    self.save(output, out_dir, name)
+            
+           
                 
 
     def fit(self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"):

@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 import random
 import gc
 from tf_explain.callbacks.grad_cam import GradCAMCallback
+from tf_explain.core.grad_cam import GradCAM
 
 class MitigatedModels(GeneralModelClass):
     def __init__(
@@ -275,11 +276,7 @@ class MitigatedModels(GeneralModelClass):
                 verbose=self.verbose_param,
                 mode="auto",
             )
-            grad1 = GradCAMCallback(
-                validation_data=(Xv, yv),
-                class_index=1,
-                output_dir=out_dir + 'class0',
-                )
+            callbacks = [lr_reduce, early]
             adam = optimizers.Adam(self.learning_rate)
             optimizer = adam
 
@@ -309,19 +306,7 @@ class MitigatedModels(GeneralModelClass):
                     ],)
                 
             tf.get_logger().setLevel("ERROR")
-            tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=out_dir, histogram_freq=1)
-            if gradcam:
-                callbacks = [early, lr_reduce, tensorboard_callback]
-                for name in gradcam_layers:
-                    grad_call = GradCAMCallback(
-                        validation_data=(Xv, yv),
-                        class_index=0,
-                        output_dir=out_dir + 'gradcam_' + name,
-                        layer_name=name
-                        )
-                    callbacks.append(grad_call)
-            else:
-                callbacks = [early, lr_reduce, tensorboard_callback]
+            
             if adversarial:
                 self.history = self.model.fit(
                     x={"image": X, "label": y},
@@ -343,7 +328,16 @@ class MitigatedModels(GeneralModelClass):
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
-
+            if gradcam:
+                for name in gradcam_layers:
+                    # Call to explain() method
+                    output = self.explain(validation_data=(Xv, yv),
+                                            class_index=0,
+                                            layer_name=name)
+                    print(np.shape(output))
+                    print(output)
+                     # Save output
+                    self.save(output, out_dir, name)
                 #print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
         
 
