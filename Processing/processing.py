@@ -193,7 +193,7 @@ class ProcessingClass:
         verbose_param=0,
         learning_rate=0.001,
         epochs=15,
-        batch_size=1,
+        batch_size=15,
         lambda_index=-1,
         culture=0,
         percent=0,
@@ -207,6 +207,7 @@ class ProcessingClass:
         adversary=0,
         eps=0.3,
         mult=0.05,
+        gradcam = False
     ):
 
         self.prepare_data(
@@ -220,7 +221,7 @@ class ProcessingClass:
             g_rot=g_rot,
             g_noise=g_noise,
             g_bright=g_bright,
-            batch_size=15,
+            batch_size=batch_size,
         )
         self.model = None
         if standard:
@@ -245,14 +246,7 @@ class ProcessingClass:
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
             )
-        self.model.fit(
-            (self.dataobj.X, self.dataobj.y),
-            (self.dataobj.Xv, self.dataobj.yv),
-            adversary=adversary,
-            eps=eps,
-            mult=mult,
-        )
-        # Base path:
+                # Base path:
         # - STD/MIT
         # - model: SVC, RFC, DL
         # - culture: LC, LF, LT, CI, CJ, CS
@@ -299,6 +293,16 @@ class ProcessingClass:
             self.basePath = self.basePath + str(lambda_index) + "/"
         del c
         del aug
+        self.model.fit(
+            (self.dataobj.X, self.dataobj.y),
+            (self.dataobj.Xv, self.dataobj.yv),
+            adversary=adversary,
+            eps=eps,
+            mult=mult,
+            gradcam=gradcam,
+            out_dir=self.basePath
+        )
+
 
     def test(
         self,

@@ -35,7 +35,6 @@ for lamp in [0, 1]:
                 for percent in percents:
                     for c in range(3):
                         for k in range(4):
-                            for i in range(10):
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
                                     standard=standard,
@@ -57,55 +56,6 @@ for lamp in [0, 1]:
                                     adversary=floor(k / 2),
                                     eps=eps,
                                     mult=mult,
+                                    gradcam=1,
                                 )
-                                ###############################
-                                ## TODO: run gradcam and save results
-                                ##############################
-                                # NoAUg
-                                print(f"Testing->aug={0};adv={0}")
-                                procObj.prepare_test(
-                                    culture=c,
-                                    augment=0,
-                                    g_rot=g_aug,
-                                    g_noise=g_aug,
-                                    g_bright=g_aug,
-                                    adversary=0,
-                                    eps=test_eps,
-                                    nt = nt
-                                )
-                                print(f"Testing->aug={1};adv={0}")
-                                for t_g_aug in test_g_augs:
-                                    procObj.prepare_test(
-                                            culture=c,
-                                            augment=1,
-                                            g_rot=t_g_aug,
-                                            g_noise=t_g_aug,
-                                            g_bright=t_g_aug,
-                                            adversary=0,
-                                            eps=None,
-                                            nt = nt)
-                                print(f"Testing->aug={0};adv={1}")
-                                for test_ep in test_eps:
-                                    procObj.prepare_test(
-                                                culture=c,
-                                                augment=0,
-                                                g_rot=None,
-                                                g_noise=None,
-                                                g_bright=None,
-                                                adversary=1,
-                                                eps=test_ep,
-                                                nt = nt)
-                                print(f"Testing->aug={1};adv={1}")
-                                for t, t_g_aug in enumerate(test_g_augs):
-                                    for test_ep in test_eps:  
-                                        procObj.prepare_test(
-                                            culture=c,
-                                            augment=1,
-                                            g_rot=t_g_aug,
-                                            g_noise=t_g_aug,
-                                            g_bright=t_g_aug,
-                                            adversary=1,
-                                            eps=test_ep,
-                                            nt = nt)  
-                                     
                                 procObj.partial_clear()
