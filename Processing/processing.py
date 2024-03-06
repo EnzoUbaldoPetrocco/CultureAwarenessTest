@@ -48,7 +48,7 @@ class ProcessingClass:
                         gpus[0],
                         [
                             tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=8000
+                                memory_limit=2400
                             )
                         ],
                     )
@@ -140,7 +140,7 @@ class ProcessingClass:
                                 prepObj.adversarial_augmentation(
                                     X=Xt_aug,
                                     y=self.dataobj.yt[culture],
-                                    model=model,
+                                    model=self.model,
                                     culture=culture,
                                     eps=eps,
                                 )
