@@ -303,19 +303,20 @@ class StandardModels(GeneralModelClass):
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
-            
+
+            #self.model.summary()
+            gc.collect()
             if gradcam:
                 # Instantiation of the explainer
                 for name in gradcam_layers:
-                    # Call to explain() method
-                    print("Before GradCAM explaining")
-                    output = self.explain(validation_data=(Xv, yv),
-                                            class_index=0,
-                                            layer_name=name)
-                    print(np.shape(output))
-                    print(output)
-                     # Save output
-                    self.save(output, out_dir, name)
+                    for class_index in range(2):
+                        # Call to explain() method
+                        print("Before GradCAM explaining")
+                        output = self.explain(validation_data=(Xv, yv),
+                                                class_index=class_index,
+                                                layer_name=name)
+                        # Save output
+                        self.save(output, out_dir, name)
             
            
                 

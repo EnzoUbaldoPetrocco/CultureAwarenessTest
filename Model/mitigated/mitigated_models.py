@@ -329,17 +329,14 @@ class MitigatedModels(GeneralModelClass):
                     batch_size=self.batch_size,
                 )
             if gradcam:
+                # Instantiation of the explainer
                 for name in gradcam_layers:
-                    # Call to explain() method
-                    output = self.explain(validation_data=(Xv, yv),
-                                            class_index=0,
-                                            layer_name=name)
-                    print(np.shape(output))
-                    print(output)
-                     # Save output
-                    self.save(output, out_dir, name)
-                #print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
-        
+                    for class_index in range(2):
+                        output = self.explain(validation_data=(Xv, yv),
+                                                class_index=class_index,
+                                                layer_name=name)
+                        # Save output
+                        self.save(output, out_dir, name)
 
     def fit(self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"):
         if self.type == "DL" or "RESNET":

@@ -115,6 +115,9 @@ class GeneralModelClass:
 
         outputs, grads = self.get_gradients_and_filters(images, layer_name, class_index, use_guided_grads)
 
+        print(f"outputs in explain: {np.shape(outputs)}")
+        print(f"grads in explain: {np.shape(grads)}")
+
         cams = self.generate_ponderated_output(outputs, grads)
 
         heatmaps = np.array(
@@ -170,11 +173,15 @@ class GeneralModelClass:
         grad_model = tf.keras.models.Model(
             [self.model.inputs], [self.model.get_layer(layer_name).output, self.model.output]
         )
-        print("Created gard model")
+        print(f"layer name is {layer_name}")
+        print(f"Created grad model with:\n inputs:{self.model.inputs};\n output:{[self.model.get_layer(layer_name).output, self.model.output]}")
         with tf.GradientTape() as tape:
             inputs = tf.cast(images, tf.float32)
             tape.watch(inputs)
+            print(f"input in get_gradients and filters: {np.shape(inputs)}")
             conv_outputs, predictions = grad_model(inputs)
+            print(f"conv_outputs in get_gradients and filters: {np.shape(conv_outputs)}")
+            print(f"predictions in get_gradients and filters: {np.shape(predictions)}")
             loss = predictions[:, class_index]
 
         grads = tape.gradient(loss, conv_outputs)
@@ -207,7 +214,8 @@ class GeneralModelClass:
         Returns:
             List[tf.Tensor]: List of ponderated output of shape (batch_size, Hl, Wl, 1)
         """
-
+        print(f"outputs inside function generated_ponderated_output = {np.shape(outputs)}")
+        print(f"grads inside function generated_ponderated_output = {np.shape(grads)}")
         maps = [
             self.ponderate_output(output, grad)
             for output, grad in zip(outputs, grads)
@@ -229,9 +237,27 @@ class GeneralModelClass:
         Returns:
             tf.Tensor: Ponderated output of shape (Hl, Wl, 1)
         """
+
+        print(f"output inside function ponderated_output = {output}")
+        print(f"grad inside function ponderated_output = {grad}")
+
         weights = tf.reduce_mean(grad, axis=(0, 1))
 
         # Perform ponderated sum : w_i * output[:, :, i]
         cam = tf.reduce_sum(tf.multiply(weights, output), axis=-1)
 
         return cam
+    
+    def save(self, img, outdir, name):
+        cv2.imwrite(img, outdir + name + ".jpg")
+
+    def test_gradcam(self,gradcam_layers, Xv, yv, out_dir):
+        for name in gradcam_layers:
+                    for class_index in range(2):
+                        print(f"Shape of Xv is {np.shape(Xv)}")
+                        print(f"Shape of yv is {np.shape(yv)}")
+                        output = self.explain(validation_data=(Xv, yv),
+                                                class_index=class_index,
+                                                layer_name=name)
+                        # Save output
+                        self.save(output, out_dir, name)

@@ -38,3 +38,10 @@ Thumbs.db
 
 # Ignore models
 *.data-00000-of-00001
+
+# Ignore VSCode and pycache
+.vscode
+__pycache__
+_pycache_
+.pyc
+.cpython-*

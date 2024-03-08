@@ -12,8 +12,10 @@ from Utils.FileManager.FileManager import FileManagerClass
 from Utils.Results.Results import ResultsClass
 from Utils.Data.deep_paths import DeepStrings
 from Utils.Data.shallow_paths import ShallowStrings
+from Model.SMOTE.SMOTEGen import SMOTEGen
 import numpy as np
 import random
+import time
 
 # Example of SMOTE
 X, y = make_classification(n_classes=2, class_sep=2,
@@ -36,31 +38,22 @@ def get_culture_set(X, y, culture):
     return Xc, yc
 
 # Example of SMOTE with our LAMP dataset in RGB
+
 strObj = DeepStrings("../../../")
 paths = strObj.lamp_paths
 dataobj = DataClass(paths)
 dataobj.prepare(standard=0, culture=0, percent=0.1, shallow=False, val_split=0.2, test_split=0.2)
-X_c0, y_c0 = get_culture_set(dataobj.X, dataobj.y, 0)
-X_c1, y_c1 = get_culture_set(dataobj.X, dataobj.y, 1)
 
-X_c0.extend(X_c1)
-y_c0.extend(y_c1)
-X = X_c0
-y = y_c0
-print('Original dataset shape %s' % Counter(np.asarray(y)))
-sm = SMOTE(random_state=42)
-X_res, y_res = sm.fit_resample(X, y)
-print('Resampled dataset shape %s' % Counter(y_res))
 
-def plt_images(X_flattened, ylabels):
-    for i in range(10):
-        rnd = random.randint(0, len(X_flattened)-1)
-        x = np.reshape(X_flattened[rnd], (int(np.sqrt(len(X_flattened[rnd])/3)),int(np.sqrt(len(X_flattened[rnd])/3)),3))
-        plt.imshow(x)
-        plt.ylabel(f"From culture {ylabels[rnd]}")
-        plt.show()
-
-print(f"Plotting starting images set")
-plt_images(X, y)
-print(f"Plotting again with SMOTE")
-plt_images(X_res, y_res)
+#Example of SMOTE using my custom class
+print("------------------")
+print("Example using custom classes such as SMOTEGen")
+dataobj.clear()
+dataobj.prepare(standard=0, culture=0, percent=0.1, shallow=False, val_split=0.2, test_split=0.2)
+TS = (dataobj.X, dataobj.y)
+print('Original dataset shape %s' % Counter(np.asarray(TS[1])[:, 0]))
+start_time = time.time()
+smoteGen = SMOTEGen()
+X_res, y_res = smoteGen(TS)
+print("--- %s seconds ---" % (time.time() - start_time))
+print('Resampled dataset shape %s' % Counter(np.asarray(y_res)[:,0]))

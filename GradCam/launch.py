@@ -17,7 +17,7 @@ bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
-epochs = 15
+epochs = 1
 
 g_aug = 0.1
 test_g_augs = [0.01, 0.05, 0.1]
@@ -56,6 +56,12 @@ for lamp in [0, 1]:
                                     adversary=floor(k / 2),
                                     eps=eps,
                                     mult=mult,
-                                    gradcam=1,
+                                    gradcam=0,
                                 )
+                                grdC = GradCAM(procObj.model.model, 0, "dense")
+                                jan = grdC.compute_heatmap(procObj.dataobj.Xv)
+                                print(jan)
+                                #last_conv = procObj.model.model.layers[-3].layers[-1].name
+                                #print(last_conv)
+                                #procObj.model.test_gradcam([last_conv, "dense"], procObj.dataobj.Xv, procObj.dataobj.yv, "BananaPizza")
                                 procObj.partial_clear()
