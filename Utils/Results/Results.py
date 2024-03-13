@@ -1,16 +1,20 @@
-import csv
+import sys
+
+sys.path.insert(1, "../../")
 import numpy as np
 import os
+from Utils.FileManager.FileManager import FileManagerClass
+
 
 class ResultsClass:
     def __init__(self, c_cm_list) -> None:
         self.pcms_list = []
         self.meanFPs = []
         self.meanFNs = []
-        self.meanErrors= []
+        self.meanErrors = []
         self.meanFP_stds = []
         self.meanFN_stds = []
-        self.meanError_stds= []
+        self.meanError_stds = []
         for i in range(len(c_cm_list)):
             pcm = self.get_pcms(c_cm_list[i])
             self.pcms_list.append(pcm)
@@ -32,9 +36,7 @@ class ResultsClass:
             fn = (i[1, 0] / tot) * 100
             tp = (i[1, 1] / tot) * 100
             fp = (i[0, 1] / tot) * 100
-            pcm = np.array(
-                [[tn, fp], [fn, tp]]
-            )
+            pcm = np.array([[tn, fp], [fn, tp]])
             pcms.append(pcm)
         return pcms
 
@@ -79,85 +81,85 @@ class ResultsClass:
             fn = i[1, 0]
             tp = i[1, 1]
             fp = i[0, 1]
-            stdtn_i += (tn - mean_tn)**2
-            stdfn_i += (fn - mean_fn)**2
-            stdtp_i += (tp - mean_tp)**2
-            stdfp_i += (fp - mean_fp)**2
-        std_matrix = np.array(
-            [stdtn_i, stdfp_i],
-            [stdfn_i, stdtp_i]
-        )
-        std_matrix = std_matrix / np.sqrt(len(pcms)-1)
+            stdtn_i += (tn - mean_tn) ** 2
+            stdfn_i += (fn - mean_fn) ** 2
+            stdtp_i += (tp - mean_tp) ** 2
+            stdfp_i += (fp - mean_fp) ** 2
+        std_matrix = np.array([stdtn_i, stdfp_i], [stdfn_i, stdtp_i])
+        std_matrix = std_matrix / np.sqrt(len(pcms) - 1)
         return mean_matrix, std_matrix
 
     def get_accuracy(self, pcm):
-        return pcm[0,0]+pcm[1,1]
-    
+        return pcm[0, 0] + pcm[1, 1]
+
     def get_error(self, pcm):
-        return 1-self.get_accuracy(pcm)
-    
-    
+        return 1 - self.get_accuracy(pcm)
+
     # FP
     def get_meanFP(self, pcms):
-        meanpcm = self.get_statistics_pcm(pcms)[0] 
+        meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[0, 1]
-    
+
     def get_meanFP_std(self, pcms):
-        meanpcm_std = self.get_statistics_pcm(pcms)[1] 
+        meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[0, 1]
-    
-    #FN
+
+    # FN
     def get_meanFN(self, pcms):
-        meanpcm = self.get_statistics_pcm(pcms)[0] 
+        meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[1, 0]
-    
+
     def get_meanFN_std(self, pcms):
-        meanpcm_std = self.get_statistics_pcm(pcms)[1] 
+        meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[1, 0]
-        
-    #TP
+
+    # TP
     def get_meanTP(self, pcms):
-        meanpcm = self.get_statistics_pcm(pcms)[0] 
+        meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[0, 0]
-    
+
     def get_meanTP_std(self, pcms):
-        meanpcm_std = self.get_statistics_pcm(pcms)[1] 
+        meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[0, 0]
-    
-    #TN
+
+    # TN
     def get_meanTN(self, pcms):
-        meanpcm = self.get_statistics_pcm(pcms)[0] 
+        meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[1, 1]
-    
+
     def get_meanTN_std(self, pcms):
-        meanpcm_std = self.get_statistics_pcm(pcms)[1] 
+        meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[1, 1]
-    
+
     # ERROR
     def get_mean_error(self, pcms):
         mean_pcms = self.get_statistics_pcm(pcms)[0]
         return self.get_error(mean_pcms)
-    
+
     def get_error_std(self, std_pcm):
-        return std_pcm[0,0]+std_pcm[1,1]
-    
+        return std_pcm[0, 0] + std_pcm[1, 1]
+
     def get_mean_error_std(self, pcms):
         std_meanpcm = self.get_statistics_pcm(pcms)[1]
         return self.get_error_std(std_meanpcm)
-    
+
     # CIC
     def get_CIC(self, c_pcms):
         errors = []
         for pcm in c_pcms:
             errors.append(self.get_error(pcm))
-        return np.sum(errors)- min(errors)
+        return np.sum(errors) - min(errors)
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
-        if len(c_pcms)!=n_cultures:
-            print("The number of confusion matrices does not correspond to the number of cultures")
+        if len(c_pcms) != n_cultures:
+            print(
+                "The number of confusion matrices does not correspond to the number of cultures"
+            )
         culture_mean_pcms, culture_mean_std_pcms = [], []
         for i in range(n_cultures):
-            culture_mean_pcm, culture_mean_std_pcm = self.get_statistics_pcm(c_pcms[n_cultures])
+            culture_mean_pcm, culture_mean_std_pcm = self.get_statistics_pcm(
+                c_pcms[n_cultures]
+            )
             culture_mean_pcms.append(culture_mean_pcm)
             culture_mean_std_pcms.append(culture_mean_std_pcm)
         std_errors = []
@@ -168,49 +170,64 @@ class ResultsClass:
             errors.append(self.get_error(pcm))
         i = errors.index(min(errors))
         return np.sum(std_errors) + std_errors[i]
-    
+
     # Precision = TP / (TP+FP)
     def get_meanPrecision(self, pcms):
         meantp = self.get_meanTP(pcms)
         meanfp = self.get_meanFP(pcms)
         return meantp / (meantp + meanfp)
-    
+
     def get_meanPrecision_std(self, pcms):
-        # stdFP = |dPrec/dtp|stdtp + |dPrec/dfp|stdfp = 
+        # stdFP = |dPrec/dtp|stdtp + |dPrec/dfp|stdfp =
         # = (FP/(FP+TP)^2)*STDTP + (TP/(FP+TP)^2)*STDFP
         meantp = self.get_meanTP(pcms)
         stdtp = self.get_meanTP_std(pcms)
         meanfp = self.get_meanFP(pcms)
         stdfp = self.get_meanFP_std(pcms)
-        denominator = (meanfp + meantp)**2
-        numerator = meanfp*stdtp + meantp*stdfp
-        return numerator/denominator
-    
+        denominator = (meanfp + meantp) ** 2
+        numerator = meanfp * stdtp + meantp * stdfp
+        return numerator / denominator
+
     # Precision = TP / (TP+FN)
     def get_meanRecall(self, pcms):
         meantp = self.get_meanTP(pcms)
         meanfn = self.get_meanFN(pcms)
         return meantp / (meantp + meanfn)
-    
+
     def get_meanRecall_std(self, pcms):
-        # stdFP = |dPrec/dtp|stdtp + |dPrec/dfn|stdfn = 
+        # stdFP = |dPrec/dtp|stdtp + |dPrec/dfn|stdfn =
         # = (FN/(FN+TP)^2)*STDTP + (TP/(FN+TP)^2)*STDFN
         meantp = self.get_meanTP(pcms)
         stdtp = self.get_meanTP_std(pcms)
         meanfn = self.get_meanFN(pcms)
         stdfn = self.get_meanFN_std(pcms)
-        denominator = (meanfn + meantp)**2
-        numerator = meanfn*stdtp + meantp*stdfn
-        return numerator/denominator
+        denominator = (meanfn + meantp) ** 2
+        numerator = meanfn * stdtp + meantp * stdfn
+        return numerator / denominator
 
 
-
-class ResultsPathClass:
-    def buildPath(basePath, standard, alg, lamp, culture, augment, adversary, lambda_index, taugment, tadversary, tgaug, teps, t_cult, out):
+class ResAcquisitionClass:
+    def buildPath(
+        self,
+        basePath,
+        standard,
+        alg,
+        lamp,
+        culture,
+        augment,
+        adversary,
+        lambda_index,
+        taugment,
+        tadversary,
+        tgaug,
+        teps,
+        t_cult,
+        out,
+    ):
         if standard:
-            basePath = "./STD/" + alg
+            basePath = basePath + "STD/" + alg
         else:
-            basePath = "./MIT/" + alg
+            basePath = basePath +  "MIT/" + alg
         if lamp:
             if culture == 0:
                 c = "/LC/"
@@ -241,7 +258,7 @@ class ResultsPathClass:
             else:
                 aug = "NOAUG/"
         basePath = basePath + aug + str(lambda_index) + "/"
-        
+
         if taugment:
             if tadversary:
                 testaug = f"TTOTAUG/G_AUG={tgaug}/EPS={teps}/"
@@ -255,3 +272,98 @@ class ResultsPathClass:
         testaug = testaug + f"CULTURE{t_cult}/"
 
         basePath = basePath + testaug + "out " + str(out) + ".csv"
+
+    def get_cm_list(self, path):
+        try:
+            fm = FileManagerClass(path)
+            cm_list = fm.readcms()
+        except:
+            cm_list = []
+            print(
+                f"Error in function 'acquire_cm_list' while trying to read from path: {path}"
+            )
+        return cm_list
+
+    def get_cm_structure(self, basePath):
+        standards = [0, 1]
+        alg = "DL"
+        lamps = ([0, 1],)
+        cultures = [0, 1, 2]
+        augments = [0, 1]
+        adversary = [0, 1]
+        lambda_indeces = range(-1, 13)
+        taugments = [0, 1]
+        tadversaries = [0, 1]
+        test_g_augs = [0.01, 0.05, 0.1]
+        test_eps = [0.0005, 0.001, 0.005]
+        t_cults = [0, 1, 2]
+        outs = [0, 1, 2]
+
+        structure = []
+        for standard in standards:
+            lampsl = []
+            for lamp in lamps:
+                culturesl = []
+                for culture in cultures:
+                    
+                    augmentsl = []
+                    for augment in augments:
+                        adversaryl = []
+                        for adv in adversary:
+                            lambda_indecesl = []
+                            for lambda_index in lambda_indeces:
+                                taugmentsl = []
+                                for taugment in taugments:
+                                    tadversariesl = []
+                                    for tadversary in tadversaries:
+                                        test_g_augsl = []
+                                        for tgaug in test_g_augs:
+                                            tepsl = []
+                                            for teps in test_eps:
+                                                tcultsl = []
+                                                for t_cult in t_cults:
+                                                    
+                                                    if standard:
+                                                        self.buildPath(
+                                                            basePath,
+                                                            standard,
+                                                            alg,
+                                                            lamp,
+                                                            culture,
+                                                            augment,
+                                                            adv,
+                                                            lambda_index,
+                                                            taugment,
+                                                            tadversary,
+                                                            tgaug,
+                                                            teps,
+                                                            t_cult,
+                                                            out,
+                                                        )
+                                                    else:
+                                                        outsl = []
+                                                        for out in outs:
+                                                            outsl.append( self.buildPath(
+                                                                basePath,
+                                                                standard,
+                                                                alg,
+                                                                lamp,
+                                                                culture,
+                                                                augment,
+                                                                adv,
+                                                                lambda_index,
+                                                                taugment,
+                                                                tadversary,
+                                                                tgaug,
+                                                                teps,
+                                                                t_cult,
+                                                                out,
+                                                            ))
+
+
+def main():
+    rac = ResAcquisitionClass()
+    rac.get_cm_structure("../../Mitigated/")
+
+if __name__ == "__main__":
+    main()
