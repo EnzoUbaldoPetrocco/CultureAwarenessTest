@@ -103,9 +103,10 @@ class MitigatedModels(GeneralModelClass):
                 with tf.device("/gpu:0"):
                     size = np.shape(TS[0][0])
                     input = Input(size, name="image")
-                    x = tf.keras.Sequential(
-                        [ResNet50V2(input_shape=size, weights="imagenet", include_top=False)]
-                    )(input)
+                    #x = tf.keras.Sequential(
+                    #    [ResNet50V2(input_shape=size, weights="imagenet", include_top=False)]
+                    #)(input)
+                    x = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)(input)
                                  
                     x = Flatten()(x)
                     if adversarial:
@@ -228,9 +229,10 @@ class MitigatedModels(GeneralModelClass):
 
             size = np.shape(TS[0][0])
             input = Input(size, name="image")
-            x = tf.keras.Sequential(
-                [ResNet50V2(input_shape=size, weights="imagenet", include_top=False)]
-            )(input)
+            #x = tf.keras.Sequential(
+                    #    [ResNet50V2(input_shape=size, weights="imagenet", include_top=False)]
+                    #)(input)
+            x = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)(input)
             
             
             x = Flatten()(x)

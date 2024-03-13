@@ -53,12 +53,13 @@ for lamp in [0, 1]:
                                     g_rot=g_aug,
                                     g_noise=g_aug,
                                     g_bright=g_aug,
-                                    adversary=floor(k / 2),
+                                    adversary=1,
                                     eps=eps,
                                     mult=mult,
                                     gradcam=0,
                                 )
-                                grdC = GradCAM(procObj.model.model, 0, "dense")
+                                
+                                grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
                                 jan = grdC.compute_heatmap(procObj.dataobj.Xv)
                                 print(jan)
                                 #last_conv = procObj.model.model.layers[-3].layers[-1].name

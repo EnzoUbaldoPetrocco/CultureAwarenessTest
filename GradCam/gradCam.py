@@ -1,8 +1,8 @@
 # import the necessary packages
-from tensorflow.keras.models import Model
 import tensorflow as tf
 import numpy as np
 import cv2
+
 
 class GradCAM:
 	def __init__(self, model, classIdx, layerName=None):
@@ -32,11 +32,12 @@ class GradCAM:
 		# construct our gradient model by supplying (1) the inputs
 		# to our pre-trained model, (2) the output of the (presumably)
 		# final 4D layer in the network, and (3) the output of the
-		# softmax activations from the model
-		gradModel = Model(
-			inputs=[self.model.inputs],
-			outputs=[self.model.get_layer(self.layerName).output,
-				self.model.output])
+		# softmax activations from the 
+
+			
+		gradModel = tf.keras.Model(
+			inputs=[self.model.layers[0].input],
+			outputs=[self.model.layers[-5].output, self.model.output])
 		
 		# record operations for automatic differentiation
 		with tf.GradientTape() as tape:
@@ -44,13 +45,20 @@ class GradCAM:
 			# image through the gradient model, and grab the loss
 			# associated with the specific class index
 			inputs = tf.cast(image, tf.float32)
+			#convOutputs = gradModel(inputs)
 			(convOutputs, predictions) = gradModel(inputs)
+			print(f"convOutputs shape inside compute heatmap function {np.shape(convOutputs)}")
+			print(f"predictions shape inside compute heatmap function {np.shape(predictions)}")
+			#predictions = self.model(inputs)
 			loss = predictions[:, self.classIdx]
-		# use automatic differentiation to compute the gradients
-		grads = tape.gradient(loss, convOutputs)
-		
+			print(f"loss inside compute heatmap function {np.shape(loss)}")
+			# use automatic differentiation to compute the gradients
+			grads = tape.gradient(loss, convOutputs)
+			print(f"grads inside compute heatmap function: {np.shape(grads)}")
+
 		# compute the guided gradients
 		castConvOutputs = tf.cast(convOutputs > 0, "float32")
+		print(f"castConvOutputs inside compute heatmap function: {np.shape(castConvOutputs)}")
 		castGrads = tf.cast(grads > 0, "float32")
 		guidedGrads = castConvOutputs * castGrads * grads
 		# the convolution and guided gradients have a batch dimension
@@ -68,7 +76,7 @@ class GradCAM:
 		# grab the spatial dimensions of the input image and resize
 		# the output class activation map to match the input image
 		# dimensions
-		(w, h) = (image.shape[2], image.shape[1])
+		(w, h) = (np.shape(image)[2], np.shape(image)[1])
 		heatmap = cv2.resize(cam.numpy(), (w, h))
 		# normalize the heatmap such that all values lie in the range
 		# [0, 1], scale the resulting values to the range [0, 255],
