@@ -37,42 +37,44 @@ for lamp in [0, 1]:
                 for percent in percents:
                     for c in range(3):
                         for k in range(4):
-                                print(f"Training->aug={k%2};adv={floor(k/2)}")
-                                procObj.process(
-                                    standard=standard,
-                                    type="DL",
-                                    verbose_param=verbose_param,
-                                    learning_rate=learning_rate,
-                                    epochs=epochs,
-                                    batch_size=bs,
-                                    lambda_index=j,
-                                    culture=c,
-                                    percent=percent,
-                                    val_split=val_split,
-                                    test_split=test_split,
-                                    n=n,
-                                    augment=k % 2,
-                                    g_rot=g_aug,
-                                    g_noise=g_aug,
-                                    g_bright=g_aug,
-                                    adversary=floor(k/2),
-                                    eps=eps,
-                                    mult=mult,
-                                    gradcam=0,
-                                )
-                                
-                                grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
-                                if standard:
-                                    heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
-                                    path = procObj.basePath + "out.jpg"
+                            print(f"Training->aug={k%2};adv={floor(k/2)}")
+                            procObj.process(
+                                standard=standard,
+                                type="DL",
+                                verbose_param=verbose_param,
+                                learning_rate=learning_rate,
+                                epochs=epochs,
+                                batch_size=bs,
+                                lambda_index=j,
+                                culture=c,
+                                percent=percent,
+                                val_split=val_split,
+                                test_split=test_split,
+                                n=n,
+                                augment=k % 2,
+                                g_rot=g_aug,
+                                g_noise=g_aug,
+                                g_bright=g_aug,
+                                adversary=floor(k / 2),
+                                eps=eps,
+                                mult=mult,
+                                gradcam=0,
+                            )
+
+                            grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
+                            if standard:
+                                heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
+                                path = procObj.basePath + "out.jpg"
+                                fObj = FileManagerClass(path)
+                                cv2.imwrite(path, heatmap)
+                                print(f"saved heatmap in file {path}")
+                            else:
+                                for out in range(3):
+                                    heatmap = grdC.compute_heatmap(
+                                        procObj.dataobj.Xv, out=out
+                                    )
+                                    path = procObj.basePath + "out" + out + ".jpg"
                                     fObj = FileManagerClass(path)
                                     cv2.imwrite(path, heatmap)
                                     print(f"saved heatmap in file {path}")
-                                else:
-                                    for out in range(3):
-                                        heatmap = grdC.compute_heatmap(procObj.dataobj.Xv, out = out)
-                                        path = procObj.basePath + "out" + out + ".jpg"
-                                        fObj = FileManagerClass(path)
-                                        cv2.imwrite(path, heatmap)
-                                        print(f"saved heatmap in file {path}")
-                                procObj.partial_clear()
+                            procObj.partial_clear()
