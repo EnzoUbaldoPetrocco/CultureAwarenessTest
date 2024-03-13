@@ -123,11 +123,14 @@ class StandardModels(GeneralModelClass):
             for bs in batch_sizes:
                 with tf.device("/gpu:0"):
                     size = np.shape(TS[0][0])
-                    #input = Input(size, name="image")
+                    input = Input(size, name="image")
+
                     resnet = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)
                     fl = Flatten()(resnet.output)
                     out = (Dense(1, activation="sigmoid", name="dense"))(fl)
+
                     self.model = Model(inputs=resnet.input, outputs=out, name="model")
+
                     for layer in self.model.layers:
                         layer.trainable = False
                     for layer in self.model.layers[-2:]:
@@ -135,6 +138,11 @@ class StandardModels(GeneralModelClass):
                             layer.trainable = True
                             if self.verbose_param:
                                     print(f"Layer trainable name is: {layer.name}")
+                    if adversary:
+                        self.model = tf.keras.Sequential([
+                            input,
+                            self.model
+                        ])
                     monitor_val = "val_loss"
                     lr_reduce = ReduceLROnPlateau(
                         monitor=monitor_val,
@@ -160,24 +168,24 @@ class StandardModels(GeneralModelClass):
                     )
                     # Wrap the model with adversarial regularization
                     if adversary:
-                        self.model = tf.keras.Sequential([
-                            tf.keras.Input(shape=size, name='input'),
-                            self.model
-                        ])
                         adv_config = nsl.configs.make_adv_reg_config(
                             multiplier=mult, adv_step_size=eps
                         )
                         self.model = nsl.keras.AdversarialRegularization(
                             self.model, adv_config=adv_config, label_keys=["label"]
                         )
-                        
-                        #self.model.layers[0]._name = "input"
-                        
                         self.model.compile(
                             optimizer=optimizer,
                             metrics=["accuracy"],
                             loss=self.adv_custom_loss(),
                         )
+                    else:
+                        self.model.compile(
+                            optimizer=optimizer,
+                            metrics=["accuracy"],
+                            loss="binary_crossentropy",
+                        )
+
                     if adversary:
                         self.history = self.model.fit(
                             x={"image": X, "label": y},
@@ -187,11 +195,8 @@ class StandardModels(GeneralModelClass):
                             verbose=self.verbose_param,
                             batch_size=bs,
                         )
-                        self.model.summary()
-                        self.model.layers[0].summary()
-                        self.model = Model(input=self.model.layers[0].layers[1].input, output= self.model.layers[0].layers[1].output)
+                        
 
-                        self.model.summary()
                     else:
                         self.history = self.model.fit(
                             X,
@@ -225,10 +230,12 @@ class StandardModels(GeneralModelClass):
             Xv = tf.stack(VS[0])
             yv = tf.stack(VS[1])
             size = np.shape(TS[0][0])
-            #input = Input(size, name="image")
+            input = Input(size, name="image")
+
             resnet = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)
             fl = Flatten()(resnet.output)
             out = (Dense(1, activation="sigmoid", name="dense"))(fl)
+
             self.model = Model(inputs=resnet.input, outputs=out, name="model")
             gradcam_layers = []
             for layer in self.model.layers:
@@ -239,6 +246,11 @@ class StandardModels(GeneralModelClass):
                     gradcam_layers.append(layer.name)
                     if self.verbose_param:
                             print(f"Layer trainable name is: {layer.name}")
+            if adversary:
+                self.model = tf.keras.Sequential([
+                    input,
+                    self.model
+                ])
             lr_reduce = ReduceLROnPlateau(
                 monitor="val_loss",
                 factor=0.1,
@@ -288,7 +300,7 @@ class StandardModels(GeneralModelClass):
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
-                self.model = self.model.layers[0]
+                self.model = Model(inputs=self.model.layers[0].get_layer("model").layers[0].input, outputs = self.model.layers[0].get_layer("model").layers[-1].output)
             else:
                 self.history = self.model.fit(
                     X,
@@ -299,8 +311,6 @@ class StandardModels(GeneralModelClass):
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
-
-            #self.model.summary()
             gc.collect()
             if gradcam:
                 # Instantiation of the explainer
