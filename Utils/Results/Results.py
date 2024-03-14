@@ -214,6 +214,7 @@ class ResAcquisitionClass:
         alg,
         lamp,
         culture,
+        percent,
         augment,
         adversary,
         lambda_index,
@@ -246,7 +247,7 @@ class ResAcquisitionClass:
                 c = "/CS/"
             else:
                 c = "/CI/"
-        basePath = basePath + c
+        basePath = basePath + c + str(percent) +"/"
         if augment:
             if adversary:
                 aug = "TOTAUG/"
@@ -257,8 +258,10 @@ class ResAcquisitionClass:
                 aug = "AVD/"
             else:
                 aug = "NOAUG/"
-        basePath = basePath + aug + str(lambda_index) + "/"
-
+            
+        basePath = basePath + aug
+        if not standard:
+            basePath = basePath +  str(lambda_index) + "/"
         if taugment:
             if tadversary:
                 testaug = f"TTOTAUG/G_AUG={tgaug}/EPS={teps}/"
@@ -271,11 +274,17 @@ class ResAcquisitionClass:
                 testaug = f"TNOAUG/"
         testaug = testaug + f"CULTURE{t_cult}/"
 
-        basePath = basePath + testaug + "out " + str(out) + ".csv"
+        basePath = basePath + testaug
+        if standard:
+            basePath = basePath + "res.csv"
+        else:
+            basePath = basePath + "out " + str(out) + ".csv"
+        return basePath
 
     def get_cm_list(self, path):
+        #print(path)
         try:
-            fm = FileManagerClass(path)
+            fm = FileManagerClass(path, create=False)
             cm_list = fm.readcms()
         except:
             cm_list = []
@@ -285,13 +294,14 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [0, 1]
+        standards = [0]
         alg = "DL"
-        lamps = ([0, 1],)
+        lamps = [0, 1]
         cultures = [0, 1, 2]
+        percents = [0.05, 0.1]
         augments = [0, 1]
         adversary = [0, 1]
-        lambda_indeces = range(-1, 13)
+        lambda_indeces = range(-1, 1)
         taugments = [0, 1]
         tadversaries = [0, 1]
         test_g_augs = [0.01, 0.05, 0.1]
@@ -305,65 +315,87 @@ class ResAcquisitionClass:
             for lamp in lamps:
                 culturesl = []
                 for culture in cultures:
-                    
-                    augmentsl = []
-                    for augment in augments:
-                        adversaryl = []
-                        for adv in adversary:
-                            lambda_indecesl = []
-                            for lambda_index in lambda_indeces:
-                                taugmentsl = []
-                                for taugment in taugments:
-                                    tadversariesl = []
-                                    for tadversary in tadversaries:
-                                        test_g_augsl = []
-                                        for tgaug in test_g_augs:
-                                            tepsl = []
-                                            for teps in test_eps:
-                                                tcultsl = []
-                                                for t_cult in t_cults:
-                                                    
-                                                    if standard:
-                                                        self.buildPath(
-                                                            basePath,
-                                                            standard,
-                                                            alg,
-                                                            lamp,
-                                                            culture,
-                                                            augment,
-                                                            adv,
-                                                            lambda_index,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
-                                                            t_cult,
-                                                            out,
-                                                        )
-                                                    else:
-                                                        outsl = []
-                                                        for out in outs:
-                                                            outsl.append( self.buildPath(
-                                                                basePath,
-                                                                standard,
-                                                                alg,
-                                                                lamp,
-                                                                culture,
-                                                                augment,
-                                                                adv,
-                                                                lambda_index,
-                                                                taugment,
-                                                                tadversary,
-                                                                tgaug,
-                                                                teps,
-                                                                t_cult,
-                                                                out,
-                                                            ))
+                    percentsl = []
+                    for percent in percents:
+                        augmentsl = []
+                        for augment in augments:
+                            adversaryl = []
+                            for adv in adversary:
+                                lambda_indecesl = []
+                                for lambda_index in lambda_indeces:
+                                    taugmentsl = []
+                                    for taugment in taugments:
+                                        tadversariesl = []
+                                        for tadversary in tadversaries:
+                                            test_g_augsl = []
+                                            for tgaug in test_g_augs:
+                                                tepsl = []
+                                                for teps in test_eps:
+                                                    tcultsl = []
+                                                    for t_cult in t_cults:
+                                                        if standard:
+                                                            path = self.buildPath(
+                                                                    basePath,
+                                                                    standard,
+                                                                    alg,
+                                                                    lamp,
+                                                                    culture,
+                                                                    percent,
+                                                                    augment,
+                                                                    adv,
+                                                                    lambda_index,
+                                                                    taugment,
+                                                                    tadversary,
+                                                                    tgaug,
+                                                                    teps,
+                                                                    t_cult,
+                                                                    "",
+                                                                )
+                                                            outsl = self.get_cm_list(path)
+                                                        else:
+                                                            outsl = []
+                                                            for out in outs:
+                                                                path = self.buildPath(
+                                                                    basePath,
+                                                                    standard,
+                                                                    alg,
+                                                                    lamp,
+                                                                    culture,
+                                                                    percent,
+                                                                    augment,
+                                                                    adv,
+                                                                    lambda_index,
+                                                                    taugment,
+                                                                    tadversary,
+                                                                    tgaug,
+                                                                    teps,
+                                                                    t_cult,
+                                                                    out,
+                                                                )
+                                                                outsl.append(self.get_cm_list(path))
+                                                        tcultsl.append(outsl)
+                                                    tepsl.append(tcultsl)
+                                                test_g_augsl.append(tepsl)
+                                            tadversariesl.append(test_g_augsl)
+                                        taugmentsl.append(tadversariesl)
+                                    lambda_indecesl.append(taugmentsl)
+                                adversaryl.append(lambda_indecesl)
+                            augmentsl.append(adversaryl)
+                        percentsl.append(augmentsl)
+                    culturesl.append(percentsl)
+                lampsl.append(culturesl)
+            structure.append(lampsl)
+        return structure
+                        
+                                            
+                                                
 
 
 def main():
     rac = ResAcquisitionClass()
-    rac.get_cm_structure("../../Mitigated/")
+    cm_list = rac.get_cm_structure("../Mitigated/")
+    print(cm_list[0][0][0][0][0][0])
+    #print(np.shape(cm_list))
 
 if __name__ == "__main__":
     main()

@@ -13,26 +13,41 @@ class GeneralModelClass:
     def __init__(self) -> None:
         self.model = 0
 
-    def __call__(self, X):
+    def __call__(self, X, out=-1):
         if self.model != None:
             with tf.device("/gpu:0"):
                 if tf.is_tensor(X):
                     yP = self.model(X)
                     if tf.shape(yP)[0] > 1:
-                        return tf.gather(yP, indices=[[0, 0], [1, 0], [2, 0]])
+                        res = tf.gather(yP, indices=[[0, 0], [1, 0], [2, 0]])
+                        if(out>0):
+                            res = res[out]
+                        return res
                     else:
-                        return yP[0][0]
+                        res = yP[0][0]
+                        if (out>0):
+                            res = res[out]
+                        return res
                 else:
                     yP = np.asarray(self.model(X))
                     if type(self.model) == keras.engine.functional.Functional:
                         if tf.shape(yP)[0] > 1:
                             # print(np.shape(yP))
-                            return yP[:, 0]
+                            res = yP[:, 0]
+                            if (out>0):
+                                res = res[out]
+                            return res
                         else:
                             # print(np.shape(yP))
-                            return yP[0]
+                            res = yP[0]
+                            if (out>0):
+                                res = res[out]
+                            return res
                     else:
-                        return yP
+                        yP = res
+                        if (out>0):
+                            res = res[out]
+                        return res
         else:
             print("Try fitting the model before")
             return None
@@ -53,12 +68,8 @@ class GeneralModelClass:
                 if out < 0:
                     yF.append(np.asarray(self(xt[None, ...])))
                 else:
-                    # print(np.shape(self.model(xt[None, ...])))
                     pL = np.asarray(self(xt[None, ...]))[out]
                     yF.append(pL)
-                    #print(f"predicted label is {pL}")
-                    #plt.imshow(xt)
-                    #plt.show()
             yFq = self.quantize(yF)
             return yFq
         else:

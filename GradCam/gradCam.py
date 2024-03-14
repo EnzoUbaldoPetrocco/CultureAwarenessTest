@@ -28,7 +28,7 @@ class GradCAM:
 		# algorithm cannot be applied
 		raise ValueError("Could not find 4D layer. Cannot apply GradCAM.")
 	
-	def compute_heatmap(self, image, eps=1e-8):
+	def compute_heatmap(self, image, eps=1e-8, out = 0):
 		# construct our gradient model by supplying (1) the inputs
 		# to our pre-trained model, (2) the output of the (presumably)
 		# final 4D layer in the network, and (3) the output of the
@@ -46,7 +46,7 @@ class GradCAM:
 			# associated with the specific class index
 			inputs = tf.cast(image, tf.float32)
 			#convOutputs = gradModel(inputs)
-			(convOutputs, predictions) = gradModel(inputs)
+			(convOutputs, predictions) = gradModel(inputs, out)
 			print(f"convOutputs shape inside compute heatmap function {np.shape(convOutputs)}")
 			print(f"predictions shape inside compute heatmap function {np.shape(predictions)}")
 			#predictions = self.model(inputs)

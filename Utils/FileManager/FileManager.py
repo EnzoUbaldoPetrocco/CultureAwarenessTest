@@ -3,10 +3,11 @@ import os
 
 
 class FileManagerClass:
-    def __init__(self, name):
+    def __init__(self, name, create=True):
         self.name = name
         dir = os.path.dirname(name)
-        self.mkdir(dir)
+        if create:
+            self.mkdir(dir)
 
     def mkdir(self, dir):
         try:
