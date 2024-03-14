@@ -28,7 +28,7 @@ mult = 0.25
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
 with tf.device("/CPU:0"):
-        for j in range(-1, 13):
+        for j in range(0, 13):
             for percent in percents:
                 for c in range(3):
                     for k in range(4):

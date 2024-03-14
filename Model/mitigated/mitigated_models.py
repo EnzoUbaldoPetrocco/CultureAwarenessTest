@@ -153,9 +153,6 @@ class MitigatedModels(GeneralModelClass):
                         self.model = tf.keras.Sequential([input, self.model])
 
 
-                    self.model.summary()
-
-
                     monitor_val = f"val_loss"
                     lr_reduce = ReduceLROnPlateau(
                         monitor=monitor_val,
