@@ -107,6 +107,7 @@ class MitigatedModels(GeneralModelClass):
         learning_rates=[1e-5, 1e-4, 1e-3],
         batch_sizes=[2, 4, 8],
         out_dir="./",
+        gradcam = False
     ):
         best_loss = np.inf
         for lr in learning_rates:
@@ -119,27 +120,28 @@ class MitigatedModels(GeneralModelClass):
                         input_shape=size, weights="imagenet", include_top=False
                     )
                     fl = Flatten()(resnet.output)
-                    out = (Dense(1, activation="sigmoid", name="dense"))(fl)
-
-                    self.model = Model(inputs=resnet.input, outputs=out, name="model")
 
                     if adversarial:
                         y = (Dense(3, activation="sigmoid", name="dense"))(fl)
-                        self.model = Model(inputs=input, outputs=y, name="model")
+                        self.model = Model(inputs=resnet.input, outputs=y, name="model")
                     else:
                         y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
                         y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
                         y3 = (Dense(1, activation="sigmoid", name="dense_2"))(fl)
                         self.model = Model(
-                            inputs=input, outputs=[y1, y2, y3], name="model"
+                            inputs=resnet.input, outputs=[y1, y2, y3], name="model"
                         )
 
                     gradcam_layers = []
                     if adversarial:
+                        for layer in self.model.layers:
+                            layer.trainable = False
                         self.model.layers[-1].trainable = True
                         gradcam_layers.append(self.model.layers[-1].name)
                         # print(f"Layer trainable name is: {self.model.layers[-1].name}")
                     else:
+                        for layer in self.model.layers:
+                            layer.trainable = False
                         for layer in self.model.layers[-3:]:
                             if not isinstance(layer, layers.BatchNormalization):
                                 if self.verbose_param:
@@ -149,6 +151,11 @@ class MitigatedModels(GeneralModelClass):
 
                     if adversarial:
                         self.model = tf.keras.Sequential([input, self.model])
+
+
+                    self.model.summary()
+
+
                     monitor_val = f"val_loss"
                     lr_reduce = ReduceLROnPlateau(
                         monitor=monitor_val,
@@ -236,7 +243,7 @@ class MitigatedModels(GeneralModelClass):
         self.batch_size = best_bs
         self.learning_rate = best_lr
         self.model = None
-        self.DL(TS, VS, adversarial, eps, mult, out_dir)
+        self.DL(TS, VS, adversarial, eps, mult, gradcam=gradcam, out_dir=out_dir)
 
     def DL(
         self, TS, VS, adversarial=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
@@ -250,27 +257,32 @@ class MitigatedModels(GeneralModelClass):
             size = np.shape(TS[0][0])
             input = Input(size, name="image")
 
-            resnet = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)
+            resnet = ResNet50V2(
+                input_shape=size, weights="imagenet", include_top=False
+            )
             fl = Flatten()(resnet.output)
-            out = (Dense(1, activation="sigmoid", name="dense"))(fl)
-
-            self.model = Model(inputs=resnet.input, outputs=out, name="model")
 
             if adversarial:
                 y = (Dense(3, activation="sigmoid", name="dense"))(fl)
-                self.model = Model(inputs=input, outputs=y, name="model")
+                self.model = Model(inputs=resnet.input, outputs=y, name="model")
             else:
                 y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
                 y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
                 y3 = (Dense(1, activation="sigmoid", name="dense_2"))(fl)
-                self.model = Model(inputs=input, outputs=[y1, y2, y3], name="model")
+                self.model = Model(
+                    inputs=resnet.input, outputs=[y1, y2, y3], name="model"
+                )
 
             gradcam_layers = []
             if adversarial:
+                for layer in self.model.layers:
+                    layer.trainable = False
                 self.model.layers[-1].trainable = True
                 gradcam_layers.append(self.model.layers[-1].name)
                 # print(f"Layer trainable name is: {self.model.layers[-1].name}")
             else:
+                for layer in self.model.layers:
+                    layer.trainable = False
                 for layer in self.model.layers[-3:]:
                     if not isinstance(layer, layers.BatchNormalization):
                         if self.verbose_param:
@@ -280,6 +292,8 @@ class MitigatedModels(GeneralModelClass):
 
             if adversarial:
                 self.model = tf.keras.Sequential([input, self.model])
+
+
 
             monitor_val = f"val_loss"
             lr_reduce = ReduceLROnPlateau(

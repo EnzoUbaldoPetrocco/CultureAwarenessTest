@@ -8,7 +8,7 @@ import tensorflow as tf
 tf.config.set_soft_device_placement(True)
 
 percents = [0.1, 0.05]
-standard = 1
+standard = 0
 lamp = 0
 
 verbose_param = 0
