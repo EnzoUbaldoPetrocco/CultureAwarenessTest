@@ -45,9 +45,10 @@ class MitigatedModels(GeneralModelClass):
 
     def custom_loss(self, out):
         def loss(y_true, y_pred):
-            weights1 = self.model.layers[-1].kernel
+            print(f"name of self.model.layers[-1] = {self.model.layers[-1].name}")
+            weights1 = self.model.layers[-3].kernel
             weights2 = self.model.layers[-2].kernel
-            weights3 = self.model.layers[-3].kernel
+            weights3 = self.model.layers[-1].kernel
             mean = tf.math.add(weights1, weights2)
             mean = tf.math.add(mean, weights3)
             mean = tf.multiply(mean, 1 / 3)
@@ -73,7 +74,7 @@ class MitigatedModels(GeneralModelClass):
         def loss(y_true, y_pred):
             sum = 0.0
             for out in range(3):
-                weights = self.model.layers[0].layers[-2].kernel
+                weights = self.model.layers[0].layers[0].layers[-1].kernel
                 weights1 = weights[:, 0]
                 weights2 = weights[:, 1]
                 weights3 = weights[:, 2]
@@ -174,6 +175,7 @@ class MitigatedModels(GeneralModelClass):
 
                     # Wrap the model with adversarial regularization.
                     if adversarial:
+                        self.model.summary()
                         adv_config = nsl.configs.make_adv_reg_config(
                             multiplier=mult, adv_step_size=eps
                         )
@@ -207,8 +209,6 @@ class MitigatedModels(GeneralModelClass):
                     yv = tf.stack(VS[1])
 
                     if adversarial:
-                        print(self.model.summary())
-                        print(self.model.layers[0].summary())
                         self.history = self.model.fit(
                             x={"image": X, "label": y},
                             epochs=self.epochs,
