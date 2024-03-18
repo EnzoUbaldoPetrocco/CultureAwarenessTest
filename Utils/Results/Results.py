@@ -15,27 +15,37 @@ class ResultsClass:
         self.meanFP_stds = []
         self.meanFN_stds = []
         self.meanError_stds = []
-        for i in range(len(c_cm_list)):
-            pcm = self.get_pcms(c_cm_list[i])
-            self.pcms_list.append(pcm)
-            self.meanFPs.append(self.get_meanFP(pcm))
-            self.meanFNs.append(self.get_meanFN(pcm))
-            self.meanErrors.append(self.get_mean_error(pcm))
-            self.meanFP_stds.append(self.get_meanFP_std(pcm))
-            self.meanFN_stds.append(self.get_meanFN_std(pcm))
-            self.meanError_stds.append(self.get_mean_error_std(pcm))
+        if len(c_cm_list) == 0:
+            print("List empty")
+        else:
+            for i in range(len(c_cm_list)):
+                pcm = self.get_pcms(c_cm_list[i])
+                self.pcms_list.append(pcm)
+                self.meanFPs.append(self.get_meanFP(pcm))
+                self.meanFNs.append(self.get_meanFN(pcm))
+                self.meanErrors.append(self.get_mean_error(pcm))
+                self.meanFP_stds.append(self.get_meanFP_std(pcm))
+                self.meanFN_stds.append(self.get_meanFN_std(pcm))
+                self.meanError_stds.append(self.get_mean_error_std(pcm))
 
-        self.CIC = self.get_CIC(self.pcms_list)
-        self.CIC_std = self.get_CIC_std(self.pcms_list, len(self.pcms_list))
+            self.CIC = self.get_CIC(self.pcms_list)
+            self.CIC_std = self.get_CIC_std(self.pcms_list, len(self.pcms_list))
+
+    def print(self):
+        if len(self.pcms_list)>0:
+            for i in range(3):
+                print(f"For culture={i}: ERR={self.meanErrors[i]:.4f}" + u"\u00B1" + f"{self.meanError_stds[i]:.4f}")
+            print(f"CIC={self.CIC:.4f}" + u"\u00B1" + f"{self.CIC_std:.4f}")
+            
 
     def get_pcms(self, confusion_matrix_list):
         tot = self.get_tot_elements(confusion_matrix_list[0])
         pcms = []
         for i in confusion_matrix_list:
-            tn = (i[0, 0] / tot) * 100
-            fn = (i[1, 0] / tot) * 100
-            tp = (i[1, 1] / tot) * 100
-            fp = (i[0, 1] / tot) * 100
+            tn = (i[0, 0] / tot) 
+            fn = (i[1, 0] / tot) 
+            tp = (i[1, 1] / tot) 
+            fp = (i[0, 1] / tot) 
             pcm = np.array([[tn, fp], [fn, tp]])
             pcms.append(pcm)
         return pcms
@@ -85,12 +95,12 @@ class ResultsClass:
             stdfn_i += (fn - mean_fn) ** 2
             stdtp_i += (tp - mean_tp) ** 2
             stdfp_i += (fp - mean_fp) ** 2
-        std_matrix = np.array([stdtn_i, stdfp_i], [stdfn_i, stdtp_i])
+        std_matrix = np.array([[stdtn_i, stdfp_i], [stdfn_i, stdtp_i]])
         std_matrix = std_matrix / np.sqrt(len(pcms) - 1)
         return mean_matrix, std_matrix
 
     def get_accuracy(self, pcm):
-        return pcm[0, 0] + pcm[1, 1]
+        return pcm[0][0] + pcm[1][1]
 
     def get_error(self, pcm):
         return 1 - self.get_accuracy(pcm)
@@ -145,31 +155,45 @@ class ResultsClass:
 
     # CIC
     def get_CIC(self, c_pcms):
-        errors = []
-        for pcm in c_pcms:
-            errors.append(self.get_error(pcm))
-        return np.sum(errors) - min(errors)
+        c_errors = []
+        for c_pcm in c_pcms:
+            errors = []
+            for pcm in c_pcm:
+                errors.append(self.get_error(pcm))
+            c_errors.append(errors)
+
+        ers = []
+        for c_error in c_errors:
+            ers.append(np.mean(c_error))
+        res = []
+        for i in range(len(ers)):
+            res.append(np.abs(ers[i] - min(ers)))
+            #print(f"ers[i]-min(ers[i])={ers[i]}-{min(ers)}")
+        return np.mean(res)
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
         if len(c_pcms) != n_cultures:
             print(
                 "The number of confusion matrices does not correspond to the number of cultures"
             )
-        culture_mean_pcms, culture_mean_std_pcms = [], []
-        for i in range(n_cultures):
+        culture_mean_pcms = []
+        culture_mean_std_pcms = []
+        for i in range(len(c_pcms)):
             culture_mean_pcm, culture_mean_std_pcm = self.get_statistics_pcm(
-                c_pcms[n_cultures]
+                c_pcms[i]
             )
             culture_mean_pcms.append(culture_mean_pcm)
             culture_mean_std_pcms.append(culture_mean_std_pcm)
         std_errors = []
         errors = []
+
         for std_pcm in culture_mean_std_pcms:
             std_errors.append(self.get_error_std(std_pcm))
         for pcm in culture_mean_pcms:
             errors.append(self.get_error(pcm))
+
         i = errors.index(min(errors))
-        return np.sum(std_errors) + std_errors[i]
+        return (np.sum(std_errors) - std_errors[i])/len(errors)
 
     # Precision = TP / (TP+FP)
     def get_meanPrecision(self, pcms):
@@ -228,7 +252,7 @@ class ResAcquisitionClass:
         if standard:
             basePath = basePath + "STD/" + alg
         else:
-            basePath = basePath +  "MIT/" + alg
+            basePath = basePath + "MIT/" + alg
         if lamp:
             if culture == 0:
                 c = "/LC/"
@@ -247,7 +271,7 @@ class ResAcquisitionClass:
                 c = "/CS/"
             else:
                 c = "/CI/"
-        basePath = basePath + c + str(percent) +"/"
+        basePath = basePath + c + str(percent) + "/"
         if augment:
             if adversary:
                 aug = "TOTAUG/"
@@ -258,10 +282,10 @@ class ResAcquisitionClass:
                 aug = "AVD/"
             else:
                 aug = "NOAUG/"
-            
+
         basePath = basePath + aug
         if not standard:
-            basePath = basePath +  str(lambda_index) + "/"
+            basePath = basePath + str(lambda_index) + "/"
         if taugment:
             if tadversary:
                 testaug = f"TTOTAUG/G_AUG={tgaug}/EPS={teps}/"
@@ -282,7 +306,6 @@ class ResAcquisitionClass:
         return basePath
 
     def get_cm_list(self, path):
-        #print(path)
         try:
             fm = FileManagerClass(path, create=False)
             cm_list = fm.readcms()
@@ -294,14 +317,14 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [0]
+        standards = [0, 1]
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
         percents = [0.05, 0.1]
         augments = [0, 1]
         adversary = [0, 1]
-        lambda_indeces = range(-1, 1)
+        lambda_indeces = range(-1, 13)
         taugments = [0, 1]
         tadversaries = [0, 1]
         test_g_augs = [0.01, 0.05, 0.1]
@@ -335,25 +358,26 @@ class ResAcquisitionClass:
                                                     for t_cult in t_cults:
                                                         if standard:
                                                             path = self.buildPath(
-                                                                    basePath,
-                                                                    standard,
-                                                                    alg,
-                                                                    lamp,
-                                                                    culture,
-                                                                    percent,
-                                                                    augment,
-                                                                    adv,
-                                                                    lambda_index,
-                                                                    taugment,
-                                                                    tadversary,
-                                                                    tgaug,
-                                                                    teps,
-                                                                    t_cult,
-                                                                    "",
-                                                                )
-                                                            outsl = self.get_cm_list(path)
+                                                                basePath,
+                                                                standard,
+                                                                alg,
+                                                                lamp,
+                                                                culture,
+                                                                percent,
+                                                                augment,
+                                                                adv,
+                                                                lambda_index,
+                                                                taugment,
+                                                                tadversary,
+                                                                tgaug,
+                                                                teps,
+                                                                t_cult,
+                                                                "",
+                                                            )
+                                                            outsl = self.get_cm_list(
+                                                                path
+                                                            )
                                                         else:
-                                                            outsl = []
                                                             for out in outs:
                                                                 path = self.buildPath(
                                                                     basePath,
@@ -372,7 +396,10 @@ class ResAcquisitionClass:
                                                                     t_cult,
                                                                     out,
                                                                 )
-                                                                outsl.append(self.get_cm_list(path))
+                                                                if out==t_cult:
+                                                                    outsl = self.get_cm_list(
+                                                                            path
+                                                                        )
                                                         tcultsl.append(outsl)
                                                     tepsl.append(tcultsl)
                                                 test_g_augsl.append(tepsl)
@@ -386,16 +413,69 @@ class ResAcquisitionClass:
                 lampsl.append(culturesl)
             structure.append(lampsl)
         return structure
-                        
-                                            
-                                                
 
 
 def main():
     rac = ResAcquisitionClass()
-    cm_list = rac.get_cm_structure("../Mitigated/")
-    print(cm_list[0][0][0][0][0][0])
-    #print(np.shape(cm_list))
+    cm_list = rac.get_cm_structure("../../Mitigated/")
+    lamps = [0, 1]
+    cultures = [0, 1, 2]
+    percents = [0.05, 0.1]
+    lambda_indeces = range(-1, 13)
+    test_g_augs = [0.01, 0.05, 0.1]
+    test_eps = [0.0005, 0.001, 0.005]
+    sp = np.shape(cm_list)
+    for standard in range(sp[0]):
+        for lamp in range(sp[1]):
+            for culture in range(sp[2]):
+                for percent in range(sp[3]):
+                    for augment in range(sp[4]):
+                        for adv in range(sp[5]):
+                            for lambda_index in range(sp[6]):
+                                for taugment in range(sp[7]):
+                                    for tadversary in range(sp[8]):
+                                        for tgaug in range(sp[9]):
+                                            for teps in range(sp[10]):
+                                                for t_cult in range(sp[11]):
+                                                    if standard:
+                                                        lst = cm_list[standard][lamp][culture][percent][augment][adv][lambda_index][taugment][tadversary][tgaug][teps]
+                                                        print(np.shape(lst))
+                                                        if(np.shape(lst)[1]>2):
+                                                            print(
+                                                            f"STD with lamp={lamps[lamp]},"
+                                                            + f" culture={cultures[culture]},"
+                                                            + f" percent={percents[percent]},"
+                                                            + f" augment={augment},"
+                                                            + f" adv={adv},"
+                                                            + f" taugment={taugment},"
+                                                            + f" tadversary={tadversary},"
+                                                            + f" tgaug={test_g_augs[tgaug]}, teps={test_eps[teps]},"
+                                                            + f" t_cult={t_cult}"
+                                                            )
+                                                            rc = ResultsClass(np.asarray(lst))
+                                                            rc.print()
+                                                    else:
+
+                                                        lst = cm_list[standard][lamp][culture][percent][augment][adv][lambda_index][taugment][tadversary][tgaug][teps]
+                                                        if(np.shape(lst)[1]>2):
+                                                            print(
+                                                                f"MIT with lamp={lamps[lamp]},"
+                                                                + f" culture={cultures[culture]},"
+                                                                + f" percent={percents[percent]},"
+                                                                + f" augment={augment},"
+                                                                + f" adv={adv},"
+                                                                + f" lambda_index={lambda_indeces[lambda_index]},"
+                                                                + f" taugment={taugment},"
+                                                                + f" tadversary={tadversary},"
+                                                                + f" tgaug={test_g_augs[tgaug]}, teps={test_eps[teps]},"
+                                                                + f" t_cult={t_cult},"
+                                                                )
+                                                            rc = ResultsClass(np.asarray(lst))
+                                                            rc.print()
+
+
+    
+
 
 if __name__ == "__main__":
     main()

@@ -210,6 +210,8 @@ class MitigatedModels(GeneralModelClass):
                     yv = tf.stack(VS[1])
 
                     if adversarial:
+                        print(self.model.summary())
+                        print(self.model.layers[0].summary())
                         self.history = self.model.fit(
                             x={"image": X, "label": y},
                             epochs=self.epochs,

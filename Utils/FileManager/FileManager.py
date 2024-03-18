@@ -26,7 +26,8 @@ class FileManagerClass:
                     csvlist.append(row)                
                 file.close()
         except:
-            print(f"Error in reading file {self.name}")
+            pass
+            #print(f"Error in reading file {self.name}")
         return csvlist
 
     def writerow(self, row):

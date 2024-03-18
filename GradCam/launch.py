@@ -29,11 +29,52 @@ mult = 0.25
 
 nt = 10
 
-for lamp in [0, 1]:
+procObj = ProcessingClass(shallow=0, lamp=0, gpu=True)
+for k in range(3):
+    print(f"Training->aug={k%2};adv={floor(k/2)}")
+    procObj.process(
+    standard=1,
+    type="DL",
+    verbose_param=verbose_param,
+    learning_rate=learning_rate,
+    epochs=epochs,
+    batch_size=bs,
+    lambda_index=0,
+    culture=2,
+    percent=0.1,
+    val_split=val_split,
+    test_split=test_split,
+    n=n,
+    augment=k % 2,
+    g_rot=g_aug,
+    g_noise=g_aug,
+    g_bright=g_aug,
+    adversary=floor(k / 2),
+    eps=eps,
+    mult=mult,
+    gradcam=0,
+    )
+
+    grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
+    
+    heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
+    path = procObj.basePath + "out.jpg"
+    fObj = FileManagerClass(path)
+    cv2.imwrite(path, heatmap)
+    print(f"saved heatmap in file {path}")
+
+    procObj.partial_clear()
+
+
+for lamp in [ 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
     with tf.device("/CPU:0"):
         for standard in standards:
-            for j in range(-1, 13):
+            if standard: 
+                lim = 0
+            else:
+                lim = 13
+            for j in range(-1, lim):
                 for percent in percents:
                     for c in range(3):
                         for k in range(4):
