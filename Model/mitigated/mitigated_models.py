@@ -45,7 +45,6 @@ class MitigatedModels(GeneralModelClass):
 
     def custom_loss(self, out):
         def loss(y_true, y_pred):
-            print(f"name of self.model.layers[-1] = {self.model.layers[-1].name}")
             weights1 = self.model.layers[-3].kernel
             weights2 = self.model.layers[-2].kernel
             weights3 = self.model.layers[-1].kernel
