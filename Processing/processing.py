@@ -48,7 +48,7 @@ class ProcessingClass:
                         gpus[0],
                         [
                             tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=10000
+                                memory_limit=2700
                             )
                         ],
                     )

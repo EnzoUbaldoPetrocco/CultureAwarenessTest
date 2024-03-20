@@ -166,7 +166,7 @@ class ResultsClass:
 
     def get_meanFP_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[0, 1]
 
@@ -179,7 +179,7 @@ class ResultsClass:
 
     def get_meanFN_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[1, 0]
 
@@ -192,7 +192,7 @@ class ResultsClass:
 
     def get_meanTP_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[0, 0]
 
@@ -205,7 +205,7 @@ class ResultsClass:
 
     def get_meanTN_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[1, 1]
 
@@ -218,17 +218,18 @@ class ResultsClass:
 
     def get_error_std(self, std_pcm):
         if len(std_pcm)<=0:
-            return -1
+            return 0
         return std_pcm[0, 0] + std_pcm[1, 1]
 
     def get_mean_error_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         std_meanpcm = self.get_statistics_pcm(pcms)[1]
         return self.get_error_std(std_meanpcm)
 
     # CIC
     def get_CIC(self, c_pcms):
+        # 1/|C| * sum |ERR^C-min(ERR^C)|
         if len(c_pcms)<=0:
             return -1
         c_errors = []
@@ -237,19 +238,21 @@ class ResultsClass:
             for pcm in c_pcm:
                 errors.append(self.get_error(pcm))
             c_errors.append(errors)
-
         ers = []
         for c_error in c_errors:
-            ers.append(np.mean(c_error))
-        res = []
+            if len(c_error)<=0:
+                ers.append(-1)
+            else:
+                ers.append(np.mean(c_error))
+        res = 0
         for i in range(len(ers)):
-            res.append(np.abs(ers[i] - min(ers)))
-            # print(f"ers[i]-min(ers[i])={ers[i]}-{min(ers)}")
-        return np.mean(res)
+            res += np.abs(ers[i] - min(ers)) # |ERR^C - min(ERR^C)|
+        res = res/len(ers)
+        return res
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
         if len(c_pcms)<=0:
-            return -1
+            return 0
         if len(c_pcms) != n_cultures:
             print(
                 "The number of confusion matrices does not correspond to the number of cultures"
@@ -281,7 +284,7 @@ class ResultsClass:
 
     def get_meanPrecision_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         # stdFP = |dPrec/dtp|stdtp + |dPrec/dfp|stdfp =
         # = (FP/(FP+TP)^2)*STDTP + (TP/(FP+TP)^2)*STDFP
         meantp = self.get_meanTP(pcms)
@@ -302,7 +305,7 @@ class ResultsClass:
 
     def get_meanRecall_std(self, pcms):
         if len(pcms)<=0:
-            return -1
+            return 0
         # stdFP = |dPrec/dtp|stdtp + |dPrec/dfn|stdfn =
         # = (FN/(FN+TP)^2)*STDTP + (TP/(FN+TP)^2)*STDFN
         meantp = self.get_meanTP(pcms)
@@ -401,18 +404,18 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [0, 1]
+        standards =  [0, 1]
         alg = "DL"
-        lamps = [0, 1]
+        lamps =  [0, 1]
         cultures = [0, 1, 2]
-        percents = [0.05, 0.1]
+        percents =[0.05, 0.1]
         augments = [0, 1]
         adversary = [0, 1]
         lambda_indeces = range(-1, 13)
         taugments = [0, 1]
         tadversaries = [0, 1]
-        test_g_augs = [0.01, 0.05, 0.1]
-        test_eps = [0.0005, 0.001, 0.005]
+        test_g_augs =[0.01, 0.05, 0.1]
+        test_eps =[0.0005, 0.001, 0.005]
         t_cults = [0, 1, 2]
 
         structure = []
@@ -488,7 +491,7 @@ class ResAcquisitionClass:
                                                             percent,
                                                             augment,
                                                             adv,
-                                                            lambda_index,
+                                                            0,
                                                             taugment,
                                                             tadversary,
                                                             tgaug,
@@ -523,7 +526,6 @@ def mkdir(dir):
 def main():
     rac = ResAcquisitionClass()
     cm_list = rac.get_cm_structure("../../Mitigated/")
-    print(np.shape(cm_list[1]))
 
     lamps = [0, 1]
     cultures = [0, 1, 2]
