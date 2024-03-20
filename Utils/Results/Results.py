@@ -730,8 +730,8 @@ class ResAcquisitionClass:
                                                                     st + "res.csv"
                                                                 )
                                                                 tepdfs.append(data)
-                                                    tgaugdfs.append(pd.DataFrame({'idx':test_eps, 'dfs':tepdfs}))
-                                                tadversarydfs.append(pd.DataFrame({'idx':test_g_augs, 'dfs':tgaugdfs}))
+                                                    tgaugdfs.append(pd.DataFrame({'tgaugidx':test_eps, 'tepdfs':tepdfs}))
+                                                tadversarydfs.append(pd.DataFrame({'tadversaryidx':test_g_augs, 'tgaugdfs':tgaugdfs}))
                                                 print(tgaugdfs)
                                             
 
