@@ -34,18 +34,20 @@ class ResultsClass:
             self.CIC_std = self.get_CIC_std(self.pcms_list, len(self.pcms_list))
 
     def to_df(self):
+        def convert_to_percentage(value):
+            return f"{round(value*100, 4)}%"
         if len(self.pcms_list) > 0:
             ls = []
             for i in range(3):
-                ls.append(round(self.meanErrors[i], 4))
-                ls.append(round(self.meanError_stds[i], 4))
+                ls.append(convert_to_percentage(self.meanErrors[i]))
+                ls.append(convert_to_percentage(self.meanError_stds[i]))
 
-            ERR = round(np.mean(self.meanErrors), 4)
+            ERR = convert_to_percentage(np.mean(self.meanErrors))
             ls.append(ERR)
-            ERRstd = round(np.sum(self.meanError_stds), 4)
+            ERRstd = convert_to_percentage(np.sum(self.meanError_stds))
             ls.append(ERRstd)
-            ls.append(round(self.CIC, 4))
-            ls.append(round(self.CIC_std, 4))
+            ls.append(convert_to_percentage(self.CIC))
+            ls.append(convert_to_percentage(self.CIC_std))
 
             columns = [f"ERR^CULTURE {i}" for i in range(3)]
             columns += [f"ERR^CULTURE std {i}" for i in range(3)]
@@ -813,7 +815,7 @@ class ResAcquisitionClass:
                                                             tgaug,
                                                             teps,
                                                             t_cult,
-                                                            "",
+                                                            t_cult,
                                                         )
                                                         tcultsl.append(path)
                                                     tepsl.append(tcultsl)
