@@ -37,32 +37,26 @@ class ResultsClass:
         if len(self.pcms_list) > 0:
             ls = []
             for i in range(3):
-                ls.append(
-                    [
-                        round(self.meanErrors[i], 4),
-                        round(self.meanError_stds[i], 4),
-                        round(self.CIC, 4),
-                        round(self.CIC_std, 4),
-                        round(self.meanFNs[i], 4),
-                        round(self.meanFN_stds[i], 4),
-                        round(self.meanFPs[i], 4),
-                        round(self.meanFP_stds[i], 4),
-                    ]
-                )
-            indeces = [f"CULTURE {i}" for i in range(3)]
+                ls.append(round(self.meanErrors[i], 4))
+                ls.append(round(self.meanError_stds[i], 4))
+
+            ERR = round(np.mean(self.meanErrors), 4)
+            ls.append(ERR)
+            ERRstd = round(np.sum(self.meanError_stds), 4)
+            ls.append(ERRstd)
+            ls.append(round(self.CIC, 4))
+            ls.append(round(self.CIC_std, 4))
+
+            columns = [f"ERR^CULTURE {i}" for i in range(3)]
+            columns += [f"ERR^CULTURE std {i}" for i in range(3)]
+            columns.append("ERR")
+            columns.append("ERR std")
+            columns.append("CIC")
+            columns.append("CIC std")
+            ls = np.expand_dims(np.asarray(ls, dtype = object), 0)
             df = pd.DataFrame(
                 ls,
-                columns=[
-                    "ERR",
-                    "ERR std",
-                    "CIC",
-                    "CIC std",
-                    "FN",
-                    "FN std",
-                    "FP",
-                    "FP std",
-                ],
-                index=indeces,
+                columns=columns
             )
             return df
 
