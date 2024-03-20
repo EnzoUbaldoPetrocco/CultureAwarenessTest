@@ -566,21 +566,7 @@ class ResAcquisitionClass:
                                                         ]
                                                     )
                                                 ):
-                                                    for t_cult in range(
-                                                        len(
-                                                            cm_list[standard][lamp][
-                                                                culture
-                                                            ][percent][augment][adv][
-                                                                taugment
-                                                            ][
-                                                                tadversary
-                                                            ][
-                                                                tgaug
-                                                            ][
-                                                                teps
-                                                            ]
-                                                        )
-                                                    ):
+
                                                         lst = cm_list[standard][lamp][
                                                             culture
                                                         ][percent][augment][adv][
@@ -608,8 +594,8 @@ class ResAcquisitionClass:
                                                                 tadversary,
                                                                 test_g_augs[tgaug],
                                                                 test_eps[teps],
-                                                                t_cult,
-                                                                t_cult,
+                                                                0,
+                                                                0,
                                                             )
                                                             tempst = st.split("/")
                                                             tempst2 = ""
@@ -627,7 +613,7 @@ class ResAcquisitionClass:
                                                             )
                                                             print(st)
                                                             data = rc.to_df()
-                                                            print(data)
+                                                            #print(data)
                                                             data.to_csv(st + "res.csv")
                                 else:
                                     for lambda_index in range(
@@ -644,6 +630,7 @@ class ResAcquisitionClass:
                                                 ][augment][adv][lambda_index]
                                             )
                                         ):
+                                            tadversarydfs = []
                                             for tadversary in range(
                                                 len(
                                                     cm_list[standard][lamp][culture][
@@ -653,6 +640,7 @@ class ResAcquisitionClass:
                                                     ]
                                                 )
                                             ):
+                                                tgaugdfs = []
                                                 for tgaug in range(
                                                     len(
                                                         cm_list[standard][lamp][
@@ -666,7 +654,7 @@ class ResAcquisitionClass:
                                                         ]
                                                     )
                                                 ):
-                                                    tepds = []
+                                                    tepdfs = []
                                                     for teps in range(
                                                         len(
                                                             cm_list[standard][lamp][
@@ -682,25 +670,7 @@ class ResAcquisitionClass:
                                                             ]
                                                         )
                                                     ):
-                                                        for t_cult in range(
-                                                            len(
-                                                                cm_list[standard][lamp][
-                                                                    culture
-                                                                ][percent][augment][
-                                                                    adv
-                                                                ][
-                                                                    lambda_index
-                                                                ][
-                                                                    taugment
-                                                                ][
-                                                                    tadversary
-                                                                ][
-                                                                    tgaug
-                                                                ][
-                                                                    teps
-                                                                ]
-                                                            )
-                                                        ):
+
                                                             lst = cm_list[standard][
                                                                 lamp
                                                             ][culture][percent][
@@ -736,8 +706,8 @@ class ResAcquisitionClass:
                                                                     tadversary,
                                                                     test_g_augs[tgaug],
                                                                     test_eps[teps],
-                                                                    t_cult,
-                                                                    t_cult,
+                                                                    0,
+                                                                    0,
                                                                 )
                                                                 tempst = st.split("/")
                                                                 tempst2 = ""
@@ -759,8 +729,11 @@ class ResAcquisitionClass:
                                                                 data.to_csv(
                                                                     st + "res.csv"
                                                                 )
-                                                                tepds.append(data)
-                                                        df = pd.DataFrame({'idx':[1,2,3], 'dfs':[df1, df2, df3]})
+                                                                tepdfs.append(data)
+                                                    tgaugdfs.append(pd.DataFrame({'idx':test_eps, 'dfs':tepdfs}))
+                                                tadversarydfs.append(pd.DataFrame({'idx':test_g_augs, 'dfs':tgaugdfs}))
+                                                print(tgaugdfs)
+                                            
 
 def mkdir(dir):
     try:
