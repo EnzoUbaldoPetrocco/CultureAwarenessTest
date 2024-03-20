@@ -142,7 +142,8 @@ class ResultsClass:
                 stdtp_i += (tp - mean_tp) ** 2
                 stdfp_i += (fp - mean_fp) ** 2
             std_matrix = np.array([[stdtn_i, stdfp_i], [stdfn_i, stdtp_i]])
-            std_matrix = std_matrix / np.sqrt(len(pcms) - 1)
+            if len(pcms)>1:
+                std_matrix = std_matrix / np.sqrt(len(pcms) - 1)
             return mean_matrix, std_matrix
         else:
             return [], []
@@ -630,7 +631,6 @@ class ResAcquisitionClass:
                                                 ][augment][adv][lambda_index]
                                             )
                                         ):
-                                            tadversarydfs = []
                                             for tadversary in range(
                                                 len(
                                                     cm_list[standard][lamp][culture][
@@ -640,7 +640,6 @@ class ResAcquisitionClass:
                                                     ]
                                                 )
                                             ):
-                                                tgaugdfs = []
                                                 for tgaug in range(
                                                     len(
                                                         cm_list[standard][lamp][
@@ -654,7 +653,6 @@ class ResAcquisitionClass:
                                                         ]
                                                     )
                                                 ):
-                                                    tepdfs = []
                                                     for teps in range(
                                                         len(
                                                             cm_list[standard][lamp][
@@ -729,10 +727,6 @@ class ResAcquisitionClass:
                                                                 data.to_csv(
                                                                     st + "res.csv"
                                                                 )
-                                                                tepdfs.append(data)
-                                                    tgaugdfs.append(pd.DataFrame({'tgaugidx':test_eps, 'tepdfs':tepdfs}))
-                                                tadversarydfs.append(pd.DataFrame({'tadversaryidx':test_g_augs, 'tgaugdfs':tgaugdfs}))
-                                                print(tgaugdfs)
                                             
 
 def mkdir(dir):
