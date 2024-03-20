@@ -77,7 +77,7 @@ class ResultsClass:
             print(f"CIC={self.CIC:.4f}" + "\u00B1" + f"{self.CIC_std:.4f}")
 
     def get_pcms(self, confusion_matrix_list):
-        if np.shape(confusion_matrix_list)[0]>=1:
+        if np.shape(confusion_matrix_list)[0] >= 1:
             tot = self.get_tot_elements(confusion_matrix_list[0])
             pcms = []
             confusion_matrix_list = np.asarray(confusion_matrix_list)
@@ -93,14 +93,14 @@ class ResultsClass:
         return pcms
 
     def get_tot_elements(self, cm):
-        if len(cm)<=0:
+        if len(cm) <= 0:
             return -1
         cm = np.asarray(cm)
         tot = cm[0, 0] + cm[0, 1] + cm[1, 0] + cm[1, 1]
         return tot
 
     def get_statistics_pcm(self, pcms):
-        if len(pcms)>0:
+        if len(pcms) > 0:
             count_tn = 0
             count_fn = 0
             count_tp = 0
@@ -148,81 +148,81 @@ class ResultsClass:
             return [], []
 
     def get_accuracy(self, pcm):
-        if len(pcm)<=0:
+        if len(pcm) <= 0:
             return -1
         return pcm[0][0] + pcm[1][1]
 
     def get_error(self, pcm):
-        if len(pcm)<=0:
+        if len(pcm) <= 0:
             return -1
         return 1 - self.get_accuracy(pcm)
 
     # FP
     def get_meanFP(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[0, 1]
 
     def get_meanFP_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[0, 1]
 
     # FN
     def get_meanFN(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[1, 0]
 
     def get_meanFN_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[1, 0]
 
     # TP
     def get_meanTP(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[0, 0]
 
     def get_meanTP_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[0, 0]
 
     # TN
     def get_meanTN(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         meanpcm = self.get_statistics_pcm(pcms)[0]
         return meanpcm[1, 1]
 
     def get_meanTN_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         meanpcm_std = self.get_statistics_pcm(pcms)[1]
         return meanpcm_std[1, 1]
 
     # ERROR
     def get_mean_error(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         mean_pcms = self.get_statistics_pcm(pcms)[0]
         return self.get_error(mean_pcms)
 
     def get_error_std(self, std_pcm):
-        if len(std_pcm)<=0:
+        if len(std_pcm) <= 0:
             return 0
         return std_pcm[0, 0] + std_pcm[1, 1]
 
     def get_mean_error_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         std_meanpcm = self.get_statistics_pcm(pcms)[1]
         return self.get_error_std(std_meanpcm)
@@ -230,7 +230,7 @@ class ResultsClass:
     # CIC
     def get_CIC(self, c_pcms):
         # 1/|C| * sum |ERR^C-min(ERR^C)|
-        if len(c_pcms)<=0:
+        if len(c_pcms) <= 0:
             return -1
         c_errors = []
         for c_pcm in c_pcms:
@@ -240,18 +240,18 @@ class ResultsClass:
             c_errors.append(errors)
         ers = []
         for c_error in c_errors:
-            if len(c_error)<=0:
+            if len(c_error) <= 0:
                 ers.append(-1)
             else:
                 ers.append(np.mean(c_error))
         res = 0
         for i in range(len(ers)):
-            res += np.abs(ers[i] - min(ers)) # |ERR^C - min(ERR^C)|
-        res = res/len(ers)
+            res += np.abs(ers[i] - min(ers))  # |ERR^C - min(ERR^C)|
+        res = res / len(ers)
         return res
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
-        if len(c_pcms)<=0:
+        if len(c_pcms) <= 0:
             return 0
         if len(c_pcms) != n_cultures:
             print(
@@ -276,14 +276,14 @@ class ResultsClass:
 
     # Precision = TP / (TP+FP)
     def get_meanPrecision(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         meantp = self.get_meanTP(pcms)
         meanfp = self.get_meanFP(pcms)
         return meantp / (meantp + meanfp)
 
     def get_meanPrecision_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         # stdFP = |dPrec/dtp|stdtp + |dPrec/dfp|stdfp =
         # = (FP/(FP+TP)^2)*STDTP + (TP/(FP+TP)^2)*STDFP
@@ -297,14 +297,14 @@ class ResultsClass:
 
     # Precision = TP / (TP+FN)
     def get_meanRecall(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return -1
         meantp = self.get_meanTP(pcms)
         meanfn = self.get_meanFN(pcms)
         return meantp / (meantp + meanfn)
 
     def get_meanRecall_std(self, pcms):
-        if len(pcms)<=0:
+        if len(pcms) <= 0:
             return 0
         # stdFP = |dPrec/dtp|stdtp + |dPrec/dfn|stdfn =
         # = (FN/(FN+TP)^2)*STDTP + (TP/(FN+TP)^2)*STDFN
@@ -404,18 +404,18 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards =  [0, 1]
+        standards = [0, 1]
         alg = "DL"
-        lamps =  [0, 1]
+        lamps = [0, 1]
         cultures = [0, 1, 2]
-        percents =[0.05, 0.1]
+        percents = [0.05, 0.1]
         augments = [0, 1]
         adversary = [0, 1]
         lambda_indeces = range(-1, 13)
         taugments = [0, 1]
         tadversaries = [0, 1]
-        test_g_augs =[0.01, 0.05, 0.1]
-        test_eps =[0.0005, 0.001, 0.005]
+        test_g_augs = [0.01, 0.05, 0.1]
+        test_eps = [0.0005, 0.001, 0.005]
         t_cults = [0, 1, 2]
 
         structure = []
@@ -514,6 +514,7 @@ class ResAcquisitionClass:
         return structure
 
     def save_results(self, cm_list):
+
         lamps = [0, 1]
         cultures = [0, 1, 2]
         percents = [0.05, 0.1]
@@ -540,23 +541,27 @@ class ResAcquisitionClass:
                                     ):
                                         for tadversary in range(
                                             len(
-                                                cm_list[standard][lamp][culture][percent][
-                                                    augment
-                                                ][adv][taugment]
+                                                cm_list[standard][lamp][culture][
+                                                    percent
+                                                ][augment][adv][taugment]
                                             )
                                         ):
                                             for tgaug in range(
                                                 len(
                                                     cm_list[standard][lamp][culture][
                                                         percent
-                                                    ][augment][adv][taugment][tadversary]
+                                                    ][augment][adv][taugment][
+                                                        tadversary
+                                                    ]
                                                 )
                                             ):
                                                 for teps in range(
                                                     len(
-                                                        cm_list[standard][lamp][culture][
-                                                            percent
-                                                        ][augment][adv][taugment][
+                                                        cm_list[standard][lamp][
+                                                            culture
+                                                        ][percent][augment][adv][
+                                                            taugment
+                                                        ][
                                                             tadversary
                                                         ][
                                                             tgaug
@@ -580,15 +585,17 @@ class ResAcquisitionClass:
                                                     ):
                                                         lst = cm_list[standard][lamp][
                                                             culture
-                                                        ][percent][augment][adv][taugment][
+                                                        ][percent][augment][adv][
+                                                            taugment
+                                                        ][
                                                             tadversary
                                                         ][
                                                             tgaug
                                                         ][
                                                             teps
                                                         ]
-                                                        sp = np.shape(lst)                                                 
-                                                        if sp[0]>=len(cultures):
+                                                        sp = np.shape(lst)
+                                                        if sp[0] >= len(cultures):
                                                             st = self.buildPath(
                                                                 "./",
                                                                 standard,
@@ -619,20 +626,22 @@ class ResAcquisitionClass:
                                                             )"""
                                                             tempst = st.split("/")
                                                             tempst2 = ""
-                                                            for i in range(len(tempst) - 1):
-                                                                tempst2 += tempst[i] + "/"
+                                                            for i in range(
+                                                                len(tempst) - 1
+                                                            ):
+                                                                tempst2 += (
+                                                                    tempst[i] + "/"
+                                                                )
                                                             st = tempst2
                                                             dir = os.path.dirname(st)
                                                             mkdir(dir)
                                                             rc = ResultsClass(
                                                                 np.asarray(lst)
                                                             )
-                                                            #rc.print()
                                                             print(st)
                                                             data = rc.to_df()
                                                             print(data)
                                                             data.to_csv(st + "res.csv")
-                                                            # rc.print()
                                 else:
                                     for lambda_index in range(
                                         len(
@@ -643,23 +652,27 @@ class ResAcquisitionClass:
                                     ):
                                         for taugment in range(
                                             len(
-                                                cm_list[standard][lamp][culture][percent][
-                                                    augment
-                                                ][adv][lambda_index]
+                                                cm_list[standard][lamp][culture][
+                                                    percent
+                                                ][augment][adv][lambda_index]
                                             )
                                         ):
                                             for tadversary in range(
                                                 len(
                                                     cm_list[standard][lamp][culture][
                                                         percent
-                                                    ][augment][adv][lambda_index][taugment]
+                                                    ][augment][adv][lambda_index][
+                                                        taugment
+                                                    ]
                                                 )
                                             ):
                                                 for tgaug in range(
                                                     len(
-                                                        cm_list[standard][lamp][culture][
-                                                            percent
-                                                        ][augment][adv][lambda_index][
+                                                        cm_list[standard][lamp][
+                                                            culture
+                                                        ][percent][augment][adv][
+                                                            lambda_index
+                                                        ][
                                                             taugment
                                                         ][
                                                             tadversary
@@ -685,7 +698,9 @@ class ResAcquisitionClass:
                                                             len(
                                                                 cm_list[standard][lamp][
                                                                     culture
-                                                                ][percent][augment][adv][
+                                                                ][percent][augment][
+                                                                    adv
+                                                                ][
                                                                     lambda_index
                                                                 ][
                                                                     taugment
@@ -699,9 +714,13 @@ class ResAcquisitionClass:
                                                             )
                                                         ):
 
-                                                            lst = cm_list[standard][lamp][
-                                                                culture
-                                                            ][percent][augment][adv][
+                                                            lst = cm_list[standard][
+                                                                lamp
+                                                            ][culture][percent][
+                                                                augment
+                                                            ][
+                                                                adv
+                                                            ][
                                                                 lambda_index
                                                             ][
                                                                 taugment
@@ -712,24 +731,27 @@ class ResAcquisitionClass:
                                                             ][
                                                                 teps
                                                             ]
-                                                            if np.shape(lst)[1] > 2:
+                                                            sp = np.shape(lst)
+                                                            if sp[0] >= len(cultures):
                                                                 st = self.buildPath(
-                                                                "./",
-                                                                standard,
-                                                                "DL",
-                                                                lamp,
-                                                                culture,
-                                                                percents[percent],
-                                                                augment,
-                                                                adv,
-                                                                lambda_indeces[lambda_index],
-                                                                taugment,
-                                                                tadversary,
-                                                                test_g_augs[tgaug],
-                                                                test_eps[teps],
-                                                                t_cult,
-                                                                t_cult,
-                                                            )
+                                                                    "./",
+                                                                    standard,
+                                                                    "DL",
+                                                                    lamp,
+                                                                    culture,
+                                                                    percents[percent],
+                                                                    augment,
+                                                                    adv,
+                                                                    lambda_indeces[
+                                                                        lambda_index
+                                                                    ],
+                                                                    taugment,
+                                                                    tadversary,
+                                                                    test_g_augs[tgaug],
+                                                                    test_eps[teps],
+                                                                    t_cult,
+                                                                    t_cult,
+                                                                )
                                                                 """st = (
                                                                     f"./STD/DL/lamp={lamps[lamp]}"
                                                                     + f"/culture={cultures[culture]}"
@@ -750,17 +772,19 @@ class ResAcquisitionClass:
                                                                         tempst[i] + "/"
                                                                     )
                                                                 st = tempst2
-                                                                dir = os.path.dirname(st)
+                                                                dir = os.path.dirname(
+                                                                    st
+                                                                )
                                                                 mkdir(dir)
                                                                 rc = ResultsClass(
                                                                     np.asarray(lst)
                                                                 )
-                                                                #print(st)
-                                                                #rc.print()
                                                                 data = rc.to_df()
-                                                                #print(data)
-                                                                data.to_csv(st + "res.csv")
-                                                                # rc.print()
+                                                                # print(data)
+                                                                data.to_csv(
+                                                                    st + "res.csv"
+                                                                )
+
 
 def mkdir(dir):
     try:
@@ -775,8 +799,6 @@ def main():
     rac = ResAcquisitionClass()
     cm_list = rac.get_cm_structure("../../Mitigated/")
     rac.save_results(cm_list)
-    
-    
 
 
 if __name__ == "__main__":
