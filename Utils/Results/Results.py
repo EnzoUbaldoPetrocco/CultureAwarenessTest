@@ -514,8 +514,6 @@ class ResAcquisitionClass:
         return structure
 
     def save_results(self, cm_list):
-
-        lamps = [0, 1]
         cultures = [0, 1, 2]
         percents = [0.05, 0.1]
         lambda_indeces = range(-1, 13)
@@ -613,21 +611,10 @@ class ResAcquisitionClass:
                                                                 t_cult,
                                                                 t_cult,
                                                             )
-                                                            """st = (
-                                                                f"./STD/DL/lamp={lamps[lamp]}"
-                                                                + f"/culture={cultures[culture]}"
-                                                                + f"/percent={percents[percent]}"
-                                                                + f"/augment={augment}"
-                                                                + f"/adv={adv}"
-                                                                + f"/taugment={taugment}"
-                                                                + f"/tadversary={tadversary}"
-                                                                + f"/tgaug={test_g_augs[tgaug]}/teps={test_eps[teps]}"
-                                                                + f"/t_cult={t_cult}/"
-                                                            )"""
                                                             tempst = st.split("/")
                                                             tempst2 = ""
                                                             for i in range(
-                                                                len(tempst) - 1
+                                                                len(tempst) - 2
                                                             ):
                                                                 tempst2 += (
                                                                     tempst[i] + "/"
@@ -679,6 +666,7 @@ class ResAcquisitionClass:
                                                         ]
                                                     )
                                                 ):
+                                                    tepds = []
                                                     for teps in range(
                                                         len(
                                                             cm_list[standard][lamp][
@@ -713,7 +701,6 @@ class ResAcquisitionClass:
                                                                 ]
                                                             )
                                                         ):
-
                                                             lst = cm_list[standard][
                                                                 lamp
                                                             ][culture][percent][
@@ -752,21 +739,10 @@ class ResAcquisitionClass:
                                                                     t_cult,
                                                                     t_cult,
                                                                 )
-                                                                """st = (
-                                                                    f"./STD/DL/lamp={lamps[lamp]}"
-                                                                    + f"/culture={cultures[culture]}"
-                                                                    + f"/percent={percents[percent]}"
-                                                                    + f"/augment={augment}"
-                                                                    + f"/adv={adv}"
-                                                                    + f"/taugment={taugment}"
-                                                                    + f"/tadversary={tadversary}"
-                                                                    + f"/tgaug={test_g_augs[tgaug]}/teps={test_eps[teps]}"
-                                                                    + f"/t_cult={t_cult}/"
-                                                                )"""
                                                                 tempst = st.split("/")
                                                                 tempst2 = ""
                                                                 for i in range(
-                                                                    len(tempst) - 1
+                                                                    len(tempst) - 2
                                                                 ):
                                                                     tempst2 += (
                                                                         tempst[i] + "/"
@@ -780,11 +756,11 @@ class ResAcquisitionClass:
                                                                     np.asarray(lst)
                                                                 )
                                                                 data = rc.to_df()
-                                                                # print(data)
                                                                 data.to_csv(
                                                                     st + "res.csv"
                                                                 )
-
+                                                                tepds.append(data)
+                                                        df = pd.DataFrame({'idx':[1,2,3], 'dfs':[df1, df2, df3]})
 
 def mkdir(dir):
     try:
