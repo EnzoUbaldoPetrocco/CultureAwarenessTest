@@ -7,9 +7,9 @@ import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
-percents = [0.1, 0.05]
+percents = [0.05, 0.1]
 standard = 0
-lamp = 0
+lamp = 1
 
 verbose_param = 0
 n = 1000
@@ -41,7 +41,7 @@ with tf.device("/CPU:0"):
                                 learning_rate=learning_rate,
                                 epochs=epochs,
                                 batch_size=bs,
-                                lambda_index=12-j,
+                                lambda_index=j,
                                 culture=c,
                                 percent=percent,
                                 val_split=val_split,
