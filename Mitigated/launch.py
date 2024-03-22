@@ -41,7 +41,7 @@ with tf.device("/CPU:0"):
                                 learning_rate=learning_rate,
                                 epochs=epochs,
                                 batch_size=bs,
-                                lambda_index=j,
+                                lambda_index=12-j,
                                 culture=c,
                                 percent=percent,
                                 val_split=val_split,

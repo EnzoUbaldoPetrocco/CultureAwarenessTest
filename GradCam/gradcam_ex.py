@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import os
 
 os.environ["KERAS_BACKEND"] = "tensorflow"
