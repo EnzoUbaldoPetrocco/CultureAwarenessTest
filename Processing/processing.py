@@ -48,7 +48,7 @@ class ProcessingClass:
                         gpus[0],
                         [
                             tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=10000
+                                memory_limit=2700
                             )
                         ],
                     )
@@ -116,7 +116,7 @@ class ProcessingClass:
         adversary=0,
         culture=None,
         eps=0.3,
-        nt = None
+        nt=None,
     ):
         self.Xt_totaug = []
         self.Xt_adv = []
@@ -207,7 +207,7 @@ class ProcessingClass:
         adversary=0,
         eps=0.3,
         mult=0.05,
-        gradcam = False
+        gradcam=False,
     ):
 
         self.prepare_data(
@@ -246,7 +246,7 @@ class ProcessingClass:
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
             )
-                # Base path:
+            # Base path:
         # - STD/MIT
         # - model: SVC, RFC, DL
         # - culture: LC, LF, LT, CI, CJ, CS
@@ -287,7 +287,7 @@ class ProcessingClass:
                 aug = "AVD/"
             else:
                 aug = "NOAUG/"
-        
+
         self.basePath = self.basePath + aug
         if not standard:
             self.basePath = self.basePath + str(lambda_index) + "/"
@@ -300,9 +300,8 @@ class ProcessingClass:
             eps=eps,
             mult=mult,
             gradcam=gradcam,
-            out_dir=self.basePath
+            out_dir=self.basePath,
         )
-
 
     def test(
         self,
