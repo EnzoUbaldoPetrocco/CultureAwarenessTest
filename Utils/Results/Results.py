@@ -48,9 +48,10 @@ class ResultsClass:
             ls.append(ERRstd)
             ls.append(convert_to_percentage(self.CIC))
             ls.append(convert_to_percentage(self.CIC_std))
-
-            columns = [f"ERR^CULTURE {i}" for i in range(3)]
-            columns += [f"ERR^CULTURE std {i}" for i in range(3)]
+            columns = []
+            for i in range(3):
+                columns.append(f"ERR^CULTURE {i}")
+                columns.append(f"ERR^CULTURE {i} std")
             columns.append("ERR")
             columns.append("ERR std")
             columns.append("CIC")

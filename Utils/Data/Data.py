@@ -53,9 +53,9 @@ class DataClass:
                 X = []
                 for k in range(len(images)):
                     X.append([images[k], [j, i]])
-                #print(f"Culture is {j}, label is {i}")
-                #plt.imshow(images[0])
-                #plt.show()
+                # print(f"Culture is {j}, label is {i}")
+                # plt.imshow(images[0])
+                # plt.show()
                 imgs_per_culture.append(X)
                 del images
                 del X
@@ -93,10 +93,10 @@ class DataClass:
         paths = []
         for typ in types:
             paths.extend(pathlib.Path(path).glob(typ))
-        paths = paths[0:min(len(paths), n)]
+        paths = paths[0 : min(len(paths), n)]
         for i in paths:
             im = cv2.imread(str(i)) / 255
-            im = im[...,::-1]
+            im = im[..., ::-1]
             images.append(im)
         return images
 
@@ -179,7 +179,6 @@ class DataClass:
                 del yds
             self.Xt.append(cultureXt)
             self.yt.append(cultureyT)
-        
 
     def clear(self):
         """
@@ -212,21 +211,21 @@ class PreprocessingClass:
         param_ g_bright: is the gain of random brightness
         param_ n: number of images to perform the augmentation
         """
-        if n <= 0 or n==None:
+        if n <= 0 or n == None:
             n = len(X)
         X = X[0:n]
-        
+
         X = tf.keras.layers.RandomFlip("horizontal_and_vertical")(X, training=True)
         X = tf.keras.layers.RandomRotation(g_rot)(X, training=True)
         X = tf.keras.layers.GaussianNoise(g_noise)(X, training=True)
-        X_augmented = tf.keras.layers.RandomBrightness(g_bright/5)(X, training=True)
+        X_augmented = tf.keras.layers.RandomBrightness(g_bright / 5)(X, training=True)
 
         return np.asarray(X_augmented)
 
     def adversarial_augmentation(self, X, y, model, culture, eps=0.3):
         """
-        adversarial_augmentation creates adversarial samples, i.e. 
-        samples that are created using samples in the dataset and the 
+        adversarial_augmentation creates adversarial samples, i.e.
+        samples that are created using samples in the dataset and the
         gradient for testing/enforce the robustness of a ML model
 
         :param X: samples to be used as starting point
@@ -237,7 +236,7 @@ class PreprocessingClass:
         :param eps: gain of the fast gradient method
 
         return: a set X_augmented of adversarial samples of the same size of X
-        
+
         """
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
         X_augmented = []
@@ -267,10 +266,15 @@ class PreprocessingClass:
     def my_compute_gradient(self, model_fn, loss_fn, x, y, targeted, culture=0):
         """
         my_compute_gradient computes the gradient of a model
-        
+
         :param model_fn: model with respect to compute the gradient
         :param loss_fn: loss function used for computing the gradient
-        :param x: samples 
+        :param x: samples
+        :param y: label of samples
+        :param targeted: if targeted, minimize loss of target label rather than maximize loss of correct label
+        :param culture: culture that selects the corresponding output
+
+        :return gradient
         """
         with tf.GradientTape() as g:
             g.watch(x)
@@ -306,6 +310,24 @@ class PreprocessingClass:
         culture=0,
         plot=None,
     ):
+        """
+        Implementation of fast gradient method: the samples are moved against the
+        gradient using an eps step
+
+        :param model_fn: model w.r.t compute the gradient
+        :param x: samples
+        :param eps: gain of the step
+        :param norm: type of norm to be applied to optimize perturbation
+        :param loss_fn: loss function
+        :param clip_min: minimum threshold for saturation
+        :param clip_max: maximum threshold for saturation
+        :param y: label of samples
+        :param target:  if targeted, minimize loss of target label rather than maximize loss of correct label
+        :param sanity_checks: if enable, checks for asserts
+        :param culture: select the correct output in our Mitigation Strategy
+        :param plot: if enabled, plot the adversarial sample
+
+        """
         if norm not in [np.inf, 1, 2]:
             raise ValueError("Norm order must be either np.inf, 1, or 2.")
 
@@ -350,4 +372,3 @@ class PreprocessingClass:
         if sanity_checks:
             assert np.all(asserts)
         return np.asarray(adv_x[0])
-
