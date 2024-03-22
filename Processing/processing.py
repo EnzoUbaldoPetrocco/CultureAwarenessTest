@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../")
@@ -19,8 +21,21 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class ProcessingClass:
+    """
+    ProcessingClass is a middleware that takes into account
+    the the processing modules for testing the models
+    """
     def __init__(self, shallow, lamp, gpu=False) -> None:
-
+        """
+        init function initialize the dataset object and the gpu setup
+        :param shallow: if enabled, shallow learning mode is activated and
+        we can use models such as Linear SVM, Gaussian SVM, ... If so, 
+        we have the images to be greyscale and then flattened, else, we can use 
+        deep learning algorithms (such as RESNER), so we must have images as RGB
+        :param lamp: if enabled we get the images from lamp folder, else from carpet
+        folder
+        :param gpu: if enabled we use the gpu, else we use the cpu
+        """
         if shallow:
             strObj = ShallowStrings()
             if lamp:
@@ -77,8 +92,23 @@ class ProcessingClass:
         g_rot: float = 0.1,
         g_noise: float = 0.1,
         g_bright: float = 0.1,
-        batch_size=15,
     ):
+        """
+        This function prepares the data for training
+
+        :param standard: if enabled, we prepare the dataset for
+        standard ML, else our mitigation strategy
+        :param culture: culture is an integer number from 0 to |C|-1,
+        that represents the majority culture used for training the dataset
+        :param percent: is the percentage of images from their dataset of the minority cultures
+        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
+        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
+        :param n: is the maximum number of images contained in each cultural dataset for each class
+        :param augment: if enabled, we augment the dataset
+        :param g_rot: if augment is enabled, is the gain of random rotation
+        :param g_noise: if augment is enabled, is the gain of gaussian noise
+        :param g_bright: if augment is enabled, is the gain of random brightness
+        """
         self.dataobj.prepare(
             standard=standard,
             culture=culture,
@@ -118,6 +148,20 @@ class ProcessingClass:
         eps=0.3,
         nt=None,
     ):
+        """
+        This function prepares the data for testing
+        
+        :param augment: if enabled, we augment the dataset
+        :param g_rot: if augment is enabled, is the gain of random rotation
+        :param g_noise: if augment is enabled, is the gain of gaussian noise
+        :param g_bright: if augment is enabled, is the gain of random brightness
+        :param adversary: if enabled, we augment the dataset using adversary samples
+        :param culture: if adversary is enabled, we need the output information for implementing
+        fast gradient method
+        :param eps: is adversary is enabled, it is the gain of fast gradient method
+        :param nt: is the number of images to use for testing
+        
+        """
         self.Xt_totaug = []
         self.Xt_adv = []
         self.Xt_aug = []
@@ -209,7 +253,37 @@ class ProcessingClass:
         mult=0.05,
         gradcam=False,
     ):
+        """
+        process function prepares the data and fit the model
 
+        This function prepares the data for training
+        
+        :param standard: if enabled, we prepare the dataset for
+        standard ML, else our mitigation strategy
+        :param type: select the algorithm, possible values: (SVM and DL/RESNET)
+        :param points: if the selected algorithm is SVM, this value sets the number of points used in the grid
+        :param kernel: if the selected algorithm is SVM, this value sets the kernel (linear or gaussian)
+        :param verbose_param: sets the verbose mode
+        :param learning_rate: if the selected algorithm is DL, this value sets the gain of the step
+        :param epochs: if the selected algorithm is DL, this value sets the number of epochs
+        :param lambda_index: if we are in our Mitigation Strategy mode, it selectes the gain of the regularizer
+        :param batchs_size: if the selected algorithm is DL, this value sets the batch size
+        :param culture: culture is an integer number from 0 to |C|-1,
+        that represents the majority culture used for training the dataset
+        :param percent: is the percentage of images from their dataset of the minority cultures
+        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
+        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
+        :param n: is the maximum number of images contained in each cultural dataset for each class
+        :param augment: if enabled, we augment the dataset
+        :param g_rot: if augment is enabled, is the gain of random rotation
+        :param g_noise: if augment is enabled, is the gain of gaussian noise
+        :param g_bright: if augment is enabled, is the gain of random brightness
+        :param culture: if adversary is enabled, we need the output information for implementing
+        fast gradient method
+        :param eps: is adversary is enabled, it is the gain of fast gradient method
+        :param nt: is the number of images to use for testing
+        :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
+        """
         self.prepare_data(
             standard=standard,
             culture=culture,
@@ -221,7 +295,6 @@ class ProcessingClass:
             g_rot=g_rot,
             g_noise=g_noise,
             g_bright=g_bright,
-            batch_size=batch_size,
         )
         self.model = None
         if standard:
@@ -313,7 +386,23 @@ class ProcessingClass:
         g_bright: float = 0.1,
         adversary=0,
         eps=0.3,
+        nt = None
     ):
+        """
+        This function is used for testing the model
+
+        :param augment: if enabled, we augment the dataset
+        :param g_rot: if augment is enabled, is the gain of random rotation
+        :param g_noise: if augment is enabled, is the gain of gaussian noise
+        :param g_bright: if augment is enabled, is the gain of random brightness
+        :param adversary: if enabled, we augment the dataset using adversary samples
+        :param culture: if adversary is enabled, we need the output information for implementing
+        fast gradient method
+        :param eps: is adversary is enabled, it is the gain of fast gradient method
+        :param nt: is the number of images to use for testing
+
+        :return -1 is the model is not trained, 0 if end the testing phase
+        """
         if self.model:
             self.prepare_test(
                 augment=augment,
@@ -326,6 +415,7 @@ class ProcessingClass:
             )
         else:
             print("Pay attention: no model information given for tests")
+            return -1
         for culture in range(3):
             if standard:
                 if augment:
@@ -382,13 +472,21 @@ class ProcessingClass:
                     self.save_results(cm, path)
                     del path
                     del testaug
+        return 0
 
     def save_results(self, cm, path):
+        """
+        :param cm: is the confusion matrix to be saved
+        :param path: is the path in which we want to save the confusion matrix
+        """
         fObj = FileManagerClass(path)
         fObj.writecm(cm)
         del fObj
 
     def partial_clear(self):
+        """
+        Partially clear the space for avoiding memory issues
+        """
         self.model = None
         del self.model
         self.dataobj.clear()

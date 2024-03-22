@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import csv
 import os
 
