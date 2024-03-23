@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import sys
 from types import ModuleType, FunctionType
 from gc import get_referents

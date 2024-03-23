@@ -1,9 +1,15 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import os
 from pathlib import Path
 
 
 class DeepStrings:
     def __init__(self, search_root=None):
+        """
+        init initialize the object searching for root base of dataset, then appending
+        the paths to lamps and carpets
+        """
         if not search_root:
             search_root = Path(__file__).parent.parent.parent.parent.parent.parent.parent
         found = False

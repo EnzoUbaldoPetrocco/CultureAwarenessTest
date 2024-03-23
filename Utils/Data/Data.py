@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import os
 import pathlib
 import cv2
@@ -40,7 +42,7 @@ class DataClass:
         init function gets the images from the folder
         images are stored inside self.dataset variable
 
-        :param paths contains the paths from which the program gets
+        :param paths: contains the paths from which the program gets
         the images
         :return None
         """
@@ -53,15 +55,21 @@ class DataClass:
                 X = []
                 for k in range(len(images)):
                     X.append([images[k], [j, i]])
-                #print(f"Culture is {j}, label is {i}")
-                #plt.imshow(images[0])
-                #plt.show()
+                # print(f"Culture is {j}, label is {i}")
+                # plt.imshow(images[0])
+                # plt.show()
                 imgs_per_culture.append(X)
                 del images
                 del X
             self.dataset.append(imgs_per_culture)
 
     def get_labels(self, path):
+        """
+        get_labels returns a list of the labels in a directory
+
+        :param path: directory in which search of the labels
+        :return list of labels
+        """
         dir_list = []
         for file in os.listdir(path):
             d = os.path.join(path, file)
@@ -74,15 +82,23 @@ class DataClass:
         return dir_list
 
     def get_images(self, path, n=1000):
+        """
+        get_images returns min(n, #images contained in a directory)
+
+        :param path: directory in which search for images
+        :param n: maximum number of images
+
+        :return list of images
+        """
         images = []
         types = ("*.png", "*.jpg", "*.jpeg")
         paths = []
         for typ in types:
             paths.extend(pathlib.Path(path).glob(typ))
-        paths = paths[0:n]
+        paths = paths[0 : min(len(paths), n)]
         for i in paths:
             im = cv2.imread(str(i)) / 255
-            im = im[...,::-1]
+            im = im[..., ::-1]
             images.append(im)
         return images
 
@@ -108,11 +124,11 @@ class DataClass:
         put inside Tr and V sets
         :param shallow: if shallow learning images are converted
         to Greyscale and then flattened
-        :param val_split indicates the validation percentage with respect
+        :param val_split: indicates the validation percentage with respect
         to the sum between Tr and V sets
-        :param test_split indicates the test percentage with respect to the
+        :param test_split: indicates the test percentage with respect to the
         whole dataset
-        :n number of images for each class and culture
+        :param n: number of images for each class and culture
         :return None
         """
         random.seed(time.time_ns())
@@ -165,9 +181,11 @@ class DataClass:
                 del yds
             self.Xt.append(cultureXt)
             self.yt.append(cultureyT)
-        
 
     def clear(self):
+        """
+        clear empty all the dataset divisions
+        """
         self.X = None
         self.y = None
         self.Xv = None
@@ -195,18 +213,33 @@ class PreprocessingClass:
         param_ g_bright: is the gain of random brightness
         param_ n: number of images to perform the augmentation
         """
-        if n <= 0 or n==None:
+        if n <= 0 or n == None:
             n = len(X)
         X = X[0:n]
-        
+
         X = tf.keras.layers.RandomFlip("horizontal_and_vertical")(X, training=True)
         X = tf.keras.layers.RandomRotation(g_rot)(X, training=True)
         X = tf.keras.layers.GaussianNoise(g_noise)(X, training=True)
-        X_augmented = tf.keras.layers.RandomBrightness(g_bright/5)(X, training=True)
+        X_augmented = tf.keras.layers.RandomBrightness(g_bright / 5)(X, training=True)
 
         return np.asarray(X_augmented)
 
     def adversarial_augmentation(self, X, y, model, culture, eps=0.3):
+        """
+        adversarial_augmentation creates adversarial samples, i.e.
+        samples that are created using samples in the dataset and the
+        gradient for testing/enforce the robustness of a ML model
+
+        :param X: samples to be used as starting point
+        :param y: labels of the respective samples
+        :param model: model used for computing the gradient
+        :param culture: used because in our mitigation strategy we select the output using
+        the culture from which the image derives
+        :param eps: gain of the fast gradient method
+
+        return: a set X_augmented of adversarial samples of the same size of X
+
+        """
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
         X_augmented = []
         for i in range(len(X)):
@@ -233,6 +266,18 @@ class PreprocessingClass:
 
     @tf.function
     def my_compute_gradient(self, model_fn, loss_fn, x, y, targeted, culture=0):
+        """
+        my_compute_gradient computes the gradient of a model
+
+        :param model_fn: model with respect to compute the gradient
+        :param loss_fn: loss function used for computing the gradient
+        :param x: samples
+        :param y: label of samples
+        :param targeted: if targeted, minimize loss of target label rather than maximize loss of correct label
+        :param culture: culture that selects the corresponding output
+
+        :return gradient
+        """
         with tf.GradientTape() as g:
             g.watch(x)
             # Compute loss
@@ -267,6 +312,24 @@ class PreprocessingClass:
         culture=0,
         plot=None,
     ):
+        """
+        Implementation of fast gradient method: the samples are moved against the
+        gradient using an eps step
+
+        :param model_fn: model w.r.t compute the gradient
+        :param x: samples
+        :param eps: gain of the step
+        :param norm: type of norm to be applied to optimize perturbation
+        :param loss_fn: loss function
+        :param clip_min: minimum threshold for saturation
+        :param clip_max: maximum threshold for saturation
+        :param y: label of samples
+        :param target:  if targeted, minimize loss of target label rather than maximize loss of correct label
+        :param sanity_checks: if enable, checks for asserts
+        :param culture: select the correct output in our Mitigation Strategy
+        :param plot: if enabled, plot the adversarial sample
+
+        """
         if norm not in [np.inf, 1, 2]:
             raise ValueError("Norm order must be either np.inf, 1, or 2.")
 
@@ -311,4 +374,3 @@ class PreprocessingClass:
         if sanity_checks:
             assert np.all(asserts)
         return np.asarray(adv_x[0])
-

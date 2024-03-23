@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 from sklearn.metrics import confusion_matrix
 import numpy as np
 import tensorflow as tf
@@ -9,11 +11,23 @@ from tf_explain.utils.saver import save_rgb
 
 
 class GeneralModelClass:
-
+    """
+    This Class is the middleware for collecting common actions of the models
+    """
     def __init__(self) -> None:
+        """
+        Init function links self.model attribute
+        """
         self.model = 0
 
     def __call__(self, X, out=-1):
+        """
+        Call function makes the inference according to 
+        the model (standard, our Mitigation Strategy)
+        :param X: samples from which we make the inference 
+        :param out: if not -1, we select the output 
+        :return list of inferences
+        """
         if self.model != None:
             with tf.device("/gpu:0"):
                 if tf.is_tensor(X):
