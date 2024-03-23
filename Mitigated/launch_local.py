@@ -31,7 +31,7 @@ with tf.device("/CPU:0"):
         for j in range(0, 13):
             for percent in percents:
                 for c in range(0,3):
-                    for k in range(1, 4):
+                    for k in range(2, 4):
                         for i in range(6):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
