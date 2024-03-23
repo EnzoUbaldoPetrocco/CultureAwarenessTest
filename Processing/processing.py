@@ -25,7 +25,7 @@ class ProcessingClass:
     ProcessingClass is a middleware that takes into account
     the the processing modules for testing the models
     """
-    def __init__(self, shallow, lamp, gpu=False) -> None:
+    def __init__(self, shallow, lamp, gpu=False, memory_limit=2700) -> None:
         """
         init function initialize the dataset object and the gpu setup
         :param shallow: if enabled, shallow learning mode is activated and
@@ -63,7 +63,7 @@ class ProcessingClass:
                         gpus[0],
                         [
                             tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=2700
+                                memory_limit=memory_limit
                             )
                         ],
                     )

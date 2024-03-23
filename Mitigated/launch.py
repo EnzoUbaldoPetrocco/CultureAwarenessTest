@@ -1,5 +1,10 @@
 import sys
 
+import cv2
+
+from GradCam.gradCam import GradCAM
+from Utils.FileManager.FileManager import FileManagerClass
+
 sys.path.insert(1, "../")
 from Processing.processing import ProcessingClass
 from math import floor
@@ -24,14 +29,16 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
+memory_limit = 10000
 
 
-procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
+procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
         for j in range(0, 13):
             for percent in percents:
                 for c in range(1,3):
-                    for k in range(4):
+                    for k in range(2):
+                        model = None
                         for i in range(9):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
@@ -101,5 +108,13 @@ with tf.device("/CPU:0"):
                                         g_bright=t_g_aug,
                                         adversary=1,
                                         eps=test_ep)
-                                        
+                            model = procObj.model.model   
+                            path = procObj.basePath + "out.jpg"
                             procObj.partial_clear()
+                        grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
+    
+                        heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
+                        
+                        fObj = FileManagerClass(path)
+                        cv2.imwrite(path, heatmap)
+                        print(f"saved heatmap in file {path}")
