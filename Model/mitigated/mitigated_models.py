@@ -342,14 +342,18 @@ class MitigatedModels(GeneralModelClass):
             tf.get_logger().setLevel("ERROR")
 
             if adversarial:
+
                 self.history = self.model.fit(
                     x={"image": X, "label": y},
                     epochs=self.epochs,
                     validation_data={"image": Xv, "label": yv},
-                    callbacks=callbacks,
+                    callbacks=[early, lr_reduce],
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
+
+
+                print("Zio pera")
                 self.model = Model(
                     inputs=self.model.layers[0].get_layer("model").layers[0].input,
                     outputs=self.model.layers[0].get_layer("model").layers[-1].output,
@@ -361,7 +365,7 @@ class MitigatedModels(GeneralModelClass):
                     y,
                     epochs=self.epochs,
                     validation_data=(Xv, yv),
-                    callbacks=callbacks,
+                    callbacks=[early, lr_reduce],
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
