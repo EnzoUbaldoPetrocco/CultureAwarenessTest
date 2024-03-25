@@ -73,6 +73,12 @@ class MitigatedModels(GeneralModelClass):
         def loss(y_true, y_pred):
             sum = 0.0
             for out in range(3):
+                print("self.model.layers[0].name")
+                print(self.model.layers[0].name)
+                print("self.model.layers[0].layers[0].name")
+                print(self.model.layers[0].layers[0].name)
+                print("self.model.layers[0].layers[0].layers[-1].name")
+                print(self.model.layers[0].layers[0].layers[-1].name)
                 weights = self.model.layers[0].layers[0].layers[-1].kernel
                 weights1 = weights[:, 0]
                 weights2 = weights[:, 1]
@@ -109,6 +115,10 @@ class MitigatedModels(GeneralModelClass):
         out_dir="./",
         gradcam = False
     ):
+        X = tf.stack(TS[0])
+        y = tf.stack(TS[1])
+        Xv = tf.stack(VS[0])
+        yv = tf.stack(VS[1])
         best_loss = np.inf
         for lr in learning_rates:
             for bs in batch_sizes:
@@ -122,8 +132,8 @@ class MitigatedModels(GeneralModelClass):
                     fl = Flatten()(resnet.output)
 
                     if adversarial:
-                        y = (Dense(3, activation="sigmoid", name="dense"))(fl)
-                        self.model = Model(inputs=resnet.input, outputs=y, name="model")
+                        y_0 = (Dense(3, activation="sigmoid", name="dense"))(fl)
+                        self.model = Model(inputs=resnet.input, outputs=y_0, name="model")
                     else:
                         y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
                         y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
@@ -202,10 +212,12 @@ class MitigatedModels(GeneralModelClass):
 
                     tf.get_logger().setLevel("ERROR")
 
-                    X = tf.stack(TS[0])
-                    y = tf.stack(TS[1])
-                    Xv = tf.stack(VS[0])
-                    yv = tf.stack(VS[1])
+
+                    print(f"Size of input is {size}")
+                    print(f"Size of X is {np.shape(X)}")
+                    print(f"Size of y is {np.shape(y)}")
+                    print(f"Size of Xv is {np.shape(Xv)}")
+                    print(f"Size of yv is {np.shape(yv)}")
 
                     if adversarial:
                         self.history = self.model.fit(
@@ -246,11 +258,12 @@ class MitigatedModels(GeneralModelClass):
     def DL(
         self, TS, VS, adversarial=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
     ):
+        X = tf.stack(TS[0])
+        y = tf.stack(TS[1])
+        Xv = tf.stack(VS[0])
+        yv = tf.stack(VS[1])
         with tf.device("/gpu:0"):
-            X = tf.stack(TS[0])
-            y = tf.stack(TS[1])
-            Xv = tf.stack(VS[0])
-            yv = tf.stack(VS[1])
+            self.model = None
 
             size = np.shape(TS[0][0])
             input = Input(size, name="image")
@@ -261,8 +274,8 @@ class MitigatedModels(GeneralModelClass):
             fl = Flatten()(resnet.output)
 
             if adversarial:
-                y = (Dense(3, activation="sigmoid", name="dense"))(fl)
-                self.model = Model(inputs=resnet.input, outputs=y, name="model")
+                y_0 = (Dense(3, activation="sigmoid", name="dense"))(fl)
+                self.model = Model(inputs=resnet.input, outputs=y_0, name="model")
             else:
                 y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
                 y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
@@ -309,12 +322,13 @@ class MitigatedModels(GeneralModelClass):
                 verbose=self.verbose_param,
                 mode="auto",
             )
-            callbacks = [lr_reduce, early]
             adam = optimizers.Adam(self.learning_rate)
             optimizer = adam
 
+            #tf.get_logger().setLevel("ERROR")
             # Wrap the model with adversarial regularization.
             if adversarial:
+                self.model.summary()
                 adv_config = nsl.configs.make_adv_reg_config(
                     multiplier=mult, adv_step_size=eps
                 )
@@ -326,8 +340,20 @@ class MitigatedModels(GeneralModelClass):
                     metrics=["accuracy"],
                     loss=[self.adv_custom_loss()],
                 )
-                # for layer in self.model.layers:
-                #    layer.summary()
+                self.history = self.model.fit(
+                    x={"image": X, "label": y},
+                    epochs=self.epochs,
+                    validation_data={"image": Xv, "label": yv},
+                    callbacks=[early, lr_reduce],
+                    verbose=self.verbose_param,
+                    batch_size=self.batch_size,
+                )
+
+                print("Zio pera")
+                self.model = Model(
+                    inputs=self.model.layers[0].get_layer("model").layers[0].input,
+                    outputs=self.model.layers[0].get_layer("model").layers[-1].output,
+                )
             else:
                 self.model.compile(
                     optimizer=optimizer,
@@ -338,27 +364,6 @@ class MitigatedModels(GeneralModelClass):
                         self.custom_loss(out=2),
                     ],
                 )
-
-            tf.get_logger().setLevel("ERROR")
-
-            if adversarial:
-
-                self.history = self.model.fit(
-                    x={"image": X, "label": y},
-                    epochs=self.epochs,
-                    validation_data={"image": Xv, "label": yv},
-                    callbacks=[early, lr_reduce],
-                    verbose=self.verbose_param,
-                    batch_size=self.batch_size,
-                )
-
-
-                print("Zio pera")
-                self.model = Model(
-                    inputs=self.model.layers[0].get_layer("model").layers[0].input,
-                    outputs=self.model.layers[0].get_layer("model").layers[-1].output,
-                )
-            else:
                 # print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
                 self.history = self.model.fit(
                     X,
@@ -369,6 +374,10 @@ class MitigatedModels(GeneralModelClass):
                     verbose=self.verbose_param,
                     batch_size=self.batch_size,
                 )
+
+            
+
+                
             if gradcam:
                 # Instantiation of the explainer
                 for name in gradcam_layers:
