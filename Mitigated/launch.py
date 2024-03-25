@@ -110,10 +110,3 @@ with tf.device("/CPU:0"):
                             model = procObj.model.model   
                             path = procObj.basePath + "out.jpg"
                             procObj.partial_clear()
-                        grdC = GradCAM(model, 0, "conv5_block3_out")
-    
-                        heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
-                        
-                        fObj = FileManagerClass(path)
-                        cv2.imwrite(path, heatmap)
-                        print(f"saved heatmap in file {path}")
