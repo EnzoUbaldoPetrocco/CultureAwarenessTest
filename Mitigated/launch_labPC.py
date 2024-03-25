@@ -28,7 +28,7 @@ memory_limit = 5500
 
 
 
-procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
+procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
         for j in range(0, 13):
             for percent in percents:
