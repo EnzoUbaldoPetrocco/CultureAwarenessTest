@@ -178,7 +178,6 @@ class MitigatedModels(GeneralModelClass):
 
                     # Wrap the model with adversarial regularization.
                     if adversarial:
-                        self.model.summary()
                         adv_config = nsl.configs.make_adv_reg_config(
                             multiplier=mult, adv_step_size=eps
                         )
@@ -317,7 +316,6 @@ class MitigatedModels(GeneralModelClass):
             #tf.get_logger().setLevel("ERROR")
             # Wrap the model with adversarial regularization.
             if adversarial:
-                self.model.summary()
                 adv_config = nsl.configs.make_adv_reg_config(
                     multiplier=mult, adv_step_size=eps
                 )
