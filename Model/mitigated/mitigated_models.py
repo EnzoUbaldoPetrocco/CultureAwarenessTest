@@ -73,12 +73,6 @@ class MitigatedModels(GeneralModelClass):
         def loss(y_true, y_pred):
             sum = 0.0
             for out in range(3):
-                print("self.model.layers[0].name")
-                print(self.model.layers[0].name)
-                print("self.model.layers[0].layers[0].name")
-                print(self.model.layers[0].layers[0].name)
-                print("self.model.layers[0].layers[0].layers[-1].name")
-                print(self.model.layers[0].layers[0].layers[-1].name)
                 weights = self.model.layers[0].layers[0].layers[-1].kernel
                 weights1 = weights[:, 0]
                 weights2 = weights[:, 1]
@@ -213,11 +207,6 @@ class MitigatedModels(GeneralModelClass):
                     tf.get_logger().setLevel("ERROR")
 
 
-                    print(f"Size of input is {size}")
-                    print(f"Size of X is {np.shape(X)}")
-                    print(f"Size of y is {np.shape(y)}")
-                    print(f"Size of Xv is {np.shape(Xv)}")
-                    print(f"Size of yv is {np.shape(yv)}")
 
                     if adversarial:
                         self.history = self.model.fit(
@@ -349,7 +338,6 @@ class MitigatedModels(GeneralModelClass):
                     batch_size=self.batch_size,
                 )
 
-                print("Zio pera")
                 self.model = Model(
                     inputs=self.model.layers[0].get_layer("model").layers[0].input,
                     outputs=self.model.layers[0].get_layer("model").layers[-1].output,
