@@ -37,8 +37,8 @@ procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_li
 with tf.device("/CPU:0"):
         for j in range(0, 13):
             for percent in percents:
-                for c in range(1,3):
-                    for k in range(2):
+                for c in cs:
+                    for k in ks:
                         model = None
                         for i in range(6):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
