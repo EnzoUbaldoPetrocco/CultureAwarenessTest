@@ -2,10 +2,9 @@ import sys
 
 import cv2
 
+sys.path.insert(1, "../")
 from GradCam.gradCam import GradCAM
 from Utils.FileManager.FileManager import FileManagerClass
-
-sys.path.insert(1, "../")
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
@@ -111,7 +110,7 @@ with tf.device("/CPU:0"):
                             model = procObj.model.model   
                             path = procObj.basePath + "out.jpg"
                             procObj.partial_clear()
-                        grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
+                        grdC = GradCAM(model, 0, "conv5_block3_out")
     
                         heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
                         
