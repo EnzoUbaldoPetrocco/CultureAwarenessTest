@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 from sklearn.ensemble import RandomForestClassifier
@@ -18,13 +20,7 @@ from keras.applications.efficientnet_v2 import EfficientNetV2S
 from keras import layers, optimizers
 from Model.GeneralModel import GeneralModelClass
 import neural_structured_learning as nsl
-import os
-from Utils.Debug.debugUtils import getsize
 import gc
-from tf_explain.callbacks.grad_cam import GradCAMCallback
-
-# Import explainer
-from tf_explain.core.grad_cam import GradCAM
 
 
 class StandardModels(GeneralModelClass):
@@ -37,8 +33,20 @@ class StandardModels(GeneralModelClass):
         learning_rate=1e-3,
         epochs=15,
         batch_size=1,
-        lambda_index=-1,
     ):
+        """
+        Initialization function for modeling standard ML models.
+        We have narrowed the problems to image classification problems.
+        I have implemented SVM (with linear and gaussian kernel) and Random Forest, using scikit-learn library;
+        ResNet using Tensorflow library.
+        :param type: selects the algorithm "SVC", "RFC" and "RESNET" are possible values.
+        :param points: n of points in gridsearch for SVC and RFC
+        :param kernel: type of kernel for SVC: "linear" and "gaussian" are possible values.
+        :param verbose_param: if enabled, the program logs more information
+        :param learning_rate: hyperparameter for DL
+        :param epochs: hyperparameter for DL
+        :param batch_size: hyperparameter for DL
+        """
         GeneralModelClass.__init__(self)
         self.type = type
         self.points = points
@@ -47,13 +55,13 @@ class StandardModels(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
-        if lambda_index >= 0:
-            lambda_grid = np.logspace(-3, 2, 31)
-            self.lamb = lambda_grid[lambda_index]
-        else:
-            self.lamb = 0
 
-    def SVC(self, TS, VS):
+    def SVC(self, TS):
+        """
+        This function performs the model selection on SVM for Classification
+        :param TS: union between training and validation set
+        :return the best model
+        """
         if self.kernel == "rbf":
             logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
             logspaceGamma = np.logspace(
@@ -87,6 +95,11 @@ class StandardModels(GeneralModelClass):
         self.model = H
 
     def RFC(self, TS):
+        """
+        This function performs the model selection on Random Forest for Classification
+        :param TS: union between training and validation set
+        :return the best model
+        """
         rfc = RandomForestClassifier(random_state=42)
         logspace_max_depth = []
         for i in np.logspace(0, 3, self.points):
@@ -110,6 +123,10 @@ class StandardModels(GeneralModelClass):
         self.model = H
 
     def adv_custom_loss(self):
+        """
+        When model is embedded in adversarial training, we need to change adapt the loss function
+        :return loss function (binary crossentropy)
+        """
         def loss(y_true, y_pred):
             l = tf.keras.losses.binary_crossentropy(y_true[0], y_pred[0])
             return l
@@ -128,6 +145,18 @@ class StandardModels(GeneralModelClass):
         gradcam=False,
         out_dir="./",
     ):
+        """
+        This function implements the model selection of Deep Learning model
+        :param TS: Training set
+        :param VS: Validation Set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param learning_rates: list of lr to be used for Model Selection
+        :param batch_sizes: list of bs to be used for Model Selection
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
         X = tf.stack(TS[0])
         y = tf.stack(TS[1])
         Xv = tf.stack(VS[0])
@@ -235,6 +264,18 @@ class StandardModels(GeneralModelClass):
         self.DL(TS, VS, adversary, eps, mult, gradcam, out_dir)
 
     def DL(self, TS, VS, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"):
+        """
+        This function implements the training of Deep Learning model
+        :param TS: Training set
+        :param VS: Validation Set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param learning_rates: lr to be used for training
+        :param batch_sizes: bs to be used for training
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
         with tf.device("/gpu:0"):
             X = tf.stack(TS[0])
             y = tf.stack(TS[1])
@@ -339,6 +380,16 @@ class StandardModels(GeneralModelClass):
     def fit(
         self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
     ):
+        """
+        General function for implementing model selection
+        :param TS: training set
+        :param VS: validation set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
         if self.type == "SVC":
             self.SVC(TS)
         elif self.type == "RFC":

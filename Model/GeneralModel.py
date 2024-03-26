@@ -67,6 +67,12 @@ class GeneralModelClass:
             return None
 
     def quantize(self, yF):
+        """
+        Quantize a prediction, because we are dealing with binary classification.
+        In principle we could set a threshold for imbalanced learning. 
+        Since the imbalance is not inter class, but intra class, we simply set the threshold to (max-min)/2=0.5
+        :return the prediction quantized
+        """
         values = []
         for y in yF:
             if y > 0.5:
@@ -76,6 +82,13 @@ class GeneralModelClass:
         return values
 
     def test(self, Xt, out=-1):
+        """
+        Test the quality of the model on a set of samples
+        :param Xt: set of samples
+        :param out: desired output to be tested if any  
+
+        :return list of quantized predictions of the model
+        """
         if self.model:
             yF = []
             for xt in Xt:
@@ -91,6 +104,14 @@ class GeneralModelClass:
             return None
 
     def get_model_stats(self, Xt, yT, out=-1):
+        """
+        This function returns a confusion matrix based on a set of samples and its true values
+        :param Xt: set of samples
+        :param yT: true values of Xt
+        :param out: desired output to be tested if any
+
+        :return list confusion matrix
+        """
         yFq = self.test(Xt, out)
         if len(np.shape(yT)) > 1:
             if type(yT) == np.ndarray:

@@ -95,6 +95,7 @@ class ResultsClass:
         if len(cm) <= 0:
             return -1
         cm = np.asarray(cm)
+        #print(cm)
         tot = cm[0, 0] + cm[0, 1] + cm[1, 0] + cm[1, 1]
         return tot
 
@@ -316,7 +317,6 @@ class ResultsClass:
         numerator = meanfn * stdtp + meantp * stdfn
         return numerator / denominator
 
-
 class ResAcquisitionClass:
     def buildPath(
         self,
@@ -460,10 +460,12 @@ class ResAcquisitionClass:
                                                                 t_cult,
                                                                 t_cult,
                                                             )
-
                                                             outsl = self.get_cm_list(
                                                                 path
-                                                            )
+                                                            )       
+                                                            #if culture == 0 and percent==0.1 and lambda_index==-1:     
+                                                                #print(path)
+                                                                #print(outsl)
                                                             tcultsl.append(outsl)
                                                         tepsl.append(tcultsl)
                                                     test_g_augsl.append(tepsl)
@@ -497,7 +499,7 @@ class ResAcquisitionClass:
                                                             tgaug,
                                                             teps,
                                                             t_cult,
-                                                            "",
+                                                            t_cult,
                                                         )
                                                         outsl = self.get_cm_list(path)
                                                         tcultsl.append(outsl)
@@ -578,6 +580,7 @@ class ResAcquisitionClass:
                                                         ][
                                                             teps
                                                         ]
+                                                        print(lst)
                                                         sp = np.shape(lst)
                                                         if sp[0] >= len(cultures):
                                                             st = self.buildPath(
@@ -608,10 +611,11 @@ class ResAcquisitionClass:
                                                             st = tempst2
                                                             dir = os.path.dirname(st)
                                                             mkdir(dir)
+                                                            #print(dir)
                                                             rc = ResultsClass(
                                                                 np.asarray(lst)
                                                             )
-                                                            print(st)
+                                                            #print(st)
                                                             data = rc.to_df()
                                                             #print(data)
                                                             data.to_csv(st + "res.csv")
@@ -718,7 +722,25 @@ class ResAcquisitionClass:
                                                                 dir = os.path.dirname(
                                                                     st
                                                                 )
+                                                                #print(st)
                                                                 mkdir(dir)
+                                                                print(st)
+                                                                print(dir)
+                                                                #print(lst)
+                                                                print(np.shape(lst))
+                                                                print(np.shape(cm_list[standard][
+                                                                        lamp
+                                                                    ][culture][percent][
+                                                                        augment
+                                                                    ][
+                                                                        adv
+                                                                    ][
+                                                                        lambda_index
+                                                                    ][
+                                                                        taugment
+                                                                    ][
+                                                                        tadversary
+                                                                    ]))
                                                                 rc = ResultsClass(
                                                                     np.asarray(lst)
                                                                 )
