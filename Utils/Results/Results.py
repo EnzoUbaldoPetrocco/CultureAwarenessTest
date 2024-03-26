@@ -404,7 +404,7 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [0, 1]
+        standards = [1, 0]
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
@@ -462,10 +462,30 @@ class ResAcquisitionClass:
                                                             )
                                                             outsl = self.get_cm_list(
                                                                 path
-                                                            )       
-                                                            #if culture == 0 and percent==0.1 and lambda_index==-1:     
-                                                                #print(path)
-                                                                #print(outsl)
+                                                            ) 
+                                        
+                                                            tempst = path.split("/")
+                                                            tempst2 = "./"
+                                                            for i in range(
+                                                                2, len(tempst) - 4
+                                                            ):
+                                                                tempst2 += (
+                                                                    tempst[i] + "/"
+                                                                )
+                                                            st = tempst2
+                                                            dir = os.path.dirname(
+                                                                st
+                                                            )
+                                                            mkdir(dir)
+                                                            print(dir)
+                                                            rc = ResultsClass(
+                                                                np.asarray(outsl)
+                                                            )
+                                                            data = rc.to_df()
+                                                            data.to_csv(
+                                                                st + "res.csv"
+                                                            )      
+
                                                             tcultsl.append(outsl)
                                                         tepsl.append(tcultsl)
                                                     test_g_augsl.append(tepsl)
@@ -501,6 +521,31 @@ class ResAcquisitionClass:
                                                             t_cult,
                                                             t_cult,
                                                         )
+                                                        outsl = self.get_cm_list(
+                                                            path
+                                                        ) 
+                                    
+                                                        tempst = path.split("/")
+                                                        tempst2 = "./"
+                                                        for i in range(
+                                                            2, len(tempst) - 4
+                                                        ):
+                                                            tempst2 += (
+                                                                tempst[i] + "/"
+                                                            )
+                                                        st = tempst2
+                                                        dir = os.path.dirname(
+                                                            st
+                                                        )
+                                                        mkdir(dir)
+                                                        print(dir)
+                                                        rc = ResultsClass(
+                                                            np.asarray(outsl)
+                                                        )
+                                                        data = rc.to_df()
+                                                        data.to_csv(
+                                                            st + "res.csv"
+                                                        )      
                                                         outsl = self.get_cm_list(path)
                                                         tcultsl.append(outsl)
                                                     tepsl.append(tcultsl)
@@ -514,346 +559,7 @@ class ResAcquisitionClass:
                 lampsl.append(culturesl)
             structure.append(lampsl)
         return structure
-
-    def save_results(self, cm_list):
-        cultures = [0, 1, 2]
-        percents = [0.05, 0.1]
-        lambda_indeces = range(-1, 13)
-        test_g_augs = [0.01, 0.05, 0.1]
-        test_eps = [0.0005, 0.001, 0.005]
-        for standard in range(len(cm_list)):
-            for lamp in range(len(cm_list[standard])):
-                for culture in range(len(cm_list[standard][lamp])):
-                    for percent in range(len(cm_list[standard][lamp][culture])):
-                        for augment in range(
-                            len(cm_list[standard][lamp][culture][percent])
-                        ):
-                            for adv in range(
-                                len(cm_list[standard][lamp][culture][percent][augment])
-                            ):
-                                if standard:
-                                    for taugment in range(
-                                        len(
-                                            cm_list[standard][lamp][culture][percent][
-                                                augment
-                                            ][adv]
-                                        )
-                                    ):
-                                        for tadversary in range(
-                                            len(
-                                                cm_list[standard][lamp][culture][
-                                                    percent
-                                                ][augment][adv][taugment]
-                                            )
-                                        ):
-                                            for tgaug in range(
-                                                len(
-                                                    cm_list[standard][lamp][culture][
-                                                        percent
-                                                    ][augment][adv][taugment][
-                                                        tadversary
-                                                    ]
-                                                )
-                                            ):
-                                                for teps in range(
-                                                    len(
-                                                        cm_list[standard][lamp][
-                                                            culture
-                                                        ][percent][augment][adv][
-                                                            taugment
-                                                        ][
-                                                            tadversary
-                                                        ][
-                                                            tgaug
-                                                        ]
-                                                    )
-                                                ):
-
-                                                        lst = cm_list[standard][lamp][
-                                                            culture
-                                                        ][percent][augment][adv][
-                                                            taugment
-                                                        ][
-                                                            tadversary
-                                                        ][
-                                                            tgaug
-                                                        ][
-                                                            teps
-                                                        ]
-                                                        print(lst)
-                                                        sp = np.shape(lst)
-                                                        if sp[0] >= len(cultures):
-                                                            st = self.buildPath(
-                                                                "./",
-                                                                standard,
-                                                                "DL",
-                                                                lamp,
-                                                                culture,
-                                                                percents[percent],
-                                                                augment,
-                                                                adv,
-                                                                lambda_index,
-                                                                taugment,
-                                                                tadversary,
-                                                                test_g_augs[tgaug],
-                                                                test_eps[teps],
-                                                                0,
-                                                                0,
-                                                            )
-                                                            tempst = st.split("/")
-                                                            tempst2 = ""
-                                                            for i in range(
-                                                                len(tempst) - 2
-                                                            ):
-                                                                tempst2 += (
-                                                                    tempst[i] + "/"
-                                                                )
-                                                            st = tempst2
-                                                            dir = os.path.dirname(st)
-                                                            mkdir(dir)
-                                                            #print(dir)
-                                                            rc = ResultsClass(
-                                                                np.asarray(lst)
-                                                            )
-                                                            #print(st)
-                                                            data = rc.to_df()
-                                                            #print(data)
-                                                            data.to_csv(st + "res.csv")
-                                else:
-                                    for lambda_index in range(
-                                        len(
-                                            cm_list[standard][lamp][culture][percent][
-                                                augment
-                                            ][adv]
-                                        )
-                                    ):
-                                        for taugment in range(
-                                            len(
-                                                cm_list[standard][lamp][culture][
-                                                    percent
-                                                ][augment][adv][lambda_index]
-                                            )
-                                        ):
-                                            for tadversary in range(
-                                                len(
-                                                    cm_list[standard][lamp][culture][
-                                                        percent
-                                                    ][augment][adv][lambda_index][
-                                                        taugment
-                                                    ]
-                                                )
-                                            ):
-                                                for tgaug in range(
-                                                    len(
-                                                        cm_list[standard][lamp][
-                                                            culture
-                                                        ][percent][augment][adv][
-                                                            lambda_index
-                                                        ][
-                                                            taugment
-                                                        ][
-                                                            tadversary
-                                                        ]
-                                                    )
-                                                ):
-                                                    for teps in range(
-                                                        len(
-                                                            cm_list[standard][lamp][
-                                                                culture
-                                                            ][percent][augment][adv][
-                                                                lambda_index
-                                                            ][
-                                                                taugment
-                                                            ][
-                                                                tadversary
-                                                            ][
-                                                                tgaug
-                                                            ]
-                                                        )
-                                                    ):
-
-                                                            lst = cm_list[standard][
-                                                                lamp
-                                                            ][culture][percent][
-                                                                augment
-                                                            ][
-                                                                adv
-                                                            ][
-                                                                lambda_index
-                                                            ][
-                                                                taugment
-                                                            ][
-                                                                tadversary
-                                                            ][
-                                                                tgaug
-                                                            ][
-                                                                teps
-                                                            ]
-                                                            sp = np.shape(lst)
-                                                            if sp[0] >= len(cultures):
-                                                                st = self.buildPath(
-                                                                    "./",
-                                                                    standard,
-                                                                    "DL",
-                                                                    lamp,
-                                                                    culture,
-                                                                    percents[percent],
-                                                                    augment,
-                                                                    adv,
-                                                                    lambda_indeces[
-                                                                        lambda_index
-                                                                    ],
-                                                                    taugment,
-                                                                    tadversary,
-                                                                    test_g_augs[tgaug],
-                                                                    test_eps[teps],
-                                                                    0,
-                                                                    0,
-                                                                )
-                                                                tempst = st.split("/")
-                                                                tempst2 = ""
-                                                                for i in range(
-                                                                    len(tempst) - 2
-                                                                ):
-                                                                    tempst2 += (
-                                                                        tempst[i] + "/"
-                                                                    )
-                                                                st = tempst2
-                                                                dir = os.path.dirname(
-                                                                    st
-                                                                )
-                                                                #print(st)
-                                                                mkdir(dir)
-                                                                print(st)
-                                                                print(dir)
-                                                                #print(lst)
-                                                                print(np.shape(lst))
-                                                                print(np.shape(cm_list[standard][
-                                                                        lamp
-                                                                    ][culture][percent][
-                                                                        augment
-                                                                    ][
-                                                                        adv
-                                                                    ][
-                                                                        lambda_index
-                                                                    ][
-                                                                        taugment
-                                                                    ][
-                                                                        tadversary
-                                                                    ]))
-                                                                rc = ResultsClass(
-                                                                    np.asarray(lst)
-                                                                )
-                                                                data = rc.to_df()
-                                                                data.to_csv(
-                                                                    st + "res.csv"
-                                                                )
-
-    def get_paths(self, basePath):
-        standards = [0, 1]
-        alg = "DL"
-        lamps = [0, 1]
-        cultures = [0, 1, 2]
-        percents = [0.05, 0.1]
-        augments = [0, 1]
-        adversary = [0, 1]
-        lambda_indeces = range(-1, 13)
-        taugments = [0, 1]
-        tadversaries = [0, 1]
-        test_g_augs = [0.01, 0.05, 0.1]
-        test_eps = [0.0005, 0.001, 0.005]
-        t_cults = [0, 1, 2]
-
-        structure = []
-        for standard in standards:
-            lampsl = []
-            for lamp in lamps:
-                culturesl = []
-                for culture in cultures:
-                    percentsl = []
-                    for percent in percents:
-                        augmentsl = []
-                        for augment in augments:
-                            adversaryl = []
-                            for adv in adversary:
-                                if standard == 0:
-                                    lambda_indecesl = []
-                                    for lambda_index in lambda_indeces:
-                                        taugmentsl = []
-                                        for taugment in taugments:
-                                            tadversariesl = []
-                                            for tadversary in tadversaries:
-                                                test_g_augsl = []
-                                                for tgaug in test_g_augs:
-                                                    tepsl = []
-                                                    for teps in test_eps:
-                                                        tcultsl = []
-                                                        for t_cult in t_cults:
-                                                            path = self.buildPath(
-                                                                basePath,
-                                                                standard,
-                                                                alg,
-                                                                lamp,
-                                                                culture,
-                                                                percent,
-                                                                augment,
-                                                                adv,
-                                                                lambda_index,
-                                                                taugment,
-                                                                tadversary,
-                                                                tgaug,
-                                                                teps,
-                                                                t_cult,
-                                                                t_cult,
-                                                            )
-
-                                                            tcultsl.append(path)
-                                                        tepsl.append(tcultsl)
-                                                    test_g_augsl.append(tepsl)
-                                                tadversariesl.append(test_g_augsl)
-                                            taugmentsl.append(tadversariesl)
-                                        lambda_indecesl.append(taugmentsl)
-                                    adversaryl.append(lambda_indecesl)
-                                else:
-                                    taugmentsl = []
-                                    for taugment in taugments:
-                                        tadversariesl = []
-                                        for tadversary in tadversaries:
-                                            test_g_augsl = []
-                                            for tgaug in test_g_augs:
-                                                tepsl = []
-                                                for teps in test_eps:
-                                                    tcultsl = []
-                                                    for t_cult in t_cults:
-                                                        path = self.buildPath(
-                                                            basePath,
-                                                            standard,
-                                                            alg,
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            0,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
-                                                            t_cult,
-                                                            t_cult,
-                                                        )
-                                                        tcultsl.append(path)
-                                                    tepsl.append(tcultsl)
-                                                test_g_augsl.append(tepsl)
-                                            tadversariesl.append(test_g_augsl)
-                                        taugmentsl.append(tadversariesl)
-                                adversaryl.append(taugmentsl)
-                            augmentsl.append(adversaryl)
-                        percentsl.append(augmentsl)
-                    culturesl.append(percentsl)
-                lampsl.append(culturesl)
-            structure.append(lampsl)
-        return structure                                     
+                      
 
 def mkdir(dir):
     try:
@@ -866,8 +572,7 @@ def mkdir(dir):
 
 def main():
     rac = ResAcquisitionClass()
-    cm_list = rac.get_cm_structure("../../Mitigated/")
-    rac.save_results(cm_list)
+    rac.get_cm_structure("../../Mitigated/")
 
 
 if __name__ == "__main__":
