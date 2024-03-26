@@ -95,7 +95,6 @@ class ResultsClass:
         if len(cm) <= 0:
             return -1
         cm = np.asarray(cm)
-        #print(cm)
         tot = cm[0, 0] + cm[0, 1] + cm[1, 0] + cm[1, 1]
         return tot
 
@@ -404,7 +403,7 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [1, 0]
+        standards = [0, 1]
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
@@ -463,30 +462,30 @@ class ResAcquisitionClass:
                                                             outsl = self.get_cm_list(
                                                                 path
                                                             ) 
-                                        
-                                                            tempst = path.split("/")
-                                                            tempst2 = "./"
-                                                            for i in range(
-                                                                2, len(tempst) - 4
-                                                            ):
-                                                                tempst2 += (
-                                                                    tempst[i] + "/"
-                                                                )
-                                                            st = tempst2
-                                                            dir = os.path.dirname(
-                                                                st
-                                                            )
-                                                            mkdir(dir)
-                                                            print(dir)
-                                                            rc = ResultsClass(
-                                                                np.asarray(outsl)
-                                                            )
-                                                            data = rc.to_df()
-                                                            data.to_csv(
-                                                                st + "res.csv"
-                                                            )      
-
                                                             tcultsl.append(outsl)
+                                        
+                                                        tempst = path.split("/")
+                                                        tempst2 = "./"
+                                                        for i in range(
+                                                            3, len(tempst) -2
+                                                        ):
+                                                            tempst2 += (
+                                                                tempst[i] + "/"
+                                                            )
+                                                        st = tempst2
+                                                        dir = os.path.dirname(
+                                                            st
+                                                        )
+                                                        mkdir(dir)
+                                                        rc = ResultsClass(
+                                                            np.asarray(tcultsl)
+                                                        )
+                                                        data = rc.to_df()
+                                                        data.to_csv(
+                                                            st + "res.csv"
+                                                        )      
+
+                                                            
                                                         tepsl.append(tcultsl)
                                                     test_g_augsl.append(tepsl)
                                                 tadversariesl.append(test_g_augsl)
@@ -523,31 +522,29 @@ class ResAcquisitionClass:
                                                         )
                                                         outsl = self.get_cm_list(
                                                             path
-                                                        ) 
-                                    
-                                                        tempst = path.split("/")
-                                                        tempst2 = "./"
-                                                        for i in range(
-                                                            2, len(tempst) - 4
-                                                        ):
-                                                            tempst2 += (
-                                                                tempst[i] + "/"
-                                                            )
-                                                        st = tempst2
-                                                        dir = os.path.dirname(
-                                                            st
-                                                        )
-                                                        mkdir(dir)
-                                                        print(dir)
-                                                        rc = ResultsClass(
-                                                            np.asarray(outsl)
-                                                        )
-                                                        data = rc.to_df()
-                                                        data.to_csv(
-                                                            st + "res.csv"
-                                                        )      
-                                                        outsl = self.get_cm_list(path)
+                                                        )    
                                                         tcultsl.append(outsl)
+                                
+                                                    tempst = path.split("/")
+                                                    tempst2 = "./"
+                                                    for i in range(
+                                                        3, len(tempst) - 2
+                                                    ):
+                                                        tempst2 += (
+                                                            tempst[i] + "/"
+                                                        )
+                                                    st = tempst2
+                                                    dir = os.path.dirname(
+                                                        st
+                                                    )
+                                                    mkdir(dir)
+                                                    rc = ResultsClass(
+                                                        np.asarray(tcultsl)
+                                                    )
+                                                    data = rc.to_df()
+                                                    data.to_csv(
+                                                        st + "res.csv"
+                                                    )   
                                                     tepsl.append(tcultsl)
                                                 test_g_augsl.append(tepsl)
                                             tadversariesl.append(test_g_augsl)
