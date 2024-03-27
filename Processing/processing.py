@@ -306,7 +306,6 @@ class ProcessingClass:
                 learning_rate=learning_rate,
                 epochs=epochs,
                 batch_size=batch_size,
-                lambda_index=lambda_index,
             )
 
         else:

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 from typing import Any
 from imblearn.over_sampling import SMOTE
 import random
@@ -7,8 +9,16 @@ import gc
 
 
 class SMOTEGen:
-
+    """
+    Class implementing Generation of samples using SMOTE
+    """
     def separate_classes(self, TS, n_classes=2):
+        """
+        This function separates the classes from training set
+        :param TS: training set
+        :param n_classes: number of classes
+        :return list of training sets separated by classes
+        """
         TSs = []
         X, y = TS[0], TS[1]
         for i in range(n_classes):
@@ -25,7 +35,12 @@ class SMOTEGen:
         return TSs
 
     def __call__(self, TS, n_classes=2):
-
+        """
+        Implementation of call function, so it uses SMOTE for culturally balancing the training samples
+        :param TS: training set
+        :param n_classes: number of classes
+        :return training set with augmented data 
+        """
         TSs = self.separate_classes(TS, n_classes=n_classes)
         X_res, y_res = [], []
         for i, ts in enumerate(TSs):
@@ -36,6 +51,12 @@ class SMOTEGen:
         return X_res, y_res
 
     def call_smote(self, TS, out=0):
+        """
+        This function implements SMOTE
+        :param TS: training samples
+        :param out: output to use for model prediction
+        :return training samples balanced
+        """
         rnd_state = random.seed(time.time())
         sm = SMOTE(random_state=rnd_state)
         X, y = TS[0], TS[1]

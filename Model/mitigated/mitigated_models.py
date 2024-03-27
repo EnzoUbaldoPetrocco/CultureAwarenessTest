@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../../")
@@ -6,21 +8,17 @@ import tensorflow as tf
 from keras.layers import Dense, Flatten, Input
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.models import Model
-from keras.applications.resnet import ResNet50
 from keras.applications.resnet_v2 import ResNet50V2
-from keras.applications.efficientnet import EfficientNetB3
-from keras.applications.efficientnet_v2 import EfficientNetV2S
 from keras import layers, optimizers
 from Model.GeneralModel import GeneralModelClass
 import neural_structured_learning as nsl
-from matplotlib import pyplot as plt
-import random
 import gc
-from tf_explain.callbacks.grad_cam import GradCAMCallback
-from tf_explain.core.grad_cam import GradCAM
 
 
 class MitigatedModels(GeneralModelClass):
+    """
+    
+    """
     def __init__(
         self,
         type="DL",
@@ -31,6 +29,17 @@ class MitigatedModels(GeneralModelClass):
         learning_rate=1e-3,
         lambda_index=-1,
     ):
+        """
+        Initialization function for modeling mitigated ML models.
+        We have narrowed the problems to image classification problems.
+        :param type: selects the algorithm even if up to now "RESNET" is the only possible value.
+        :param culture: selects the majority culture
+        :param verbose_param: if enabled, the program logs more information
+        :param learning_rate: hyperparameter for DL
+        :param epochs: hyperparameter for DL
+        :param batch_size: hyperparameter for DL
+        :param lambda_index: select the gain of the regularizer in a logspace(-3, 2, 31)
+        """
         self.type = type
         self.culture = culture
         self.verbose_param = verbose_param
@@ -44,6 +53,11 @@ class MitigatedModels(GeneralModelClass):
             self.lamb = 0
 
     def custom_loss(self, out):
+        """
+        This function implements the loss and the regularizer of the mitigation stratyegy
+        :param out: related to the corresponding output to be optimized
+        :return loss function
+        """
         def loss(y_true, y_pred):
             weights1 = self.model.layers[-3].kernel
             weights2 = self.model.layers[-2].kernel
@@ -66,10 +80,13 @@ class MitigatedModels(GeneralModelClass):
                 return 0.0
             else:
                 return res
-
         return loss
 
     def adv_custom_loss(self):
+        """
+        This function implements the loss and the regularizer of the mitigation stratyegy with adversarial enabled
+        :return loss
+        """
         def loss(y_true, y_pred):
             sum = 0.0
             for out in range(3):
@@ -109,6 +126,18 @@ class MitigatedModels(GeneralModelClass):
         out_dir="./",
         gradcam = False
     ):
+        """
+        This function implements the model selection of Deep Learning model with Mitigation Stategy
+        :param TS: Training set
+        :param VS: Validation Set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param learning_rates: list of lr to be used for Model Selection
+        :param batch_sizes: list of bs to be used for Model Selection
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
         X = tf.stack(TS[0])
         y = tf.stack(TS[1])
         Xv = tf.stack(VS[0])
@@ -246,6 +275,18 @@ class MitigatedModels(GeneralModelClass):
     def DL(
         self, TS, VS, adversarial=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
     ):
+        """
+        This function implements the training of Deep Learning model with Mitigation Strategy
+        :param TS: Training set
+        :param VS: Validation Set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param learning_rates: lr to be used for training
+        :param batch_sizes: bs to be used for training
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
         X = tf.stack(TS[0])
         y = tf.stack(TS[1])
         Xv = tf.stack(VS[0])
@@ -379,6 +420,16 @@ class MitigatedModels(GeneralModelClass):
     def fit(
         self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
     ):
+        """
+        General function for implementing model selection
+        :param TS: training set
+        :param VS: validation set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
         if self.type == "DL" or "RESNET":
             self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
