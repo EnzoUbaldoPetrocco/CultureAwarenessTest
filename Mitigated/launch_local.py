@@ -24,14 +24,15 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-
+ks = [3,2,1,0]
+cs = [2,1,0]
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
 with tf.device("/CPU:0"):
         for j in range(0, 13):
             for percent in percents:
-                for c in range(1,3):
-                    for k in range(3,4):
+                for c in cs:
+                    for k in ks:
                         for i in range(6):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
