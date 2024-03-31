@@ -29,11 +29,11 @@ cs = [2,1,0]
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
 with tf.device("/CPU:0"):
-        for j in range(0, 13):
+        for j in range(1, 13):
             for percent in percents:
                 for c in cs:
                     for k in ks:
-                        for i in range(6):
+                        for i in range(3):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,
