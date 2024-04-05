@@ -30,7 +30,7 @@ cs = [2,1,0]
 procObj = ProcessingClass(shallow=0, lamp=1, gpu=True)
 for c in range(3):
     for i in range(9):
-        for k in [2,1]:
+        for k in [3,1]:
             procObj.process(
                 standard=standard,
                 type="DL",
