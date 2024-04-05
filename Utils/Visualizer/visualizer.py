@@ -12,6 +12,11 @@ from Utils.Results.Results import ResAcquisitionClass
 
 class VisualizerClass:
     def plot_table(self, df, title):
+        """
+        This function plots a DataFrame as Table
+        :param df: DataFrame
+        :param title: title of Table
+        """
         fig, ax = plt.subplots()
         # hide axes
         fig.patch.set_visible(False)
@@ -55,7 +60,7 @@ def main():
                                 for taugment in taugments:
                                     for tadversary in tadversaries:
                                         for tgaug in range(len(test_g_augs)):
-                                            
+
                                             for teps in range(len(test_eps)):
 
                                                 pt = paths[standard][lamp][culture][
@@ -72,7 +77,6 @@ def main():
                                                     df[df.columns[1 : len(df.columns)]],
                                                     pt,
                                                 )
-
                             else:
                                 for lambda_index in lambda_indeces:
                                     for taugment in taugments:
