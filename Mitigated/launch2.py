@@ -1,10 +1,9 @@
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
 import sys
 
-import cv2
 
 sys.path.insert(1, "../")
-from GradCam.gradCam import GradCAM
-from Utils.FileManager.FileManager import FileManagerClass
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
