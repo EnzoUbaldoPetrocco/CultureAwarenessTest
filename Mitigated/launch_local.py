@@ -11,7 +11,7 @@ tf.config.set_soft_device_placement(True)
 
 percents = [0.1, 0.05]
 standard = 0
-lamp = 0
+lamp = 1
 
 verbose_param = 0
 n = 1000
@@ -27,12 +27,12 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 ks = [3,2,1,0]
-cs = [2,1,0]
+cs = [1, 2]
 
-procObj = ProcessingClass(shallow=0, lamp=1, gpu=True)
-for c in range(3):
+procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
+for c in cs:
     for i in range(9):
-        for k in [3,1]:
+        for k in ks:
             procObj.process(
                 standard=standard,
                 type="DL",
