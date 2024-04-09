@@ -31,7 +31,7 @@ cs = [1, 2]
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
 for c in cs:
-    for i in range(9):
+    for i in range(5):
         for k in ks:
             procObj.process(
                 standard=standard,
