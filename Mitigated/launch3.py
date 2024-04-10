@@ -13,7 +13,7 @@ percents = [0.05, 0.1]
 standard = 0
 lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
