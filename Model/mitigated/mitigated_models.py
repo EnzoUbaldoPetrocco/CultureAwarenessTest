@@ -73,8 +73,6 @@ class MitigatedModels(GeneralModelClass):
             if out == 2:
                 dist = tf.norm(weights3 - mean, ord="euclidean")
             dist = tf.multiply(dist, dist)
-            print(y_true)
-            print(y_pred)
             loss = tf.keras.losses.binary_crossentropy(y_true[:,1], y_pred[:])
             res = tf.math.add(loss, dist)
             mask = tf.reduce_all(tf.equal(y_true[0][0], out))
