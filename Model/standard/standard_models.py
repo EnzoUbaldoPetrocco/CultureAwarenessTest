@@ -128,7 +128,7 @@ class StandardModels(GeneralModelClass):
         :return loss function (binary crossentropy)
         """
         def loss(y_true, y_pred):
-            l = tf.keras.losses.binary_crossentropy(y_true, y_pred)
+            l = tf.keras.losses.binary_crossentropy(y_true, y_pred[:])
             return l
 
         return loss
