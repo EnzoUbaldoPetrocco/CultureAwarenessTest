@@ -141,7 +141,7 @@ class StandardModels(GeneralModelClass):
         eps=0.05,
         mult=0.2,
         learning_rates=[1e-5, 1e-4, 1e-3],
-        batch_sizes=[2, 4, 8],
+        batch_sizes=[1],
         gradcam=False,
         out_dir="./",
     ):
