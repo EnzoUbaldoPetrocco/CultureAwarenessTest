@@ -7,7 +7,6 @@ import keras
 from matplotlib import pyplot as plt
 import cv2
 from tf_explain.utils.display import grid_display, heatmap_display
-from tf_explain.utils.saver import save_rgb
 
 
 class GeneralModelClass:

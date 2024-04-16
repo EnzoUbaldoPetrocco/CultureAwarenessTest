@@ -378,7 +378,7 @@ class StandardModels(GeneralModelClass):
                         self.save(output, out_dir, name)
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
+        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0,
     ):
         """
         General function for implementing model selection
@@ -389,6 +389,7 @@ class StandardModels(GeneralModelClass):
         :param mult: if adversary enabled, multiplier of adversarial training
         :param gradcam: if enabled, gradcam callback is called
         :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        :param complete: dummy argument
         """
         if self.type == "SVC":
             self.SVC(TS)

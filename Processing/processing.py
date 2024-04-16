@@ -252,6 +252,7 @@ class ProcessingClass:
         eps=0.3,
         mult=0.05,
         gradcam=False,
+        complete = 0
     ):
         """
         process function prepares the data and fit the model
@@ -283,6 +284,7 @@ class ProcessingClass:
         :param eps: is adversary is enabled, it is the gain of fast gradient method
         :param nt: is the number of images to use for testing
         :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
+        :param complete: if enabled, strength of the regularizer is learned during validation phase
         """
         self.prepare_data(
             standard=standard,
@@ -373,6 +375,7 @@ class ProcessingClass:
             mult=mult,
             gradcam=gradcam,
             out_dir=self.basePath,
+            complete = complete,
         )
 
     def test(
@@ -498,3 +501,18 @@ class ProcessingClass:
         self.basePath = None
         del self.basePath
         gc.collect()
+
+    def save_model(self):
+        checkpoint_path = "/training_1/cp.ckpt"
+        pth = self.basePath + checkpoint_path
+        self.model.model.save_weights(pth)
+
+
+        
+
+        
+            
+
+
+        
+            
