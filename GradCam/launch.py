@@ -71,6 +71,7 @@ for lamp in [0, 1]:
                             )
 
                             grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
+                            
                             if standard:
                                 heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
                                 path = procObj.basePath + "out.jpg"
