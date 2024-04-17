@@ -17,7 +17,8 @@ from Model.standard.standard_models import StandardModels
 config = Config()
 plot = False
 photo_size = 300
-carpet_model, lamp_model = None
+carpet_model = None
+lamp_model = None
 
 
 class SampleApp(tk.Tk):
@@ -933,6 +934,7 @@ class PageTen(tk.Frame):
 
         text = (
             text
+            + f"L'IA invece ne ha azzeccate {mlscore}\n"
             + "È stato difficile rispondere quando le lampade e i tappeti\nappartenevano a un contesto culturale diverso dal tuo?\n"
             + "Per l'IA è così.\n"
             + "Questa infatti non è molto brava a fare il proprio compito\n quando lampade o tappeti vengono da paesi stranieri.\n"
@@ -1172,7 +1174,7 @@ if __name__ == "__main__":
                 learning_rate=0,
                 epochs=15,
                 batch_size=1)
-    carpet_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/CS/0.05/ADV/0/training_1/")
+    carpet_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/DL/CS/0.05/AVD/0/model")
     lamp_model = StandardModels(
                 type="DL",
                 verbose_param=0,
@@ -1180,6 +1182,6 @@ if __name__ == "__main__":
                 epochs=15,
                 batch_size=1)
     
-    lamp_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/LF/0.05/ADV/0/training_1/")
+    lamp_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/DL/LF/0.05/AVD/0/model")
     app.after(1000, app.update_idletasks())
     app.mainloop()

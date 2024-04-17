@@ -752,7 +752,6 @@ class MitigatedModels(GeneralModelClass):
                 outputs=self.model.layers[0].get_layer("model").layers[-1].output,
             )
 
-            self.model.load_weights(path)
         else:
             self.model.compile(
                 optimizer=optimizer,
@@ -763,4 +762,6 @@ class MitigatedModels(GeneralModelClass):
                     self.custom_loss(out=2),
                 ],
             )
-            self.model.load_weights(path)
+        
+        path = tf.train.latest_checkpoint(path)
+        self.model.load_weights(path)

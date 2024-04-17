@@ -503,9 +503,9 @@ class ProcessingClass:
         gc.collect()
 
     def save_model(self):
-        checkpoint_path = "/training_1/cp.ckpt"
+        checkpoint_path = "/model"
         pth = self.basePath + checkpoint_path
-        self.model.model.save_weights(pth)
+        self.model.model.save(pth)
 
 
         
