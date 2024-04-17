@@ -1,11 +1,23 @@
+import sys
+
+sys.path.insert(1, "../")
+
 import tkinter as tk  # python 3
 from tkinter import font as tkfont  # python 3
 from tkinter import *
 from tkinter import ttk
 from config import Config
 from PIL import Image, ImageTk
+from Processing.processing import ProcessingClass
+import random
+import numpy as np
+from matplotlib import pyplot as plt
+from Model.standard.standard_models import StandardModels
 
 config = Config()
+plot = False
+photo_size = 300
+carpet_model, lamp_model = None
 
 
 class SampleApp(tk.Tk):
@@ -34,6 +46,42 @@ class SampleApp(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        self.procObjLamp = ProcessingClass(shallow=0, lamp=1, gpu=False)
+        self.procObjCarpet = ProcessingClass(shallow=0, lamp=0, gpu=False)
+
+        lampds = self.procObjLamp.dataobj.dataset
+        carpetds = self.procObjCarpet.dataobj.dataset
+
+        idx = random.randint(0, 999)
+
+        if plot:
+            interp = "bilinear"
+            fig, axs = plt.subplots(nrows=3, ncols=2, sharex=True, figsize=(3, 5))
+            for culture in range(3):
+                for label in range(2):
+                    axs[culture][label].set_title(
+                        f"Culture={culture} with label={label}"
+                    )
+                    axs[culture][label].imshow(
+                        lampds[culture][label][idx][0],
+                        origin="upper",
+                        interpolation=interp,
+                    )
+            plt.show()
+
+            fig, axs = plt.subplots(nrows=3, ncols=2, sharex=True, figsize=(3, 5))
+            for culture in range(3):
+                for label in range(2):
+                    axs[culture][label].set_title(
+                        f"Culture={culture} with label={label}"
+                    )
+                    axs[culture][label].imshow(
+                        carpetds[culture][label][idx][0],
+                        origin="upper",
+                        interpolation=interp,
+                    )
+            plt.show()
+
         global home_image
         home_image = Image.open("./img/home.png")
         factor = 4.5
@@ -44,6 +92,10 @@ class SampleApp(tk.Tk):
         home_image = ImageTk.PhotoImage(image=home_image)
         global rice_image
         rice_image = ImageTk.PhotoImage(file="./rice_icon.jpg")
+
+        global score, mlscore
+        score = 0
+        mlscore = 0
 
         self.frames = {}
         for F in (
@@ -60,7 +112,7 @@ class SampleApp(tk.Tk):
             PageTen,
             PageEleven,
             PageTwelve,
-            PageThirteen
+            PageThirteen,
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -71,16 +123,27 @@ class SampleApp(tk.Tk):
             # will be the one that is visible.
             frame.grid(row=0, column=0, sticky="nsew")
 
-        global score
-        score = 0
-
         self.show_frame("StartPage")
 
     def show_frame(self, page_name):
         """Show a frame for the given page name"""
         frame = self.frames[page_name]
-        if page_name=="PageTen":
+        if page_name == "PageTen":
             frame.update_label()
+        if (
+            page_name == "PageFour"
+            or page_name == "PageFive"
+            or page_name == "PageSix"
+            or page_name == "PageSeven"
+            or page_name == "PageHeight"
+            or page_name == "PageNine"
+        ):
+            frame.update()
+        if page_name == "StartPage":
+            global score, mlscore
+            score = 0
+            mlscore
+
         frame.tkraise()
 
 
@@ -125,7 +188,9 @@ class PageOne(tk.Frame):
         self.controller = controller
         label = tk.Label(
             self,
-            text="L'IA sta diventando molto famosa\n perché è capace di cose sensazionali!\n Ma è competente quando si tratta di cultura?",
+            text="L'IA sta diventando molto famosa perché è capace di raggiungere livelli di performance super umani!"
+            + "\nQuesto grazie anche alla grande mole di dati da cui i modelli di apprendimento automatico imparano."
+            + "\nMa è tutto oro ciò che luccica?",
             font=controller.title_font,
         )
         label.pack(side="top", pady=10)
@@ -199,7 +264,12 @@ class PageThree(tk.Frame):
 
         label = tk.Label(
             header2,
-            text="La competenza culturale è la capacità di\n adattarsi ai diversi contesti culturali.\n Impara cosa vuol dire giocando :)",
+            text="Nel nostro laboratorio ci siamo chiesti come si comporti l'IA fuori dal proprio contesto culturale"
+            + "\nSiccome i modelli di apprendimento automatico imparano dai dati,\n un contesto culturale estraneo per loro vuol dire"
+            + "\ndover imparare da e funzionare per un sottoinsieme di dati diverso da quello maggioritario."
+            + "\nSupponiamo di essere in Europa e dover riconoscere se una lampada è accesa o spenta."
+            + "\nPer noi umani spostarci in Cina a fare la stessa cosa dovrebbe essere abbastanza facile,\n ma non è detto che per l'IA lo sia (anzi)"
+            + "\nLa competenza culturale è la capacità di adattarsi ai diversi contesti culturali.\n Impara cosa vuol dire giocando :)",
             font=controller.title_font,
         )
         label.pack(side="top")
@@ -226,28 +296,55 @@ class PageThree(tk.Frame):
 
 
 def eval_score(controller, name, pred, true):
-    def fn():
-        global score
-        if pred == true:
-            score += 1
-        controller.show_frame(name)
-    return fn
+    global score
+    if pred == true:
+        score += 1
+    controller.show_frame(name)
 
 
 def res_game(controller):
     global score
     score = 0
-    lambda: controller.show_frame("StartPage")
+    controller.show_frame("StartPage")
 
 
 class PageFour(tk.Frame):
 
+    def update(self):
+        global lamp1
+
+        label_idx = random.randint(0, 1)
+        culture = 0
+        idx = random.randint(
+            0, len(self.controller.procObjLamp.dataobj.dataset[culture][label_idx]) - 1
+        )
+        lamp1 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    self.controller.procObjLamp.dataobj.dataset[culture][label_idx][
+                        idx
+                    ][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx
+        self.panel.configure(image=lamp1)
+
+        global mlscore
+        mlpred = int(lamp_model(
+            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+        ))
+        if self.true==mlpred:
+            mlscore += 1
+
+        self.button1.bind(lambda: eval_score(self.controller, "PageFive", 1, self.true))
+        self.button2.bind(lambda: eval_score(self.controller, "PageFive", 0, self.true))
+
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-
         self.controller = controller
-        true = 0
-
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
 
@@ -255,7 +352,7 @@ class PageFour(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
@@ -264,44 +361,90 @@ class PageFour(tk.Frame):
 
         label = tk.Label(
             header2,
-            text="Questa lampada è accesa o spenta?",
+            text="Questa lampada cinese è accesa o spenta?",
             font=controller.title_font,
         )
         label.pack(side="top")
 
-        global img
-        img = ImageTk.PhotoImage(Image.open("./img/home.png"))
-        panel = tk.Label(header2, image = img)
-        panel.pack(side = "top", fill = "both", expand = "yes")
+        global lamp1
+        label_idx = random.randint(0, 1)
+        culture = 0
+        idx = random.randint(
+            0, len(controller.procObjLamp.dataobj.dataset[culture][label_idx]) - 1
+        )
+        lamp1 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx
+        self.panel = tk.Label(header2, image=lamp1)
+        self.panel.pack(side="top", fill="both", expand="yes")
 
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        button1 = tk.Button(
+        self.button1 = tk.Button(
             choice,
-            text="Sì",
-            command=eval_score(controller, "PageFive", 1, true),
+            text="Accesa",
+            command=lambda: eval_score(controller, "PageFive", 1, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button1.pack(padx=config.padding)
-        button2 = tk.Button(
+        self.button1.pack(padx=config.padding)
+        self.button2 = tk.Button(
             choice,
-            text="No",
-            command=eval_score(controller, "PageFive", 0, true),
+            text="Spenta",
+            command=lambda: eval_score(controller, "PageFive", 0, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button2.pack(padx=config.padding)
+        self.button2.pack(padx=config.padding)
 
 
 class PageFive(tk.Frame):
 
+    def update(self):
+        global lamp2
+
+        label_idx = random.randint(0, 1)
+        culture = 1
+        idx = random.randint(
+            0, len(self.controller.procObjLamp.dataobj.dataset[culture][label_idx]) - 1
+        )
+        lamp2 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    self.controller.procObjLamp.dataobj.dataset[culture][label_idx][
+                        idx
+                    ][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # self.idx #controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][1][1]
+
+        self.panel.configure(image=lamp2)
+
+        global mlscore
+        mlpred = int(lamp_model(
+            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+        ))
+        if self.true==mlpred:
+            mlscore += 1
+
+        self.button1.bind(lambda: eval_score(self.controller, "PageSix", 1, self.true))
+        self.button2.bind(lambda: eval_score(self.controller, "PageSix", 0, self.true))
+
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
@@ -311,16 +454,35 @@ class PageFive(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
         header2 = Frame(self)
         header2.pack(side="top", padx=config.padding, fill="x")
 
+        global lamp2
+        label_idx = random.randint(0, 1)
+        culture = 1
+        idx = random.randint(
+            0, len(controller.procObjLamp.dataobj.dataset[culture][label_idx]) - 1
+        )
+        lamp2 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][1][1]
+        self.panel = tk.Label(header2, image=lamp2)
+        self.panel.pack(side="top", fill="both", expand="yes")
+
         label = tk.Label(
             header2,
-            text="Questa lampada è accesa o spenta?",
+            text="Questa lampada europea è accesa o spenta?",
             font=controller.title_font,
         )
         label.pack(side="top")
@@ -328,31 +490,66 @@ class PageFive(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        button1 = tk.Button(
+        self.button1 = tk.Button(
             choice,
-            text="Sì",
-            command=eval_score(controller, "PageSix", 1, true),
+            text="Accesa",
+            command=lambda: eval_score(controller, "PageSix", 1, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button1.pack(padx=config.padding)
-        button2 = tk.Button(
+        self.button1.pack(padx=config.padding)
+        self.button2 = tk.Button(
             choice,
-            text="No",
-            command=eval_score(controller, "PageSix", 0, true),
+            text="Spenta",
+            command=lambda: eval_score(controller, "PageSix", 0, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button2.pack(padx=config.padding)
+        self.button2.pack(padx=config.padding)
 
 
 class PageSix(tk.Frame):
+    def update(self):
+        global lamp3
+
+        label_idx = random.randint(0, 1)
+        culture = 2
+        idx = random.randint(
+            0, len(self.controller.procObjLamp.dataobj.dataset[culture][label_idx]) - 1
+        )
+        lamp3 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    self.controller.procObjLamp.dataobj.dataset[culture][label_idx][
+                        idx
+                    ][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx
+
+        self.panel.configure(image=lamp3)
+
+        global mlscore
+        mlpred = int(lamp_model(
+            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+        ))
+        if self.true==mlpred:
+            mlscore += 1
+
+        self.button1.bind(
+            lambda: eval_score(self.controller, "PageSeven", 1, self.true)
+        )
+        self.button2.bind(
+            lambda: eval_score(self.controller, "PageSeven", 0, self.true)
+        )
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
@@ -362,16 +559,35 @@ class PageSix(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
         header2 = Frame(self)
         header2.pack(side="top", padx=config.padding, fill="x")
 
+        global lamp3
+        label_idx = random.randint(0, 1)
+        culture = 2
+        idx = random.randint(
+            0, len(controller.procObjLamp.dataobj.dataset[culture][label_idx]) - 1
+        )
+        lamp3 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][1][1]
+        self.panel = tk.Label(header2, image=lamp3)
+        self.panel.pack(side="top", fill="both", expand="yes")
+
         label = tk.Label(
             header2,
-            text="Questa lampada è accesa o spenta?",
+            text="Questa lampada araba è accesa o spenta?",
             font=controller.title_font,
         )
         label.pack(side="top")
@@ -379,32 +595,67 @@ class PageSix(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        button1 = tk.Button(
+        self.button1 = tk.Button(
             choice,
-            text="Sì",
-            command=eval_score(controller, "PageSeven", 1, true),
+            text="Accesa",
+            command=lambda: eval_score(controller, "PageSeven", 1, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button1.pack(padx=config.padding)
-        button2 = tk.Button(
+        self.button1.pack(padx=config.padding)
+        self.button2 = tk.Button(
             choice,
-            text="No",
-            command=eval_score(controller, "PageSeven", 0, true),
+            text="Spenta",
+            command=lambda: eval_score(controller, "PageSeven", 0, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button2.pack(padx=config.padding)
+        self.button2.pack(padx=config.padding)
 
 
 class PageSeven(tk.Frame):
+    def update(self):
+        global carpet1
+
+        label_idx = random.randint(0, 1)
+        culture = 0
+        idx = random.randint(
+            0,
+            len(self.controller.procObjCarpet.dataobj.dataset[culture][label_idx]) - 1,
+        )
+        carpet1 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    self.controller.procObjCarpet.dataobj.dataset[culture][label_idx][
+                        idx
+                    ][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx
+
+        self.panel.configure(image=carpet1)
+
+        global mlscore
+        mlpred = int(carpet_model(
+            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+        ))
+        if self.true==mlpred:
+            mlscore += 1
+
+        self.button1.bind(
+            lambda: eval_score(self.controller, "PageHeight", 0, self.true)
+        )
+        self.button2.bind(
+            lambda: eval_score(self.controller, "PageHeight", 1, self.true)
+        )
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
-
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
 
@@ -413,16 +664,35 @@ class PageSeven(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
         header2 = Frame(self)
         header2.pack(side="top", padx=config.padding, fill="x")
 
+        global lamp2
+        label_idx = random.randint(0, 1)
+        culture = 0
+        idx = random.randint(
+            0, len(controller.procObjCarpet.dataobj.dataset[culture][label_idx]) - 1
+        )
+        carpet1 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][1][1]
+        self.panel = tk.Label(header2, image=carpet1)
+        self.panel.pack(side="top", fill="both", expand="yes")
+
         label = tk.Label(
             header2,
-            text="C'è un tappeto in questa immagine?",
+            text="C'è un tappeto indiano in questa immagine?",
             font=controller.title_font,
         )
         label.pack(side="top")
@@ -430,31 +700,63 @@ class PageSeven(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        button1 = tk.Button(
+        self.button1 = tk.Button(
             choice,
-            text="Sì",
-            command=eval_score(controller, "PageHeight", 1, true),
+            text="C'è",
+            command=lambda: eval_score(controller, "PageHeight", 0, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button1.pack(padx=config.padding)
-        button2 = tk.Button(
+        self.button1.pack(padx=config.padding)
+        self.button2 = tk.Button(
             choice,
-            text="No",
-            command=eval_score(controller, "PageHeight", 0, true),
+            text="Non c'è",
+            command=lambda: eval_score(controller, "PageHeight", 1, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button2.pack(padx=config.padding)
+        self.button2.pack(padx=config.padding)
 
 
 class PageHeight(tk.Frame):
+    def update(self):
+        global carpet2
+
+        label_idx = random.randint(0, 1)
+        culture = 1
+        idx = random.randint(
+            0,
+            len(self.controller.procObjCarpet.dataobj.dataset[culture][label_idx]) - 1,
+        )
+        carpet2 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    self.controller.procObjCarpet.dataobj.dataset[culture][label_idx][
+                        idx
+                    ][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][1][1]
+
+        self.panel.configure(image=carpet2)
+
+        global mlscore
+        mlpred = int(carpet_model(
+            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+        ))
+        if self.true==mlpred:
+            mlscore += 1
+
+        self.button1.bind(lambda: eval_score(self.controller, "PageNine", 0, self.true))
+        self.button2.bind(lambda: eval_score(self.controller, "PageNine", 1, self.true))
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
@@ -464,16 +766,35 @@ class PageHeight(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
         header2 = Frame(self)
         header2.pack(side="top", padx=config.padding, fill="x")
 
+        global carpet2
+        label_idx = random.randint(0, 1)
+        culture = 1
+        idx = random.randint(
+            0, len(controller.procObjCarpet.dataobj.dataset[culture][label_idx]) - 1
+        )
+        carpet2 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][1][1]
+        self.panel = tk.Label(header2, image=carpet2)
+        self.panel.pack(side="top", fill="both", expand="yes")
+
         label = tk.Label(
             header2,
-            text="C'è un tappeto in questa immagine?",
+            text="C'è un tappeto giapponese in questa immagine?",
             font=controller.title_font,
         )
         label.pack(side="top")
@@ -481,31 +802,63 @@ class PageHeight(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        button1 = tk.Button(
+        self.button1 = tk.Button(
             choice,
-            text="Sì",
-            command=eval_score(controller, "PageNine", 1, true),
+            text="C'è",
+            command=lambda: eval_score(controller, "PageNine", 0, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button1.pack(padx=config.padding)
-        button2 = tk.Button(
+        self.button1.pack(padx=config.padding)
+        self.button2 = tk.Button(
             choice,
-            text="No",
-            command=eval_score(controller, "PageNine", 0, true),
+            text="Non c'è",
+            command=lambda: eval_score(controller, "PageNine", 1, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button2.pack(padx=config.padding)
+        self.button2.pack(padx=config.padding)
 
 
 class PageNine(tk.Frame):
+    def update(self):
+        global carpet3
+
+        label_idx = random.randint(0, 1)
+        culture = 2
+        idx = random.randint(
+            0,
+            len(self.controller.procObjCarpet.dataobj.dataset[culture][label_idx]) - 1,
+        )
+        carpet3 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    self.controller.procObjCarpet.dataobj.dataset[culture][label_idx][
+                        idx
+                    ][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][1][1]
+
+        self.panel.configure(image=carpet3)
+
+        global mlscore
+        mlpred = int(carpet_model(
+            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+        ))
+        if self.true==mlpred:
+            mlscore += 1
+
+        self.button1.bind(lambda: eval_score(self.controller, "PageTen", 0, self.true))
+        self.button2.bind(lambda: eval_score(self.controller, "PageTen", 1, self.true))
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
@@ -515,16 +868,35 @@ class PageNine(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
         header2 = Frame(self)
         header2.pack(side="top", padx=config.padding, fill="x")
 
+        global carpet3
+        label_idx = random.randint(0, 1)
+        culture = 2
+        idx = random.randint(
+            0, len(controller.procObjCarpet.dataobj.dataset[culture][label_idx]) - 1
+        )
+        carpet3 = ImageTk.PhotoImage(
+            image=Image.fromarray(
+                np.uint8(
+                    controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][0]
+                    * 255
+                ),
+                mode="RGB",
+            ).resize((photo_size, photo_size), resample=2)
+        )
+        self.true = label_idx  # controller.procObjCarpet.dataobj.dataset[culture][label_idx][idx][1][1]
+        self.panel = tk.Label(header2, image=carpet3)
+        self.panel.pack(side="top", fill="both", expand="yes")
+
         label = tk.Label(
             header2,
-            text="C'è un tappeto in questa immagine?",
+            text="C'è un tappeto europeo in questa immagine?",
             font=controller.title_font,
         )
         label.pack(side="top")
@@ -532,72 +904,69 @@ class PageNine(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        button1 = tk.Button(
+        self.button1 = tk.Button(
             choice,
-            text="Sì",
-            command=eval_score(controller, "PageTen", 1, true),
+            text="C'è",
+            command=lambda: eval_score(controller, "PageTen", 0, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button1.pack(padx=config.padding)
-        button2 = tk.Button(
+        self.button1.pack(padx=config.padding)
+        self.button2 = tk.Button(
             choice,
-            text="No",
-            command=eval_score(controller, "PageTen", 0, true),
+            text="Non c'è",
+            command=lambda: eval_score(controller, "PageTen", 1, self.true),
             height=config.buttonH,
             width=config.buttonW,
         )
-        button2.pack(padx=config.padding)
+        self.button2.pack(padx=config.padding)
 
 
 class PageTen(tk.Frame):
 
     def update_label(self):
-        global score
-        if score >= 3:
+        global score, mlscore
+        if score >= mlscore:
             text = f"Bravo! Ci hai azzeccato {score} volte!\n"
         else:
             text = f"Ahia! Ci hai azzeccato {score} volte!\n"
 
         text = (
             text
-            + "È stato difficile rispondere quando le lampade e i tappeti appartenevano a un contesto culturale diverso dal tuo?\n"
+            + "È stato difficile rispondere quando le lampade e i tappeti\nappartenevano a un contesto culturale diverso dal tuo?\n"
             + "Per l'IA è così.\n"
             + "Questa infatti non è molto brava a fare il proprio compito\n quando lampade o tappeti vengono da paesi stranieri.\n"
             + "Soprattutto quando queste culture sono culture di minoranza\n (si hanno pochi dati per addestrare i modelli)"
         )
-        
-        self.label['text']=text
 
+        self.label["text"] = text
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
         global score
-        if score >= 3:
-            text = f"Bravo! Ci hai azzeccato {score} volte!\n"
+        if score >= 3.1:
+            text = f"Bravo! Ci hai azzeccato {score} volte! Battendo l'IA!\n"
         else:
-            text = f"Ahia! Ci hai azzeccato {score} volte!\n"
+            text = f"Ahia! Ci hai azzeccato solo {score} volte!\n"
 
         text = (
             text
             + "È stato difficile rispondere quando le lampade e i tappeti appartenevano a un contesto culturale diverso dal tuo?\n"
             + "Per l'IA è così.\n"
-            + "Questa infatti non è molto brava a fare il proprio compito\n quando lampade o tappeti vengono da paesi stranieri.\n"
+            + "Sperimentalmente, si vede che non è molto brava a fare il proprio compito\n quando lampade o tappeti vengono da paesi stranieri.\n"
             + "Soprattutto quando queste culture sono culture di minoranza\n (si hanno pochi dati per addestrare i modelli)"
         )
-        
+
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
 
         global home_image
-        # home_image= ImageTk.PhotoImage(file="./img/home.png")
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
@@ -630,13 +999,12 @@ class PageEleven(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         text = (
             "Il nostro lavoro consiste nel rendere i modelli culturalmente competenti.\n"
-            + "Questo è importante, perché come hai potuto vedere non solo se il modello non lo è non funziona\n"
+            + "Questo è importante, perché come hai potuto vedere non solo se il modello non lo è, non funziona\n"
             + "Ma anche perché questo può causare problemi etici\n"
-            + "Nel nostro laboratorio abbiamo provare a usare un metodo che viene dal Multitask learning per mitigare questa incompetenza\n"
+            + "Nel nostro laboratorio abbiamo provare a usare un metodo\nche viene dal Multitask learning per mitigare questa incompetenza\n"
             + "Vuoi saperne di più?"
         )
         header = Frame(self)
@@ -647,7 +1015,7 @@ class PageEleven(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
@@ -664,7 +1032,6 @@ class PageEleven(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        
         button1 = tk.Button(
             choice,
             text="No",
@@ -682,19 +1049,19 @@ class PageEleven(tk.Frame):
         )
         button2.pack(padx=config.padding)
 
+
 class PageTwelve(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         text = (
-            "Il Multitask Learning è un ramo dell'Intelligenza Artificiale che si occupa di usare uno stesso modello per compiere più compiti.\n"
-            + "Si basa sul fatto che se i compiti sono simili, molto del lavoro per imparare a fare i compiti è comune ai compiti\n"
+            "Il Multitask Learning è un ramo dell'Intelligenza Artificiale\nche si occupa di usare uno stesso modello per compiere più compiti.\n"
+            + "Si basa sul fatto che se i compiti sono simili,\nmolto del lavoro per imparare a fare i compiti è comune\n"
             + "Immagina di dover imparare a suonare la chitarra elettrica e la chitarra classica\n"
-            + "Anche se son due strumenti simili non si suonano allo stesso modo (quindi sono due compiti diversi)\n"
+            + "Anche se son due strumenti simili non si suonano allo stesso modo\n"
             + "Tuttavia sono due compiti simili, e quindi una volta imparato a suonare\n la chitarra elettrica diventa più semplice imparare a suonare la classica"
         )
         header = Frame(self)
@@ -704,7 +1071,7 @@ class PageTwelve(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
@@ -721,7 +1088,6 @@ class PageTwelve(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        
         button1 = tk.Button(
             choice,
             text="Indietro",
@@ -739,19 +1105,22 @@ class PageTwelve(tk.Frame):
         )
         button2.pack(padx=config.padding)
 
+
 class PageThirteen(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
         self.controller = controller
-        true = 0
 
         text = (
-            "Ora applichiamo questo concetto a diverse culture,\n immaginiamo di dover imparare a distinguere una lampada accesa da una spenta\n"
-            + "Se io imparo a farlo usando le lampade francesi, con quelle turche il problema è simile\n"
-            + "Ma se io ho pochi esempi di lampade turche, la macchina rischia di non imparare bene.\n"
-            + "Per questo ho bisogno di considerarli due problemi separati.\n"
+            "Ora applichiamo questo concetto a diverse culture,\n immaginiamo di dover imparare a distinguere una lampada accesa da una spenta"
+            + "\nSe io imparo a farlo usando le lampade francesi,\n con quelle turche il problema è simile"
+            + "\nMa se io ho pochi esempi di lampade turche,\n la macchina rischia di non imparare bene."
+            + "\nPer questo ho bisogno di considerarli due problemi separati."
+            + "\nAbbiamo misurato sperimentalmente, tramite analisi statistica,\n che usare questo approccio migliora la competenza culturale"
+            + "\ndei modelli di apprendimento automatico."
+            + "\nMa di strada da fare ce n'è ancora tanta!"
         )
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
@@ -760,7 +1129,7 @@ class PageThirteen(tk.Frame):
         homeButton = tk.Button(
             header,
             image=home_image,
-            command=res_game(controller),
+            command=lambda: res_game(controller),
         )
         homeButton.pack(side="left", padx=config.padding)
 
@@ -777,7 +1146,6 @@ class PageThirteen(tk.Frame):
         choice = Frame(self)
         choice.pack(side="top", padx=config.padding)
 
-        
         button1 = tk.Button(
             choice,
             text="Indietro",
@@ -798,5 +1166,20 @@ class PageThirteen(tk.Frame):
 
 if __name__ == "__main__":
     app = SampleApp()
+    carpet_model = StandardModels(
+                type="DL",
+                verbose_param=0,
+                learning_rate=0,
+                epochs=15,
+                batch_size=1)
+    carpet_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/CS/0.05/ADV/0/training_1/")
+    lamp_model = StandardModels(
+                type="DL",
+                verbose_param=0,
+                learning_rate=0,
+                epochs=15,
+                batch_size=1)
+    
+    lamp_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/LF/0.05/ADV/0/training_1/")
     app.after(1000, app.update_idletasks())
     app.mainloop()

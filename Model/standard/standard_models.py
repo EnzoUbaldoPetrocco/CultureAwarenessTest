@@ -403,3 +403,71 @@ class StandardModels(GeneralModelClass):
             self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )
+
+
+    def get_model_from_weights(self, size, adversary=0, eps=0.05, mult=0.2, path="./"):
+        input = Input(size, name="image")
+
+        resnet = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)
+        fl = Flatten()(resnet.output)
+        out = (Dense(1, activation="sigmoid", name="dense"))(fl)
+
+        self.model = Model(inputs=resnet.input, outputs=out, name="model")
+        gradcam_layers = []
+        for layer in self.model.layers:
+            layer.trainable = False
+        for layer in self.model.layers[-2:]:
+            if not isinstance(layer, layers.BatchNormalization):
+                layer.trainable = True
+                gradcam_layers.append(layer.name)
+                if self.verbose_param:
+                    print(f"Layer trainable name is: {layer.name}")
+        if adversary:
+            self.model = tf.keras.Sequential([input, self.model])
+        lr_reduce = ReduceLROnPlateau(
+            monitor="val_loss",
+            factor=0.1,
+            patience=3,
+            verbose=self.verbose_param,
+            mode="max",
+            min_lr=1e-9,
+        )
+        early = EarlyStopping(
+            monitor="val_loss",
+            min_delta=0.001,
+            patience=12,
+            verbose=self.verbose_param,
+            mode="auto",
+        )
+        callbacks = [lr_reduce, early]
+        adam = optimizers.Adam(self.learning_rate)
+        optimizer = adam
+        # Wrap the model with adversarial regularization.
+        if adversary:
+            adv_config = nsl.configs.make_adv_reg_config(
+                multiplier=mult, adv_step_size=eps
+            )
+            self.model = nsl.keras.AdversarialRegularization(
+                self.model, adv_config=adv_config
+            )
+            self.model.compile(
+                optimizer=optimizer,
+                metrics=["accuracy"],
+                loss=[self.adv_custom_loss()],
+            )
+
+        else:
+            self.model.compile(
+                loss="binary_crossentropy",
+                optimizer=optimizer,
+                metrics=["accuracy"],
+            )
+
+        if adversary:
+            self.model = Model(
+                inputs=self.model.layers[0].get_layer("model").layers[0].input,
+                outputs=self.model.layers[0].get_layer("model").layers[-1].output,
+            )
+            self.model.load_weights(path)
+        else:
+            self.model.load_weights(path)

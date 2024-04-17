@@ -324,7 +324,7 @@ class MitigatedModels(GeneralModelClass):
         best_loss = losses[idx]
         best_bs = batch_sizes[idx % len(batch_sizes)]
         best_lr = learning_rates[math.floor(idx/len(batch_sizes))%len(learning_rates)]
-        best_lmb = lambdas[idx]
+        best_lmb = lambdas[math.floor(idx/(len(batch_sizes)*len(learning_rates)))]
         best_CIC = cics[idx]
 
         if self.verbose_param:
