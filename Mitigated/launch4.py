@@ -32,11 +32,11 @@ memory_limit = 4000
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
-        for j in range(0, 14):
+        for j in range(-1, 13):
             for percent in percents:
                 for c in range(0,3):
                     for k in range(0,4):
-                        for i in range(3):
+                        for i in range(2):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,
@@ -45,7 +45,7 @@ with tf.device("/CPU:0"):
                                 learning_rate=learning_rate,
                                 epochs=epochs,
                                 batch_size=bs,
-                                lambda_index=12-j,
+                                lambda_index=j,
                                 culture=c,
                                 percent=percent,
                                 val_split=val_split,
