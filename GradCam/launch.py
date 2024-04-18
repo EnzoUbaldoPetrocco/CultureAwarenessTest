@@ -34,7 +34,7 @@ nt = 10
 memory_limit = 3000
 
 
-for lamp in [0, 1]:
+for lamp in [1,0]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
     with tf.device("/CPU:0"):
         for standard in standards:
