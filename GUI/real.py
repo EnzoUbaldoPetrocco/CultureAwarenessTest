@@ -16,7 +16,7 @@ from Model.standard.standard_models import StandardModels
 
 config = Config()
 plot = False
-photo_size = 300
+photo_size = 350
 carpet_model = None
 lamp_model = None
 
@@ -143,7 +143,7 @@ class SampleApp(tk.Tk):
         if page_name == "StartPage":
             global score, mlscore
             score = 0
-            mlscore
+            mlscore = 0
 
         frame.tkraise()
 
@@ -335,7 +335,7 @@ class PageFour(tk.Frame):
 
         global mlscore
         mlpred = int(lamp_model(
-            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+            np.expand_dims(self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0], axis=0)
         ))
         if self.true==mlpred:
             mlscore += 1
@@ -434,7 +434,7 @@ class PageFive(tk.Frame):
 
         global mlscore
         mlpred = int(lamp_model(
-            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+            np.expand_dims(self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0], axis=0)
         ))
         if self.true==mlpred:
             mlscore += 1
@@ -535,7 +535,7 @@ class PageSix(tk.Frame):
 
         global mlscore
         mlpred = int(lamp_model(
-            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+            np.expand_dims(self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0], axis=0)
         ))
         if self.true==mlpred:
             mlscore += 1
@@ -641,7 +641,7 @@ class PageSeven(tk.Frame):
 
         global mlscore
         mlpred = int(carpet_model(
-            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+           np.expand_dims(self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0], axis=0)
         ))
         if self.true==mlpred:
             mlscore += 1
@@ -746,7 +746,7 @@ class PageHeight(tk.Frame):
 
         global mlscore
         mlpred = int(carpet_model(
-            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+            np.expand_dims(self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0], axis=0)
         ))
         if self.true==mlpred:
             mlscore += 1
@@ -848,7 +848,7 @@ class PageNine(tk.Frame):
 
         global mlscore
         mlpred = int(carpet_model(
-            self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0]
+            np.expand_dims(self.controller.procObjLamp.dataobj.dataset[culture][label_idx][idx][0], axis=0)
         ))
         if self.true==mlpred:
             mlscore += 1
@@ -1174,7 +1174,7 @@ if __name__ == "__main__":
                 learning_rate=0,
                 epochs=15,
                 batch_size=1)
-    carpet_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/DL/CS/0.05/AVD/0/model")
+    carpet_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/STD/DL/CS/0.05/AVD/model")
     lamp_model = StandardModels(
                 type="DL",
                 verbose_param=0,
@@ -1182,6 +1182,6 @@ if __name__ == "__main__":
                 epochs=15,
                 batch_size=1)
     
-    lamp_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/MIT/DL/LF/0.05/AVD/0/model")
+    lamp_model.get_model_from_weights((100, 100, 3), 1, 0.03, 0.25, "../Mitigated/STD/DL/LF/0.05/AVD/model")
     app.after(1000, app.update_idletasks())
     app.mainloop()
