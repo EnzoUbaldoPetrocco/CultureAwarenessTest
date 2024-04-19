@@ -16,7 +16,7 @@ from Model.standard.standard_models import StandardModels
 
 config = Config()
 plot = False
-photo_size = 350
+photo_size = 500
 carpet_model = None
 lamp_model = None
 
@@ -156,7 +156,7 @@ class StartPage(tk.Frame):
         self.controller = controller
         label = tk.Label(
             self,
-            text="Benvenuti nella RoboValley!\n Vuoi giocare contro l'Intelligenza Artificiale (IA)?",
+            text="Benvenuti nella Robot Valley!\n Vuoi giocare contro l'Intelligenza Artificiale (IA)?",
             font=controller.title_font,
         )
         label.pack(side="top", pady=config.padding)
@@ -269,7 +269,8 @@ class PageThree(tk.Frame):
             + "\nSiccome i modelli di apprendimento automatico imparano dai dati,\n un contesto culturale estraneo per loro vuol dire"
             + "\ndover imparare da e funzionare per un sottoinsieme di dati diverso da quello maggioritario."
             + "\nSupponiamo di essere in Europa e dover riconoscere se una lampada è accesa o spenta."
-            + "\nPer noi umani spostarci in Cina a fare la stessa cosa dovrebbe essere abbastanza facile,\n ma non è detto che per l'IA lo sia (anzi)"
+            + "\nPer noi umani, spostarci in Cina a fare la stessa cosa dovrebbe essere abbastanza facile,\n ma non è detto che per l'IA lo sia"
+            + "\n(anzi, dimostreremo il contrario)."
             + "\nLa competenza culturale è la capacità di adattarsi ai diversi contesti culturali.\n Impara cosa vuol dire giocando :)",
             font=controller.title_font,
         )
@@ -936,7 +937,7 @@ class PageTen(tk.Frame):
             text
             + f"L'IA invece ne ha azzeccate {mlscore}\n"
             + "È stato difficile rispondere quando le lampade e i tappeti\nappartenevano a un contesto culturale diverso dal tuo?\n"
-            + "Per l'IA è così.\n"
+            + "Per questa IA, allenata per lo più con dati provenienti dall'Europa, è così.\n"
             + "Questa infatti non è molto brava a fare il proprio compito\n quando lampade o tappeti vengono da paesi stranieri.\n"
             + "Soprattutto quando queste culture sono culture di minoranza\n (si hanno pochi dati per addestrare i modelli)"
         )
@@ -1003,9 +1004,10 @@ class PageEleven(tk.Frame):
         self.controller = controller
 
         text = (
-            "Il nostro lavoro consiste nel rendere i modelli culturalmente competenti.\n"
-            + "Questo è importante, perché come hai potuto vedere non solo se il modello non lo è, non funziona\n"
-            + "Ma anche perché questo può causare problemi etici\n"
+            "Parte del nostro lavoro consiste nel rendere i robot culturalmente competenti.\n"
+            + 'Ma visto che i robot "pensano" grazie all\'IA, bisogna che anche questa lo sia\n'
+            + "Questo è importante, perché, come hai potuto vedere, se il modello non si adatta al\n"
+            + "contesto culturale non funziona o può indurre a problemi etici\n"
             + "Nel nostro laboratorio abbiamo provare a usare un metodo\nche viene dal Multitask learning per mitigare questa incompetenza\n"
             + "Vuoi saperne di più?"
         )
@@ -1060,9 +1062,9 @@ class PageTwelve(tk.Frame):
         self.controller = controller
 
         text = (
-            "Il Multitask Learning è un ramo dell'Intelligenza Artificiale\nche si occupa di usare uno stesso modello per compiere più compiti.\n"
-            + "Si basa sul fatto che se i compiti sono simili,\nmolto del lavoro per imparare a fare i compiti è comune\n"
-            + "Immagina di dover imparare a suonare la chitarra elettrica e la chitarra classica\n"
+            "Il Multitask Learning è un ramo dell'Intelligenza Artificiale\nche si occupa di allenare uno stesso modello per occuparsi di più compiti.\n"
+            + "La nostra tecnica si basa sul fatto che se i compiti sono simili,\nmolto del lavoro per imparare a fare i compiti è comune\n"
+            + "Immagina di dover imparare a suonare la chitarra elettrica e la chitarra classica.\n"
             + "Anche se son due strumenti simili non si suonano allo stesso modo\n"
             + "Tuttavia sono due compiti simili, e quindi una volta imparato a suonare\n la chitarra elettrica diventa più semplice imparare a suonare la classica"
         )
@@ -1116,13 +1118,12 @@ class PageThirteen(tk.Frame):
         self.controller = controller
 
         text = (
-            "Ora applichiamo questo concetto a diverse culture,\n immaginiamo di dover imparare a distinguere una lampada accesa da una spenta"
+            "Ora applichiamo questo concetto a diverse culture:\n immaginiamo di dover imparare a distinguere una lampada accesa da una spenta."
             + "\nSe io imparo a farlo usando le lampade francesi,\n con quelle turche il problema è simile"
-            + "\nMa se io ho pochi esempi di lampade turche,\n la macchina rischia di non imparare bene."
-            + "\nPer questo ho bisogno di considerarli due problemi separati."
-            + "\nAbbiamo misurato sperimentalmente, tramite analisi statistica,\n che usare questo approccio migliora la competenza culturale"
-            + "\ndei modelli di apprendimento automatico."
-            + "\nMa di strada da fare ce n'è ancora tanta!"
+            + "\nMa le macchine sono strane e se io ho pochi esempi\n di lampade turche, l'IA non impara bene."
+            + "\nQui entra in gioco il nostro sistema."
+            + "\nAbbiamo messo a confronto quindi degli algoritmi\ndi apprendimento automatico con e senza il nostro sistema"
+            + "\ne abbiamo verificato che ne migliorasse la competenza culturale."
         )
         header = Frame(self)
         header.pack(side="top", padx=config.padding, fill="x")
