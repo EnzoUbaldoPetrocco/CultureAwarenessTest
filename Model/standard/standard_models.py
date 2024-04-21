@@ -21,6 +21,7 @@ from keras import layers, optimizers
 from Model.GeneralModel import GeneralModelClass
 import neural_structured_learning as nsl
 import gc
+import os
 
 
 class StandardModels(GeneralModelClass):
@@ -128,7 +129,7 @@ class StandardModels(GeneralModelClass):
         :return loss function (binary crossentropy)
         """
         def loss(y_true, y_pred):
-            l = tf.keras.losses.binary_crossentropy(y_true, y_pred[:])
+            l = tf.keras.losses.binary_crossentropy(y_true[0], y_pred[0])
             return l
 
         return loss
@@ -378,7 +379,7 @@ class StandardModels(GeneralModelClass):
                         self.save(output, out_dir, name)
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
+        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0,
     ):
         """
         General function for implementing model selection
@@ -389,6 +390,7 @@ class StandardModels(GeneralModelClass):
         :param mult: if adversary enabled, multiplier of adversarial training
         :param gradcam: if enabled, gradcam callback is called
         :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        :param complete: dummy argument
         """
         if self.type == "SVC":
             self.SVC(TS)
@@ -402,3 +404,7 @@ class StandardModels(GeneralModelClass):
             self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )
+
+
+    def get_model_from_weights(self, size, adversary=0, eps=0.05, mult=0.2, path="./"):
+        self.model = tf.keras.models.load_model(path)
