@@ -63,32 +63,41 @@ class GradCAM:
 		print(f"castConvOutputs inside compute heatmap function: {np.shape(castConvOutputs)}")
 		castGrads = tf.cast(grads > 0, "float32")
 		guidedGrads = castConvOutputs * castGrads * grads
+
 		# the convolution and guided gradients have a batch dimension
 		# (which we don't need) so let's grab the volume itself and
 		# discard the batch
-		convOutputs = convOutputs[0]
-		guidedGrads = guidedGrads[0]
-		
-		# compute the average of the gradient values, and using them
-		# as weights, compute the ponderation of the filters with
-		# respect to the weights
-		weights = tf.reduce_mean(guidedGrads, axis=(0, 1))
-		cam = tf.reduce_sum(tf.multiply(weights, convOutputs), axis=-1)
-		
-		# grab the spatial dimensions of the input image and resize
-		# the output class activation map to match the input image
-		# dimensions
-		(w, h) = (np.shape(image)[2], np.shape(image)[1])
-		heatmap = cv2.resize(cam.numpy(), (w, h))
-		# normalize the heatmap such that all values lie in the range
-		# [0, 1], scale the resulting values to the range [0, 255],
-		# and then convert to an unsigned 8-bit integer
-		numer = heatmap - np.min(heatmap)
-		denom = (heatmap.max() - heatmap.min()) + eps
-		heatmap = numer / denom
-		heatmap = (heatmap * 255).astype("uint8")
-		# return the resulting heatmap to the calling function
-		return heatmap
+		heatmaps = []
+		for i in range(len(convOutputs)):
+			convOutput = convOutputs[i]
+			guidedGrad = guidedGrads[i]
+
+			print(f"convOutputs after discarding batch: {np.shape(convOutput)}")
+			print(f"guidedGrads after discarding batch: {np.shape(guidedGrad)}")
+			
+			# compute the average of the gradient values, and using them
+			# as weights, compute the ponderation of the filters with
+			# respect to the weights
+			weights = tf.reduce_mean(guidedGrad, axis=(0, 1))
+			cam = tf.reduce_sum(tf.multiply(weights, convOutput), axis=-1)
+			
+			# grab the spatial dimensions of the input image and resize
+			# the output class activation map to match the input image
+			# dimensions
+			(w, h) = (np.shape(image)[2], np.shape(image)[1])
+			heatmap = cv2.resize(cam.numpy(), (w, h))
+			# normalize the heatmap such that all values lie in the range
+			# [0, 1], scale the resulting values to the range [0, 255],
+			# and then convert to an unsigned 8-bit integer
+			numer = heatmap - np.min(heatmap)
+			denom = (heatmap.max() - heatmap.min()) + eps
+			heatmap = numer / denom
+			heatmap = (heatmap * 255).astype("uint8")
+			# return the resulting heatmap to the calling function
+			heatmaps.append(heatmap)
+		mean_heat = tf.reduce_mean(heatmaps, axis=0)
+		print(f"Shape of mean heat {np.shape(mean_heat)}")
+		return 
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,
 		colormap=cv2.COLORMAP_VIRIDIS):

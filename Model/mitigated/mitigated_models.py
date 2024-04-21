@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
+import math
 import sys
 
 sys.path.insert(1, "../../")
@@ -81,6 +82,23 @@ class MitigatedModels(GeneralModelClass):
             else:
                 return res
         return loss
+    
+    def wrap_cic(self):
+        def cic_fn( y_true, y_pred):
+            losses = []
+            #print(y_pred)
+            #print(y_pred[:,0])
+            #print(y_pred[:,1])
+            #print(y_pred[:,2])
+            for i in range(3):
+                losses.append(tf.keras.losses.binary_crossentropy(y_true[:,1], y_pred[:,i]))
+            cic = self.computeCIC(losses)
+            #tf.print(cic)
+            return cic
+        
+        cic_fn.__name__= "cic"
+        return cic_fn
+        
 
     def adv_custom_loss(self):
         """
@@ -113,6 +131,210 @@ class MitigatedModels(GeneralModelClass):
             return sum
 
         return loss
+    
+    def computeCIC(self, errs):
+        tf.add(errs, - tf.math.reduce_min(errs))   
+        cic = tf.reduce_mean(errs)
+        return cic
+
+    def get_best_idx(self, losses: list, cics: list, tau=0.1):
+        tmp_losses = losses
+        n_ls = math.floor(len(losses)*tau)
+
+        pairs = []
+        tmp_cics = []
+
+        for i in range(n_ls):
+            val = min(tmp_losses)
+            idx = tmp_losses.index(val)
+            pairs.append((val, idx))
+            tmp_losses.remove(val)
+
+            tmp_cics.append(cics[idx])
+
+        mincic = min(tmp_cics)
+        for i in range(n_ls):
+            if mincic == cics[i]: 
+                idx = i
+
+        return pairs[i][1]
+
+    def get_lossesCIC(self, history, monitor_val):
+        #print(history)
+        loss = history[monitor_val][-1]
+        cic = history['val_cic'][-1]
+        return loss,cic
+    
+    def DL_complete_model_selection(
+        self,
+        TS,
+        VS,
+        adversarial=0,
+        eps=0.05,
+        mult=0.2,
+        learning_rates=[1e-5, 1e-4, 1e-3],
+        batch_sizes=[1],
+        out_dir="./",
+        gradcam = False
+    ):
+        """
+        This function implements the model selection of Deep Learning model with Mitigation Stategy
+        :param TS: Training set
+        :param VS: Validation Set
+        :param adversary: if enabled, adversarial training is enabled
+        :param eps: if adversary enabled, step size of adversarial training
+        :param mult: if adversary enabled, multiplier of adversarial training
+        :param learning_rates: list of lr to be used for Model Selection
+        :param batch_sizes: list of bs to be used for Model Selection
+        :param gradcam: if enabled, gradcam callback is called
+        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
+        """
+        X = tf.stack(TS[0])
+        y = tf.stack(TS[1])
+        Xv = tf.stack(VS[0])
+        yv = tf.stack(VS[1])
+        losses = []
+        cics = []
+        lambdas = np.logspace(-3,1,4)
+        for lmb in lambdas:
+            self.lamb = lmb
+            for lr in learning_rates:
+                for bs in batch_sizes:
+                    if self.verbose_param:
+                        print(f"Model Selection: lambda={lmb}, lr={lr}, batch_size={bs}")
+                    with tf.device("/gpu:0"):
+                        size = np.shape(TS[0][0])
+                        input = Input(size, name="image")
+
+                        resnet = ResNet50V2(
+                            input_shape=size, weights="imagenet", include_top=False
+                        )
+                        fl = Flatten()(resnet.output)
+
+                        if adversarial:
+                            y_0 = (Dense(3, activation="sigmoid", name="dense"))(fl)
+                            self.model = Model(inputs=resnet.input, outputs=y_0, name="model")
+                        else:
+                            y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
+                            y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
+                            y3 = (Dense(1, activation="sigmoid", name="dense_2"))(fl)
+                            self.model = Model(
+                                inputs=resnet.input, outputs=[y1, y2, y3], name="model"
+                            )
+
+                        gradcam_layers = []
+                        if adversarial:
+                            for layer in self.model.layers:
+                                layer.trainable = False
+                            self.model.layers[-1].trainable = True
+                            gradcam_layers.append(self.model.layers[-1].name)
+                            # print(f"Layer trainable name is: {self.model.layers[-1].name}")
+                        else:
+                            for layer in self.model.layers:
+                                layer.trainable = False
+                            for layer in self.model.layers[-3:]:
+                                if not isinstance(layer, layers.BatchNormalization):
+                                    if self.verbose_param:
+                                        print(f"Layer trainable name is: {layer.name}")
+                                    layer.trainable = True
+                                    gradcam_layers.append(layer.name)
+
+                        if adversarial:
+                            self.model = tf.keras.Sequential([input, self.model])
+
+                        monitor_val = f"val_loss"
+                        lr_reduce = ReduceLROnPlateau(
+                            monitor=monitor_val,
+                            factor=0.1,
+                            patience=3,
+                            verbose=self.verbose_param,
+                            mode="max",
+                            min_lr=1e-9,
+                        )
+                        early = EarlyStopping(
+                            monitor=monitor_val,
+                            min_delta=0.001,
+                            patience=12,
+                            verbose=self.verbose_param,
+                            mode="auto",
+                        )
+                        adam = optimizers.Adam(lr)
+                        optimizer = adam
+
+                        # Wrap the model with adversarial regularization.
+                        if adversarial:
+                            adv_config = nsl.configs.make_adv_reg_config(
+                                multiplier=mult, adv_step_size=eps
+                            )
+                            self.model = nsl.keras.AdversarialRegularization(
+                                self.model, adv_config=adv_config
+                            )
+                            self.model.compile(
+                                optimizer=optimizer,
+                                metrics=["accuracy", self.wrap_cic()],
+                                loss=[self.adv_custom_loss()],
+                            )
+                            # for layer in self.model.layers:
+                            #    layer.summary()
+                        else:
+                            self.model.compile(
+                                optimizer=optimizer,
+                                metrics=["accuracy", self.wrap_cic()],
+                                loss=[
+                                    self.custom_loss(out=0),
+                                    self.custom_loss(out=1),
+                                    self.custom_loss(out=2),
+                                ],
+
+                            )
+                            # self.model.summary()
+
+                        tf.get_logger().setLevel("ERROR")
+
+                        if adversarial:
+                            self.history = self.model.fit(
+                                x={"image": X, "label": y},
+                                epochs=self.epochs,
+                                validation_data={"image": Xv, "label": yv},
+                                callbacks=[early, lr_reduce],
+                                verbose=self.verbose_param,
+                                batch_size=bs,
+                            )
+
+                        else:
+                            # print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
+                            self.history = self.model.fit(
+                                X,
+                                y,
+                                epochs=self.epochs,
+                                validation_data=(Xv, yv),
+                                callbacks=[early, lr_reduce],
+                                verbose=self.verbose_param,
+                                batch_size=bs,
+                            )
+                    loss, CIC = self.get_lossesCIC(self.history.history, monitor_val)
+                    print(f"Loss is {loss}, cic is {CIC}")
+                    losses.append(loss)
+                    cics.append(CIC)
+                    self.model = None
+                    del self.model
+                    gc.collect()
+
+        idx = self.get_best_idx(losses, cics)
+        best_loss = losses[idx]
+        best_bs = batch_sizes[idx % len(batch_sizes)]
+        best_lr = learning_rates[math.floor(idx/len(batch_sizes))%len(learning_rates)]
+        best_lmb = lambdas[math.floor(idx/(len(batch_sizes)*len(learning_rates)))]
+        best_CIC = cics[idx]
+
+        if self.verbose_param:
+            print(f"Best lambda={best_lmb}; best lr={best_lr}, best loss={best_loss}, bestCIC={best_CIC}")
+
+        self.batch_size = best_bs
+        self.learning_rate = best_lr
+        self.model = None
+        self.lamb = best_lmb
+        self.DL(TS, VS, adversarial, eps, mult, gradcam=gradcam, out_dir=out_dir)
 
     def DL_model_selection(
         self,
@@ -418,7 +640,7 @@ class MitigatedModels(GeneralModelClass):
                         self.save(output, out_dir, name)
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./"
+        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0
     ):
         """
         General function for implementing model selection
@@ -431,10 +653,116 @@ class MitigatedModels(GeneralModelClass):
         :param out_dir: if gradcam enabled, output directory of gradcam heatmap
         """
         if self.type == "DL" or "RESNET":
-            self.DL_model_selection(
+            if complete:
+                self.DL_complete_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )
+            else:
+                self.DL_model_selection(
+                    TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
+                )
         else:
-            self.DL_model_selection(
+            if complete:
+                self.DL_complete_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )
+            else:
+                self.DL_model_selection(
+                    TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
+                )
+
+
+    def get_model_from_weights(self, size, adversary=0, eps=0.05, mult=0.2, path="./"):
+        self.model = tf.keras.models.load_model(path)
+        input = Input(size, name="image")
+
+        resnet = ResNet50V2(
+            input_shape=size, weights="imagenet", include_top=False
+        )
+        fl = Flatten()(resnet.output)
+
+        if adversarial:
+            y_0 = (Dense(3, activation="sigmoid", name="dense"))(fl)
+            self.model = Model(inputs=resnet.input, outputs=y_0, name="model")
+        else:
+            y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
+            y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
+            y3 = (Dense(1, activation="sigmoid", name="dense_2"))(fl)
+            self.model = Model(
+                inputs=resnet.input, outputs=[y1, y2, y3], name="model"
+            )
+
+        gradcam_layers = []
+        if adversarial:
+            for layer in self.model.layers:
+                layer.trainable = False
+            self.model.layers[-1].trainable = True
+            gradcam_layers.append(self.model.layers[-1].name)
+            # print(f"Layer trainable name is: {self.model.layers[-1].name}")
+        else:
+            for layer in self.model.layers:
+                layer.trainable = False
+            for layer in self.model.layers[-3:]:
+                if not isinstance(layer, layers.BatchNormalization):
+                    if self.verbose_param:
+                        print(f"Layer trainable name is: {layer.name}")
+                    layer.trainable = True
+                    gradcam_layers.append(layer.name)
+
+        if adversarial:
+            self.model = tf.keras.Sequential([input, self.model])
+
+
+
+        monitor_val = f"val_loss"
+        lr_reduce = ReduceLROnPlateau(
+            monitor=monitor_val,
+            factor=0.1,
+            patience=3,
+            verbose=self.verbose_param,
+            mode="max",
+            min_lr=1e-9,
+        )
+        early = EarlyStopping(
+            monitor=monitor_val,
+            min_delta=0.001,
+            patience=12,
+            verbose=self.verbose_param,
+            mode="auto",
+        )
+        adam = optimizers.Adam(self.learning_rate)
+        optimizer = adam
+
+        #tf.get_logger().setLevel("ERROR")
+        # Wrap the model with adversarial regularization.
+        if adversarial:
+            adv_config = nsl.configs.make_adv_reg_config(
+                multiplier=mult, adv_step_size=eps
+            )
+            self.model = nsl.keras.AdversarialRegularization(
+                self.model, adv_config=adv_config
+            )
+            self.model.compile(
+                optimizer=optimizer,
+                metrics=["accuracy"],
+                loss=[self.adv_custom_loss()],
+            )
+
+            self.model = Model(
+                inputs=self.model.layers[0].get_layer("model").layers[0].input,
+                outputs=self.model.layers[0].get_layer("model").layers[-1].output,
+            )
+
+        else:
+            self.model.compile(
+                optimizer=optimizer,
+                metrics=["accuracy"],
+                loss=[
+                    self.custom_loss(out=0),
+                    self.custom_loss(out=1),
+                    self.custom_loss(out=2),
+                ],
+            )
+        
+        path = tf.train.latest_checkpoint(path)
+        self.model.load_weights(path)
