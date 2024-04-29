@@ -73,18 +73,14 @@ for lamp in [1,0]:
                             grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
                             
                             if standard:
-                                heatmap = grdC.compute_heatmap(procObj.dataobj.Xv)
                                 path = procObj.basePath + "out.jpg"
-                                fObj = FileManagerClass(path)
-                                cv2.imwrite(path, heatmap)
+                                heatmap = grdC.compute_heatmap(procObj.dataobj.Xv[0:nt], path=path )
                                 print(f"saved heatmap in file {path}")
                             else:
                                 for out in range(3):
-                                    heatmap = grdC.compute_heatmap(
-                                        procObj.dataobj.Xv, out=out
-                                    )
                                     path = procObj.basePath + "out" + out + ".jpg"
-                                    fObj = FileManagerClass(path)
-                                    cv2.imwrite(path, heatmap)
+                                    heatmap = grdC.compute_heatmap(
+                                        procObj.dataobj.Xv[0:nt], out=out, path = path
+                                    )
                                     print(f"saved heatmap in file {path}")
                             procObj.partial_clear()
