@@ -71,16 +71,99 @@ for lamp in [1,0]:
                             )
 
                             grdC = GradCAM(procObj.model.model, 0, "conv5_block3_out")
-                            
+                            # NoAUg
+                            print(f"Testing->aug={0};adv={0}")
+                            procObj.prepare_test(
+                                augment=0,
+                                g_rot=g_aug,
+                                g_noise=g_aug,
+                                g_bright=g_aug,
+                                adversary=0,
+                                eps=test_eps,
+                                nt=nt
+                            )
                             if standard:
-                                path = procObj.basePath + "out.jpg"
-                                heatmap = grdC.compute_heatmap(procObj.dataobj.Xv[0:nt], path=path )
+                                path = procObj.basePath + "TNOAUG/out.jpg"
+                                heatmap = grdC.compute_heatmap(procObj.dataobj.Xt, path=path )
                                 print(f"saved heatmap in file {path}")
                             else:
                                 for out in range(3):
-                                    path = procObj.basePath + "out" + out + ".jpg"
+                                    path = procObj.basePath + "TNOAUG/out" + out + ".jpg"
                                     heatmap = grdC.compute_heatmap(
-                                        procObj.dataobj.Xv[0:nt], out=out, path = path
+                                        procObj.dataobj.Xt, out=out, path = path
                                     )
                                     print(f"saved heatmap in file {path}")
+
+
+                            print(f"Testing->aug={1};adv={0}")
+                            for t_g_aug in test_g_augs:
+                                procObj.prepare_test(
+                                        augment=1,
+                                        g_rot=t_g_aug,
+                                        g_noise=t_g_aug,
+                                        g_bright=t_g_aug,
+                                        adversary=0,
+                                        eps=None,
+                                        nt=nt)
+                                if standard:
+                                    path = procObj.basePath + f"TSTDAUG/G_AUG={t_g_aug}/out.jpg"
+                                    heatmap = grdC.compute_heatmap(procObj.dataobj.Xt_aug, path=path )
+                                    print(f"saved heatmap in file {path}")
+                                else:
+                                    for out in range(3):
+                                        path = procObj.basePath + f"TSTDAUG/G_AUG={t_g_aug}/out" + out + ".jpg"
+                                        heatmap = grdC.compute_heatmap(
+                                            procObj.dataobj.Xt_aug, out=out, path = path
+                                        )
+                                        print(f"saved heatmap in file {path}")
+
+
+                            print(f"Testing->aug={0};adv={1}")
+                            for test_ep in test_eps:
+                                procObj.test(
+                                            augment=0,
+                                            g_rot=None,
+                                            g_noise=None,
+                                            g_bright=None,
+                                            adversary=1,
+                                            eps=test_ep,
+                                            nt=nt)
+                                if standard:
+                                    path = procObj.basePath + f"TAVD/EPS={eps}/out.jpg"
+                                    heatmap = grdC.compute_heatmap(procObj.dataobj.Xt_adv, path=path )
+                                    print(f"saved heatmap in file {path}")
+                                else:
+                                    for out in range(3):
+                                        path = procObj.basePath + f"TAVD/EPS={eps}/out" + out + ".jpg"
+                                        heatmap = grdC.compute_heatmap(
+                                            procObj.dataobj.Xt_adv, out=out, path = path
+                                        )
+                                        print(f"saved heatmap in file {path}")
+
+
+                            print(f"Testing->aug={1};adv={1}")
+                            for t, t_g_aug in enumerate(test_g_augs):
+                                for test_ep in test_eps:  
+                                    procObj.test(
+                                        augment=1,
+                                        g_rot=t_g_aug,
+                                        g_noise=t_g_aug,
+                                        g_bright=t_g_aug,
+                                        adversary=1,
+                                        eps=test_ep,
+                                        nt=nt)
+                                    if standard:
+                                        path = procObj.basePath + f"TTOTAUG/G_AUG={t_g_aug}/EPS={eps}/out.jpg"
+                                        heatmap = grdC.compute_heatmap(procObj.dataobj.Xt_totaug, path=path )
+                                        print(f"saved heatmap in file {path}")
+                                    else:
+                                        for out in range(3):
+                                            path = procObj.basePath + f"TTOTAUG/G_AUG={t_g_aug}/EPS={eps}/out" + out + ".jpg"
+                                            heatmap = grdC.compute_heatmap(
+                                                procObj.dataobj.Xt_totaug, out=out, path = path
+                                            )
+                                            print(f"saved heatmap in file {path}")
+                                        
                             procObj.partial_clear()
+
+                            
