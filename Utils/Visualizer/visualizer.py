@@ -232,7 +232,7 @@ def plot(stddf, mitdfs, title='', save=False, path='./'):
     plt.ylabel("CIC") 
     plt.title(title) 
 
-    plt.xlim((0, 50))
+    plt.xlim((0, 75))
     plt.ylim((0, 30))
     
     # Adding legend, which helps us recognize the curve according to it's color 
@@ -242,7 +242,51 @@ def plot(stddf, mitdfs, title='', save=False, path='./'):
     plt.show() 
     
 
-def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj, basePath='../Results/'):
+
+def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, gaug, geps):
+    test_g_augs = [0.01, 0.05, 0.1]
+    test_eps = [0.0005, 0.001, 0.005]
+    if lamp:
+        if culture==0:
+            title = "Chinese Model"
+        if culture==1:
+            title = "French Model"
+        if culture==2:
+            title = "Turkish Model"
+    else:
+        if culture==0:
+            title = "Indian Model"
+        if culture==1:
+            title = "Japanese Model"
+        if culture==2:
+            title = "Scandinavian Model"
+
+    title += " with μ" + f"={percent}\n"
+    if augment:
+        if adversary:
+            title += "Using TOTAUG in training "
+        else:
+            title += "Using STDAUG in training "
+    else:
+        if adversary:
+            title += "Using ADVAUG in training "
+        else:
+            title += "Using NOAUG in training "
+
+    if taugment:
+        if tadversary:
+            title += f"Tested on TOTAUG with GAUG={gaug} and ε={geps}"  
+        else:
+            title += f"Tested on STDAUG with GAUG={gaug}"  
+    else:
+        if tadversary:
+            title += f"Tested on ADVAUG with ε={geps}"  
+        else:
+            title += f"Tested on NOAUG"  
+
+    return title
+
+def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj:ResAcquisitionClass, basePath='../Results/'):
         for lamp in lamps:
             for culture in cultures:
                 for percent in percents:
@@ -250,8 +294,8 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                         for adv in adversary:
                             for taugment in taugments:
                                 for tadversary in tadversaries:
-                                        tgaug = 0
-                                        teps = 0
+                                        tgaug = None
+                                        teps = None
                                         if taugment and tadversary:
                                             for tgaug in test_g_augs:
                                                 for teps in test_eps:
@@ -304,6 +348,8 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
 
+                                                    title = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
+                                                    plot(stddf=stddf, mitdfs=mitdfs, title=title)
 
                                         if taugment and not tadversary:
                                             for tgaug in test_g_augs:
@@ -356,6 +402,8 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
 
+                                                title = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
+                                                plot(stddf=stddf, mitdfs=mitdfs, title=title)
 
                                         if not taugment and tadversary:
                                             for teps in test_eps:
@@ -407,7 +455,10 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
 
-                                        if not taugment and not tadversary:
+                                                title = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
+                                                plot(stddf=stddf, mitdfs=mitdfs, title=title)
+
+                                        if (not taugment) and (not tadversary):
                                             pt = resacqobj.buildPath(
                                                             basePath,
                                                             1,
@@ -456,8 +507,8 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         pt = mitpt + "res.csv"
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
-
-                                            plot(stddf=stddf, mitdfs=mitdfs, title='JAN')
+                                            title = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
+                                            plot(stddf=stddf, mitdfs=mitdfs, title=title)
 
                                         
 def main():

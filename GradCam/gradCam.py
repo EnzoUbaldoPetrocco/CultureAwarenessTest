@@ -30,47 +30,46 @@ class GradCAM:
 		# algorithm cannot be applied
 		raise ValueError("Could not find 4D layer. Cannot apply GradCAM.")
 	
-	def compute_heatmap(self, image, eps=1e-8, out = 0):
+	def compute_heatmap(self, images, eps=1e-8, out = 0, path='./'):
 		# construct our gradient model by supplying (1) the inputs
 		# to our pre-trained model, (2) the output of the (presumably)
 		# final 4D layer in the network, and (3) the output of the
 		# softmax activations from the 
-
+		for image in images:
 			
-		gradModel = tf.keras.Model(
-			inputs=[self.model.layers[0].input],
-			outputs=[self.model.layers[-5].output, self.model.output])
-		
-		# record operations for automatic differentiation
-		with tf.GradientTape() as tape:
-			# cast the image tensor to a float-32 data type, pass the
-			# image through the gradient model, and grab the loss
-			# associated with the specific class index
-			inputs = tf.cast(image, tf.float32)
-			#convOutputs = gradModel(inputs)
-			(convOutputs, predictions) = gradModel(inputs, out)
-			print(f"convOutputs shape inside compute heatmap function {np.shape(convOutputs)}")
-			print(f"predictions shape inside compute heatmap function {np.shape(predictions)}")
-			#predictions = self.model(inputs)
-			loss = predictions[:, self.classIdx]
-			print(f"loss inside compute heatmap function {np.shape(loss)}")
-			# use automatic differentiation to compute the gradients
-			grads = tape.gradient(loss, convOutputs)
-			print(f"grads inside compute heatmap function: {np.shape(grads)}")
+			gradModel = tf.keras.Model(
+				inputs=[self.model.layers[0].input],
+				outputs=[self.model.layers[-5].output, self.model.output])
+			
+			# record operations for automatic differentiation
+			with tf.GradientTape() as tape:
+				# cast the image tensor to a float-32 data type, pass the
+				# image through the gradient model, and grab the loss
+				# associated with the specific class index
+				inputs = tf.cast(image, tf.float32)
+				#convOutputs = gradModel(inputs)
+				(convOutputs, predictions) = gradModel(inputs, out)
+				print(f"convOutputs shape inside compute heatmap function {np.shape(convOutputs)}")
+				print(f"predictions shape inside compute heatmap function {np.shape(predictions)}")
+				#predictions = self.model(inputs)
+				loss = predictions[:, self.classIdx]
+				print(f"loss inside compute heatmap function {np.shape(loss)}")
+				# use automatic differentiation to compute the gradients
+				grads = tape.gradient(loss, convOutputs)
+				print(f"grads inside compute heatmap function: {np.shape(grads)}")
 
-		# compute the guided gradients
-		castConvOutputs = tf.cast(convOutputs > 0, "float32")
-		print(f"castConvOutputs inside compute heatmap function: {np.shape(castConvOutputs)}")
-		castGrads = tf.cast(grads > 0, "float32")
-		guidedGrads = castConvOutputs * castGrads * grads
+			# compute the guided gradients
+			castConvOutputs = tf.cast(convOutputs > 0, "float32")
+			print(f"castConvOutputs inside compute heatmap function: {np.shape(castConvOutputs)}")
+			castGrads = tf.cast(grads > 0, "float32")
+			guidedGrads = castConvOutputs * castGrads * grads
 
-		# the convolution and guided gradients have a batch dimension
-		# (which we don't need) so let's grab the volume itself and
-		# discard the batch
-		heatmaps = []
-		for i in range(len(convOutputs)):
-			convOutput = convOutputs[i]
-			guidedGrad = guidedGrads[i]
+			# the convolution and guided gradients have a batch dimension
+			# (which we don't need) so let's grab the volume itself and
+			# discard the batch
+			
+			convOutput = convOutputs[0]
+			guidedGrad = guidedGrads[0]
 
 			print(f"convOutputs after discarding batch: {np.shape(convOutput)}")
 			print(f"guidedGrads after discarding batch: {np.shape(guidedGrad)}")
@@ -93,11 +92,11 @@ class GradCAM:
 			denom = (heatmap.max() - heatmap.min()) + eps
 			heatmap = numer / denom
 			heatmap = (heatmap * 255).astype("uint8")
-			# return the resulting heatmap to the calling function
-			heatmaps.append(heatmap)
-		mean_heat = tf.reduce_mean(heatmaps, axis=0)
-		print(f"Shape of mean heat {np.shape(mean_heat)}")
-		return 
+			
+			(heatmap, output) = self.overlay_heatmap(heatmap, image)
+			#heatmappt = path + ""
+			cv2.imwrite(path, output)
+			return 
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,
 		colormap=cv2.COLORMAP_VIRIDIS):
