@@ -92,7 +92,11 @@ class GradCAM:
 			denom = (heatmap.max() - heatmap.min()) + eps
 			heatmap = numer / denom
 			heatmap = (heatmap * 255).astype("uint8")
-			image = np.asarray(image, dtype=np.float)
+			image = np.asarray(image, dtype=float)
+
+			print(f"Shape of image is {np.shape(image)}")
+			print(f"Shape of heatmap is {np.shape(heatmap)}")
+			
 			(heatmap, output) = self.overlay_heatmap(heatmap, image)
 			#heatmappt = path + ""
 			cv2.imwrite(path, output)
