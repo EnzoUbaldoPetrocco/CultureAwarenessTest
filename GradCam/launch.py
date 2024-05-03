@@ -21,7 +21,7 @@ bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
-epochs = 1
+epochs = 15
 
 g_aug = 0.1
 test_g_augs = [0.01, 0.05, 0.1]
@@ -85,11 +85,15 @@ for lamp in [1,0]:
                             for culture in range(3):
                                 if standard:
                                     path = procObj.basePath + f"TNOAUG/CULTURE{culture}/out/"
+                                    fObj = FileManagerClass(path)
+                                    del fObj
                                     heatmap = grdC.compute_heatmap(procObj.dataobj.Xt[culture], path=path )
                                     print(f"saved heatmap in file {path}")
                                 else:
                                     for out in range(3):
                                         path = procObj.basePath + f"TNOAUG/CULTURE{culture}/out" + out + "/"
+                                        fObj = FileManagerClass(path)
+                                        del fObj
                                         heatmap = grdC.compute_heatmap(
                                             procObj.dataobj.Xt[culture], out=out, path = path
                                         )
@@ -126,7 +130,7 @@ for lamp in [1,0]:
 
                             print(f"Testing->aug={0};adv={1}")
                             for test_ep in test_eps:
-                                procObj.test(
+                                procObj.prepare_test(
                                             augment=0,
                                             g_rot=None,
                                             g_noise=None,
@@ -155,7 +159,7 @@ for lamp in [1,0]:
                             print(f"Testing->aug={1};adv={1}")
                             for t, t_g_aug in enumerate(test_g_augs):
                                 for test_ep in test_eps:  
-                                    procObj.test(
+                                    procObj.prepare_test(
                                         augment=1,
                                         g_rot=t_g_aug,
                                         g_noise=t_g_aug,
