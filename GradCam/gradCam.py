@@ -92,7 +92,7 @@ class GradCAM:
 
 			cv2.imwrite(path + "both.jpg", output)
 			cv2.imwrite(path + "heatmap.jpg", heatmap)
-			cv2.imwrite(path + "image.jpg", image)
+			cv2.imwrite(path + "image.jpg", np.array(image*255).astype('uint8'))
 		return
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,

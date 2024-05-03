@@ -115,7 +115,7 @@ for lamp in [1,0]:
                                         path = procObj.basePath + f"TSTDAUG/CULTURE{culture}/G_AUG={t_g_aug}/out/"
                                         fObj = FileManagerClass(path)
                                         del fObj
-                                        heatmap = grdC.compute_heatmap(procObj.dataobj.Xt_aug[culture], path=path )
+                                        heatmap = grdC.compute_heatmap(procObj.Xt_aug[culture], path=path )
                                         print(f"saved heatmap in file {path}")
                                     else:
                                         for out in range(3):
@@ -123,7 +123,7 @@ for lamp in [1,0]:
                                             fObj = FileManagerClass(path)
                                             del fObj
                                             heatmap = grdC.compute_heatmap(
-                                                procObj.dataobj.Xt_aug[culture], out=out, path = path
+                                                procObj.Xt_aug[culture], out=out, path = path
                                             )
                                             print(f"saved heatmap in file {path}")
 
@@ -143,7 +143,7 @@ for lamp in [1,0]:
                                         path = procObj.basePath + f"TAVD/CULTURE{culture}/EPS={eps}/out/"
                                         fObj = FileManagerClass(path)
                                         del fObj
-                                        heatmap = grdC.compute_heatmap(procObj.dataobj.Xt_adv[culture], path=path )
+                                        heatmap = grdC.compute_heatmap(procObj.Xt_adv[culture], path=path )
                                         print(f"saved heatmap in file {path}")
                                     else:
                                         for out in range(3):
@@ -151,7 +151,7 @@ for lamp in [1,0]:
                                             fObj = FileManagerClass(path)
                                             del fObj
                                             heatmap = grdC.compute_heatmap(
-                                                procObj.dataobj.Xt_adv[culture], out=out, path = path
+                                                procObj.Xt_adv[culture], out=out, path = path
                                             )
                                             print(f"saved heatmap in file {path}")
 
@@ -172,7 +172,7 @@ for lamp in [1,0]:
                                             path = procObj.basePath + f"TTOTAUG/CULTURE{culture}/G_AUG={t_g_aug}/EPS={eps}/out/"
                                             fObj = FileManagerClass(path)
                                             del fObj
-                                            heatmap = grdC.compute_heatmap(procObj.dataobj.Xt_totaug[culture], path=path )
+                                            heatmap = grdC.compute_heatmap(procObj.Xt_totaug[culture], path=path )
                                             print(f"saved heatmap in file {path}")
                                         else:
                                             for out in range(3):
@@ -180,7 +180,7 @@ for lamp in [1,0]:
                                                 fObj = FileManagerClass(path)
                                                 del fObj
                                                 heatmap = grdC.compute_heatmap(
-                                                    procObj.dataobj.Xt_totaug[culture], out=out, path = path
+                                                    procObj.Xt_totaug[culture], out=out, path = path
                                                 )
                                                 print(f"saved heatmap in file {path}")
                                         
