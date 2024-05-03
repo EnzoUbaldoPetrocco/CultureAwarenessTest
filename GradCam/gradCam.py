@@ -49,19 +49,14 @@ class GradCAM:
 				inputs = tf.cast(image, tf.float32)
 				#convOutputs = gradModel(inputs)
 				(convOutputs, predictions) = gradModel(np.expand_dims(inputs, 0), out)
-				print(f"convOutputs shape inside compute heatmap function {np.shape(convOutputs)}")
-				print(f"predictions shape inside compute heatmap function {np.shape(predictions)}")
 				#predictions = self.model(inputs)
 				loss = predictions[:, self.classIdx]
-				print(f"loss inside compute heatmap function {np.shape(loss)}")
 				# use automatic differentiation to compute the gradients
 
 			grads = tape.gradient(loss, convOutputs)
-			print(f"grads inside compute heatmap function: {np.shape(grads)}")
 
 			# compute the guided gradients
 			castConvOutputs = tf.cast(convOutputs > 0, "float32")
-			print(f"castConvOutputs inside compute heatmap function: {np.shape(castConvOutputs)}")
 			castGrads = tf.cast(grads > 0, "float32")
 			guidedGrads = castConvOutputs * castGrads * grads
 
@@ -70,9 +65,6 @@ class GradCAM:
 			# discard the batch
 			convOutput = convOutputs[0]
 			guidedGrad = guidedGrads[0]
-
-			print(f"convOutputs after discarding batch: {np.shape(convOutput)}")
-			print(f"guidedGrads after discarding batch: {np.shape(guidedGrad)}")
 			
 			# compute the average of the gradient values, and using them
 			# as weights, compute the ponderation of the filters with
@@ -83,7 +75,7 @@ class GradCAM:
 			# grab the spatial dimensions of the input image and resize
 			# the output class activation map to match the input image
 			# dimensions
-			(w, h) = (np.shape(image)[2], np.shape(image)[1])
+			(w, h) = (np.shape(image)[1], np.shape(image)[0])
 			heatmap = cv2.resize(cam.numpy(), (w, h))
 			# normalize the heatmap such that all values lie in the range
 			# [0, 1], scale the resulting values to the range [0, 255],
@@ -93,13 +85,14 @@ class GradCAM:
 			heatmap = numer / denom
 			heatmap = (heatmap * 255).astype("uint8")
 
+			
+			img_gray = cv2.cvtColor(np.array(image*255).astype('uint8'), cv2.COLOR_RGB2GRAY)
 
-			print(f"Shape of image is {np.shape(image)}")
-			print(f"Shape of heatmap is {np.shape(heatmap)}")
+			(heatmap, output) = self.overlay_heatmap(heatmap, np.array(image*255).astype('uint8'))
 
-			(heatmap, output) = self.overlay_heatmap(heatmap, image)
-			#heatmappt = path + ""
-			cv2.imwrite(path, output)
+			cv2.imwrite(path + "both.jpg", output)
+			cv2.imwrite(path + "heatmap.jpg", heatmap)
+			cv2.imwrite(path + "image.jpg", image)
 		return
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,
