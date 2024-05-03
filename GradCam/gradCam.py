@@ -55,8 +55,9 @@ class GradCAM:
 				loss = predictions[:, self.classIdx]
 				print(f"loss inside compute heatmap function {np.shape(loss)}")
 				# use automatic differentiation to compute the gradients
-				grads = tape.gradient(loss, convOutputs)
-				print(f"grads inside compute heatmap function: {np.shape(grads)}")
+
+			grads = tape.gradient(loss, convOutputs)
+			print(f"grads inside compute heatmap function: {np.shape(grads)}")
 
 			# compute the guided gradients
 			castConvOutputs = tf.cast(convOutputs > 0, "float32")
@@ -67,7 +68,6 @@ class GradCAM:
 			# the convolution and guided gradients have a batch dimension
 			# (which we don't need) so let's grab the volume itself and
 			# discard the batch
-			
 			convOutput = convOutputs[0]
 			guidedGrad = guidedGrads[0]
 
@@ -92,7 +92,7 @@ class GradCAM:
 			denom = (heatmap.max() - heatmap.min()) + eps
 			heatmap = numer / denom
 			heatmap = (heatmap * 255).astype("uint8")
-			image = np.asarray(image, dtype=float)
+
 
 			print(f"Shape of image is {np.shape(image)}")
 			print(f"Shape of heatmap is {np.shape(heatmap)}")
@@ -100,7 +100,7 @@ class GradCAM:
 			(heatmap, output) = self.overlay_heatmap(heatmap, image)
 			#heatmappt = path + ""
 			cv2.imwrite(path, output)
-			return 
+		return
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,
 		colormap=cv2.COLORMAP_VIRIDIS):
