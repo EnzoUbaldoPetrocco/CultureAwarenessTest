@@ -163,6 +163,10 @@ class ResultsClass:
                 stdfn_i += (fn - mean_fn) ** 2
                 stdtp_i += (tp - mean_tp) ** 2
                 stdfp_i += (fp - mean_fp) ** 2
+            stdtn_i = np.sqrt(stdtn_i)
+            stdfp_i = np.sqrt(stdfp_i)
+            stdfn_i = np.sqrt(stdfn_i)
+            stdtp_i = np.sqrt(stdtp_i)
             std_matrix = np.array([[stdtn_i, stdfp_i], [stdfn_i, stdtp_i]])
             if len(pcms) > 1:
                 std_matrix = std_matrix / np.sqrt(len(pcms) - 1)
