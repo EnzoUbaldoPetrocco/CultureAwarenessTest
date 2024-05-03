@@ -48,7 +48,7 @@ class GradCAM:
 				# associated with the specific class index
 				inputs = tf.cast(image, tf.float32)
 				#convOutputs = gradModel(inputs)
-				(convOutputs, predictions) = gradModel(inputs, out)
+				(convOutputs, predictions) = gradModel(np.expand_dims(inputs, 0), out)
 				print(f"convOutputs shape inside compute heatmap function {np.shape(convOutputs)}")
 				print(f"predictions shape inside compute heatmap function {np.shape(predictions)}")
 				#predictions = self.model(inputs)
@@ -96,7 +96,7 @@ class GradCAM:
 
 			print(f"Shape of image is {np.shape(image)}")
 			print(f"Shape of heatmap is {np.shape(heatmap)}")
-			
+
 			(heatmap, output) = self.overlay_heatmap(heatmap, image)
 			#heatmappt = path + ""
 			cv2.imwrite(path, output)
