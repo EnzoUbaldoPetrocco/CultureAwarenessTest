@@ -35,7 +35,7 @@ class GradCAM:
 		# to our pre-trained model, (2) the output of the (presumably)
 		# final 4D layer in the network, and (3) the output of the
 		# softmax activations from the 
-		for image in images:
+		for i, image in enumerate(images):
 			
 			gradModel = tf.keras.Model(
 				inputs=[self.model.layers[0].input],
@@ -90,9 +90,9 @@ class GradCAM:
 
 			(heatmap, output) = self.overlay_heatmap(heatmap, np.array(image*255).astype('uint8'))
 
-			cv2.imwrite(path + "both.jpg", output)
-			cv2.imwrite(path + "heatmap.jpg", heatmap)
-			cv2.imwrite(path + "image.jpg", np.array(image*255).astype('uint8'))
+			cv2.imwrite(path + f"{i}/both.jpg", output)
+			cv2.imwrite(path + f"{i}/heatmap.jpg", heatmap)
+			cv2.imwrite(path + f"{i}/image.jpg", np.array(image*255).astype('uint8'))
 		return
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,

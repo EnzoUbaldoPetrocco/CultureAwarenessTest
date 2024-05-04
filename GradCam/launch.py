@@ -29,7 +29,7 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 
-nt = 10
+nt = 5
 
 memory_limit = 3000
 
