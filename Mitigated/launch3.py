@@ -11,7 +11,7 @@ tf.config.set_soft_device_placement(True)
 
 percents = [0.05, 0.1]
 standard = 0
-lamp = 0
+lamp = 1
 
 verbose_param = 0
 n = 1000
@@ -32,7 +32,7 @@ memory_limit = 4000
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
-        for j in range(1, 13):
+        for j in range(0, 5):
             for percent in percents:
                 for c in range(0,3):
                     for k in range(0,4):
