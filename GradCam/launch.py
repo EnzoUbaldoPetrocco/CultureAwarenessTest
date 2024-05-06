@@ -109,7 +109,7 @@ epochs = 10
 g_aug = 0.05
 test_g_augs = [0.0005, 0.005]
 eps = 0.03
-test_eps = [0.0001, 0.001]
+test_eps = [0.0005, 0.005]
 mult = 0.25
 
 nt = 1
