@@ -29,24 +29,18 @@ def mkdirs(path, nt):
 
 def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1):
     yP = procObj.model.test(Xt, out)  # Predictions
-    print(f"Shape of yP = {np.shape(yP)}")
     cm = confusion_matrix(yt, yP)
-    print(cm)
     if cm[0][0] == 0:  # tn
         tn = []
     else:
         tns = [Xt[i] for i in range(len(Xt)) if yP[i] == yt[i] and yP[i] == 0  ]
         tn = tns[: min(n, len(tns) - 1)]
-        print(f"shape of tns = {np.shape(tns)}")
-        print(f"Shape of tn = {np.shape(tn)}")
         del tns
     if cm[1][0] == 0:  # fn
         fn = []
     else:
         fns = [Xt[i] for i in range(len(Xt)) if yP[i] != yt[i] and yP[i] == 0  ]
         fn = fns[: min(n, len(fns) - 1)]
-        print(f"shape of fns = {np.shape(fns)}")
-        print(f"Shape of tn = {np.shape(fn)}")
 
 
         del fns
@@ -55,8 +49,6 @@ def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1):
     else:
         fps = [Xt[i] for i in range(len(Xt)) if yP[i] != yt[i] and yP[i] == 1  ]
         fp = fps[: min(n, len(fps) - 1)]
-        print(f"shape of fps = {np.shape(fps)}")
-        print(f"Shape of tn = {np.shape(fp)}")
 
         del fps
     if cm[0][0] == 0:  # tp dim
@@ -64,13 +56,10 @@ def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1):
     else:
         tps = [Xt[i] for i in range(len(Xt)) if yP[i] == yt[i] and yP[i] == 1  ]
         tp = tps[: min(n, len(tps) - 1)]
-        print(f"shape of tps = {np.shape(tps)}")
-        print(f"Shape of tn = {np.shape(tp)}")
 
         del tps
 
     cms= [[tn, fp], [fn, tp]]
-    print(f"Shape of cms= {np.shape(cms)}")
     return cms
 
 
@@ -102,7 +91,7 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
         heatmap = grdC.compute_heatmap(
             cms[1][1],
             out=out,
-            path=path + "FP/",
+            path=path + "TP/",
         )
 
 
@@ -115,12 +104,12 @@ bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
-epochs = 12
+epochs = 1
 
-g_aug = 0.1
-test_g_augs = [0.01, 0.05, 0.1]
+g_aug = 0.05
+test_g_augs = [0.001, 0.005, 0.01]
 eps = 0.03
-test_eps = [0.0005, 0.001, 0.005]
+test_eps = [0.00005, 0.0001, 0.0005]
 mult = 0.25
 
 nt = 1
@@ -166,7 +155,6 @@ for lamp in [1, 0]:
                         pt = procObj.basePath + f"TNOAUG/"
                         Xt = procObj.dataobj.Xt
                         yt = procObj.dataobj.yt
-                        print(np.shape(Xt))
                         cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
                         print(f"Testing->aug={1};adv={0}")
