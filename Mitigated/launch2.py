@@ -28,8 +28,8 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 memory_limit = 4000
-cs = [2, 1, 0]
-ks = [3, 2, 1, 0]
+cs = [0,1,2]
+ks = [0,1,2,3]
 
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
