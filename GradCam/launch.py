@@ -144,7 +144,7 @@ for lamp in [1,0]:
                                             nt=nt)
                                 for culture in range(3):
                                     if standard:
-                                        path = procObj.basePath + f"TAVD/CULTURE{culture}/EPS={eps}/out/"
+                                        path = procObj.basePath + f"TAVD/CULTURE{culture}/EPS={test_ep}/out/"
                                         for i in range(nt):
                                             fObj = FileManagerClass(path+f"{i}/")
                                             del fObj
@@ -152,7 +152,7 @@ for lamp in [1,0]:
                                         print(f"saved heatmap in file {path}")
                                     else:
                                         for out in range(3):
-                                            path = procObj.basePath + f"TAVD/CULTURE{culture}/EPS={eps}/out" + out + "/"
+                                            path = procObj.basePath + f"TAVD/CULTURE{culture}/EPS={test_ep}/out" + out + "/"
                                             for i in range(nt):
                                                 fObj = FileManagerClass(path+f"{i}/")
                                                 del fObj
@@ -175,7 +175,7 @@ for lamp in [1,0]:
                                         nt=nt)
                                     for culture in range(3):
                                         if standard:
-                                            path = procObj.basePath + f"TTOTAUG/CULTURE{culture}/G_AUG={t_g_aug}/EPS={eps}/out/"
+                                            path = procObj.basePath + f"TTOTAUG/CULTURE{culture}/G_AUG={t_g_aug}/EPS={test_ep}/out/"
                                             for i in range(nt):
                                                 fObj = FileManagerClass(path+f"{i}/")
                                                 del fObj
@@ -183,7 +183,7 @@ for lamp in [1,0]:
                                             print(f"saved heatmap in file {path}")
                                         else:
                                             for out in range(3):
-                                                path = procObj.basePath + f"TTOTAUG/CULTURE{culture}/G_AUG={t_g_aug}/EPS={eps}/out" + out + "/"
+                                                path = procObj.basePath + f"TTOTAUG/CULTURE{culture}/G_AUG={t_g_aug}/EPS={test_ep}/out" + out + "/"
                                                 for i in range(nt):
                                                     fObj = FileManagerClass(path+f"{i}/")
                                                     del fObj
