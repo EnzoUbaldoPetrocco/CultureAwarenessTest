@@ -252,6 +252,7 @@ class ProcessingClass:
         eps=0.3,
         mult=0.05,
         gradcam=False,
+        complete = 0
     ):
         """
         process function prepares the data and fit the model
@@ -361,7 +362,7 @@ class ProcessingClass:
                 aug = "NOAUG/"
 
         self.basePath = self.basePath + aug
-        if not standard:
+        if ((not standard) and (not complete)):
             self.basePath = self.basePath + str(lambda_index) + "/"
         del c
         del aug
@@ -373,6 +374,7 @@ class ProcessingClass:
             mult=mult,
             gradcam=gradcam,
             out_dir=self.basePath,
+            complete = complete
         )
 
     def test(

@@ -4,6 +4,7 @@ __author__ = "Enzo Ubaldo Petrocco"
 import tensorflow as tf
 import numpy as np
 import cv2
+from matplotlib import pyplot as plt
 
 
 class GradCAM:
@@ -85,14 +86,21 @@ class GradCAM:
 			heatmap = numer / denom
 			heatmap = (heatmap * 255).astype("uint8")
 
-			
-			img_gray = cv2.cvtColor(np.array(image*255).astype('uint8'), cv2.COLOR_RGB2GRAY)
+			im = np.array(image*255).astype('uint8')
 
-			(heatmap, output) = self.overlay_heatmap(heatmap, np.array(image*255).astype('uint8'))
+			(heatmap, output) = self.overlay_heatmap(heatmap, im)
 
-			cv2.imwrite(path + f"{i}/both.jpg", output)
-			cv2.imwrite(path + f"{i}/heatmap.jpg", heatmap)
-			cv2.imwrite(path + f"{i}/image.jpg", np.array(image*255).astype('uint8'))
+
+			plt.imshow(output)
+			plt.show()
+			plt.imshow(heatmap)
+			plt.show()
+			plt.imshow(image)
+			plt.show()
+
+			cv2.imwrite(path + f"{i}/both.jpg", cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
+			cv2.imwrite(path + f"{i}/heatmap.jpg", cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
+			cv2.imwrite(path + f"{i}/image.jpg",  cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
 		return
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,
