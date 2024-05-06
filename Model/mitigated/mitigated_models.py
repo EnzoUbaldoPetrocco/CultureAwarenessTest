@@ -195,7 +195,7 @@ class MitigatedModels(GeneralModelClass):
         yv = tf.stack(VS[1])
         losses = []
         cics = []
-        lambdas = np.logspace(-3,1,4)
+        lambdas = np.logspace(-3,1,13)
         for lmb in lambdas:
             self.lamb = lmb
             for lr in learning_rates:
