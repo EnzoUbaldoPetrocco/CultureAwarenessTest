@@ -232,7 +232,7 @@ def plot(stddf, mitdfs, title='', save=False, path='./'):
     plt.ylabel("CIC") 
     plt.title(title) 
 
-    plt.xlim((0, 75))
+    plt.xlim((0, 100))
     plt.ylim((0, 30))
     
     # Adding legend, which helps us recognize the curve according to it's color 
