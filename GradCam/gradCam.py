@@ -91,13 +91,6 @@ class GradCAM:
 			(heatmap, output) = self.overlay_heatmap(heatmap, im)
 
 
-			plt.imshow(output)
-			plt.show()
-			plt.imshow(heatmap)
-			plt.show()
-			plt.imshow(image)
-			plt.show()
-
 			cv2.imwrite(path + f"{i}/both.jpg", cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
 			cv2.imwrite(path + f"{i}/heatmap.jpg", cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
 			cv2.imwrite(path + f"{i}/image.jpg",  cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
