@@ -240,6 +240,8 @@ def plot(stddf, mitdfs, title='', save=False, path='./'):
     
     # To load the display window 
     plt.show() 
+    if save:
+        plt.savefig(path)
     
 
 
@@ -349,7 +351,7 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         mitdfs.append(df)
 
                                                     title = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
-                                                    plot(stddf=stddf, mitdfs=mitdfs, title=title)
+                                                    plot(stddf=stddf, mitdfs=mitdfs, title=title, save=True, path=title+'.png')
 
                                         if taugment and not tadversary:
                                             for tgaug in test_g_augs:
@@ -403,7 +405,7 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         mitdfs.append(df)
 
                                                 title = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
-                                                plot(stddf=stddf, mitdfs=mitdfs, title=title)
+                                                plot(stddf=stddf, mitdfs=mitdfs, title=title, save=True, path=title+'.png')
 
                                         if not taugment and tadversary:
                                             for teps in test_eps:
@@ -523,7 +525,7 @@ def main():
     percents = [0.05, 0.1]
     augments = [0, 1]
     adversary = [0, 1]
-    lambda_indeces = range(-1, 13)
+    lambda_indeces = range(0, 13)
     taugments = [0, 1]
     tadversaries = [0, 1]
     test_g_augs = [0.01, 0.05, 0.1]
