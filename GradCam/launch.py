@@ -117,7 +117,7 @@ nt = 1
 memory_limit = 3000
 
 
-for lamp in [1, 0].reverse():
+for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
     with tf.device("/CPU:0"):
         for standard in standards:
