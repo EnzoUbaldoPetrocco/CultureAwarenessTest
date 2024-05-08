@@ -120,7 +120,7 @@ memory_limit = 3000
 for lamp in [1, 0]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
     with tf.device("/CPU:0"):
-        for standard in standards:
+        for standard in standards.reverse():
             for percent in percents:
                 for c in range(3):
                     for k in range(4):
