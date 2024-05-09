@@ -17,9 +17,8 @@ import gc
 
 
 class MitigatedModels(GeneralModelClass):
-    """
-    
-    """
+    """ """
+
     def __init__(
         self,
         type="DL",
@@ -53,65 +52,46 @@ class MitigatedModels(GeneralModelClass):
         else:
             self.lamb = 0
 
-    def custom_loss(self, out):
+    def computeCIC(self, errs):
+        tf.add(errs, -tf.math.reduce_min(errs))
+        cic = tf.reduce_mean(errs)
+        return cic
+
+    def get_cic(self, valX, valY):
+        losses = []
+        valY = list(np.asarray(valY)[:, 1])
+        for out in range(3):
+            yPred = self.model(valX)[out]
+            yPred = list(np.asarray(yPred)[:, 0])
+            ls = tf.keras.losses.binary_crossentropy(valY, yPred)
+            losses.append(ls)
+        cic = self.computeCIC(losses)
+        return cic
+    
+    def adv_get_cic(self, valX, valY):
+        losses = []
+        valY = list(np.asarray(valY)[:, 1])
+        for out in range(3):
+            yPred = self.model(valX)
+            yPred = list(np.asarray(yPred)[:, out])
+            ls = tf.keras.losses.binary_crossentropy(valY, yPred)
+            losses.append(ls)
+        cic = self.computeCIC(losses)
+        return cic
+    
+    def custom_loss(self, out, bs=1):
         """
         This function implements the loss and the regularizer of the mitigation stratyegy
         :param out: related to the corresponding output to be optimized
         :return loss function
         """
-        def loss(y_true, y_pred):
-            weights1 = self.model.layers[-3].kernel
-            weights2 = self.model.layers[-2].kernel
-            weights3 = self.model.layers[-1].kernel
-            mean = tf.math.add(weights1, weights2)
-            mean = tf.math.add(mean, weights3)
-            mean = tf.multiply(mean, 1 / 3)
-            mean = tf.multiply(mean, self.lamb)
-            if out == 0:
-                dist = tf.norm(weights1 - mean, ord="euclidean")
-            if out == 1:
-                dist = tf.norm(weights2 - mean, ord="euclidean")
-            if out == 2:
-                dist = tf.norm(weights3 - mean, ord="euclidean")
-            dist = tf.multiply(dist, dist)
-            loss = tf.keras.losses.binary_crossentropy(y_true[:,1], y_pred[:])
-            res = tf.math.add(loss, dist)
-            mask = tf.reduce_all(tf.equal(y_true[0][0], out))
-            if not mask:
-                return 0.0
-            else:
-                return res
-        return loss
-    
-    def wrap_cic(self):
-        def cic_fn( y_true, y_pred):
-            losses = []
-            #print(y_pred)
-            #print(y_pred[:,0])
-            #print(y_pred[:,1])
-            #print(y_pred[:,2])
-            for i in range(3):
-                losses.append(tf.keras.losses.binary_crossentropy(y_true[:,1], y_pred[:,i]))
-            cic = self.computeCIC(losses)
-            #tf.print(cic)
-            return cic
-        
-        cic_fn.__name__= "cic"
-        return cic_fn
-        
 
-    def adv_custom_loss(self):
-        """
-        This function implements the loss and the regularizer of the mitigation stratyegy with adversarial enabled
-        :return loss
-        """
         def loss(y_true, y_pred):
             sum = 0.0
-            for out in range(3):
-                weights = self.model.layers[0].layers[0].layers[-1].kernel
-                weights1 = weights[:, 0]
-                weights2 = weights[:, 1]
-                weights3 = weights[:, 2]
+            for b in range(len(y_true)):
+                weights1 = self.model.layers[-3].kernel
+                weights2 = self.model.layers[-2].kernel
+                weights3 = self.model.layers[-1].kernel
                 mean = tf.math.add(weights1, weights2)
                 mean = tf.math.add(mean, weights3)
                 mean = tf.multiply(mean, 1 / 3)
@@ -123,23 +103,59 @@ class MitigatedModels(GeneralModelClass):
                 if out == 2:
                     dist = tf.norm(weights3 - mean, ord="euclidean")
                 dist = tf.multiply(dist, dist)
-                loss = tf.keras.losses.binary_crossentropy(y_true[:,1], y_pred[:,out])
+                loss = tf.keras.losses.binary_crossentropy(
+                    tf.expand_dims(y_true[b][1], axis=0), y_pred[b]
+                )
                 res = tf.math.add(loss, dist)
-                mask = tf.reduce_all(tf.equal(y_true[0][0], out))
+                mask = tf.equal(y_true[b][0], out)
                 if mask:
                     sum += res
             return sum
 
         return loss
-    
-    def computeCIC(self, errs):
-        tf.add(errs, - tf.math.reduce_min(errs))   
-        cic = tf.reduce_mean(errs)
-        return cic
+
+    def adv_custom_loss(self, bs=1):
+        """
+        This function implements the loss and the regularizer of the mitigation stratyegy with adversarial enabled
+        :return loss
+        """
+
+        def loss(y_true, y_pred):
+            sum = 0.0
+            for b in range(len(y_true)):
+                for out in range(3):
+                    weights = self.model.layers[0].layers[0].layers[-1].kernel
+                    weights1 = weights[:, 0]
+                    weights2 = weights[:, 1]
+                    weights3 = weights[:, 2]
+                    mean = tf.math.add(weights1, weights2)
+                    mean = tf.math.add(mean, weights3)
+                    mean = tf.multiply(mean, 1 / 3)
+                    mean = tf.multiply(mean, self.lamb)
+
+                    if out == 0:
+                        dist = tf.norm(weights1 - mean, ord="euclidean")
+                    if out == 1:
+                        dist = tf.norm(weights2 - mean, ord="euclidean")
+                    if out == 2:
+                        dist = tf.norm(weights3 - mean, ord="euclidean")
+                    dist = tf.multiply(dist, dist)
+
+                    loss = tf.keras.losses.binary_crossentropy(
+                        tf.expand_dims(y_true[b][1], axis=0),
+                        tf.expand_dims(y_pred[b][out], axis=0),
+                    )
+                    res = tf.math.add(loss, dist)
+                    mask = tf.equal(y_true[b][0], out)
+                    if mask:
+                        sum += res
+            return sum
+
+        return loss
 
     def get_best_idx(self, losses: list, cics: list, tau=0.1):
         tmp_losses = losses
-        n_ls = math.floor(len(losses)*tau)
+        n_ls = math.floor(len(losses) * tau)
 
         pairs = []
         tmp_cics = []
@@ -154,17 +170,11 @@ class MitigatedModels(GeneralModelClass):
 
         mincic = min(tmp_cics)
         for i in range(n_ls):
-            if mincic == cics[i]: 
+            if mincic == cics[i]:
                 idx = i
 
         return pairs[i][1]
 
-    def get_lossesCIC(self, history, monitor_val):
-        #print(history)
-        loss = history[monitor_val][-1]
-        cic = history['val_cic'][-1]
-        return loss,cic
-    
     def DL_complete_model_selection(
         self,
         TS,
@@ -175,7 +185,7 @@ class MitigatedModels(GeneralModelClass):
         learning_rates=[1e-5, 1e-4, 1e-3],
         batch_sizes=[1],
         out_dir="./",
-        gradcam = False
+        gradcam=False,
     ):
         """
         This function implements the model selection of Deep Learning model with Mitigation Stategy
@@ -195,13 +205,15 @@ class MitigatedModels(GeneralModelClass):
         yv = tf.stack(VS[1])
         losses = []
         cics = []
-        lambdas = np.logspace(-3,1,4)
+        lambdas = np.logspace(-3, 1, 4)
         for lmb in lambdas:
             self.lamb = lmb
             for lr in learning_rates:
                 for bs in batch_sizes:
                     if self.verbose_param:
-                        print(f"Model Selection: lambda={lmb}, lr={lr}, batch_size={bs}")
+                        print(
+                            f"Model Selection: lambda={lmb}, lr={lr}, batch_size={bs}"
+                        )
                     with tf.device("/gpu:0"):
                         size = np.shape(TS[0][0])
                         input = Input(size, name="image")
@@ -213,7 +225,9 @@ class MitigatedModels(GeneralModelClass):
 
                         if adversarial:
                             y_0 = (Dense(3, activation="sigmoid", name="dense"))(fl)
-                            self.model = Model(inputs=resnet.input, outputs=y_0, name="model")
+                            self.model = Model(
+                                inputs=resnet.input, outputs=y_0, name="model"
+                            )
                         else:
                             y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
                             y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
@@ -271,21 +285,20 @@ class MitigatedModels(GeneralModelClass):
                             )
                             self.model.compile(
                                 optimizer=optimizer,
-                                metrics=["accuracy", self.wrap_cic()],
-                                loss=[self.adv_custom_loss()],
+                                metrics=["accuracy"],
+                                loss=[self.adv_custom_loss(bs)],
                             )
                             # for layer in self.model.layers:
                             #    layer.summary()
                         else:
                             self.model.compile(
                                 optimizer=optimizer,
-                                metrics=["accuracy", self.wrap_cic()],
+                                metrics=["accuracy"],
                                 loss=[
-                                    self.custom_loss(out=0),
-                                    self.custom_loss(out=1),
-                                    self.custom_loss(out=2),
+                                    self.custom_loss(out=0, bs=bs),
+                                    self.custom_loss(out=1, bs=bs),
+                                    self.custom_loss(out=2, bs=bs),
                                 ],
-
                             )
                             # self.model.summary()
 
@@ -300,6 +313,7 @@ class MitigatedModels(GeneralModelClass):
                                 verbose=self.verbose_param,
                                 batch_size=bs,
                             )
+                            self.model = self.model.layers[0].layers[0]
 
                         else:
                             # print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
@@ -312,7 +326,11 @@ class MitigatedModels(GeneralModelClass):
                                 verbose=self.verbose_param,
                                 batch_size=bs,
                             )
-                    loss, CIC = self.get_lossesCIC(self.history.history, monitor_val)
+                    loss = self.history.history[monitor_val][-1]
+                    if adversarial:
+                        CIC = self.adv_get_cic(Xv, yv)
+                    else:
+                        CIC = self.get_cic(Xv, yv)
                     print(f"Loss is {loss}, cic is {CIC}")
                     losses.append(loss)
                     cics.append(CIC)
@@ -323,12 +341,16 @@ class MitigatedModels(GeneralModelClass):
         idx = self.get_best_idx(losses, cics)
         best_loss = losses[idx]
         best_bs = batch_sizes[idx % len(batch_sizes)]
-        best_lr = learning_rates[math.floor(idx/len(batch_sizes))%len(learning_rates)]
-        best_lmb = lambdas[math.floor(idx/(len(batch_sizes)*len(learning_rates)))]
+        best_lr = learning_rates[
+            math.floor(idx / len(batch_sizes)) % len(learning_rates)
+        ]
+        best_lmb = lambdas[math.floor(idx / (len(batch_sizes) * len(learning_rates)))]
         best_CIC = cics[idx]
 
         if self.verbose_param:
-            print(f"Best lambda={best_lmb}; best lr={best_lr}, best loss={best_loss}, bestCIC={best_CIC}")
+            print(
+                f"Best lambda={best_lmb}; best lr={best_lr}, best loss={best_loss}, bestCIC={best_CIC}"
+            )
 
         self.batch_size = best_bs
         self.learning_rate = best_lr
@@ -346,7 +368,7 @@ class MitigatedModels(GeneralModelClass):
         learning_rates=[1e-5, 1e-4, 1e-3],
         batch_sizes=[1],
         out_dir="./",
-        gradcam = False
+        gradcam=False,
     ):
         """
         This function implements the model selection of Deep Learning model with Mitigation Stategy
@@ -378,7 +400,9 @@ class MitigatedModels(GeneralModelClass):
 
                     if adversarial:
                         y_0 = (Dense(3, activation="sigmoid", name="dense"))(fl)
-                        self.model = Model(inputs=resnet.input, outputs=y_0, name="model")
+                        self.model = Model(
+                            inputs=resnet.input, outputs=y_0, name="model"
+                        )
                     else:
                         y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
                         y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
@@ -406,7 +430,6 @@ class MitigatedModels(GeneralModelClass):
 
                     if adversarial:
                         self.model = tf.keras.Sequential([input, self.model])
-
 
                     monitor_val = f"val_loss"
                     lr_reduce = ReduceLROnPlateau(
@@ -438,7 +461,7 @@ class MitigatedModels(GeneralModelClass):
                         self.model.compile(
                             optimizer=optimizer,
                             metrics=["accuracy"],
-                            loss=[self.adv_custom_loss()],
+                            loss=[self.adv_custom_loss(bs=bs)],
                         )
                         # for layer in self.model.layers:
                         #    layer.summary()
@@ -447,16 +470,14 @@ class MitigatedModels(GeneralModelClass):
                             optimizer=optimizer,
                             metrics=["accuracy"],
                             loss=[
-                                self.custom_loss(out=0),
-                                self.custom_loss(out=1),
-                                self.custom_loss(out=2),
+                                self.custom_loss(out=0, bs=bs),
+                                self.custom_loss(out=1, bs=bs),
+                                self.custom_loss(out=2, bs=bs),
                             ],
                         )
                         # self.model.summary()
 
                     tf.get_logger().setLevel("ERROR")
-
-
 
                     if adversarial:
                         self.history = self.model.fit(
@@ -519,9 +540,7 @@ class MitigatedModels(GeneralModelClass):
             size = np.shape(TS[0][0])
             input = Input(size, name="image")
 
-            resnet = ResNet50V2(
-                input_shape=size, weights="imagenet", include_top=False
-            )
+            resnet = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)
             fl = Flatten()(resnet.output)
 
             if adversarial:
@@ -555,8 +574,6 @@ class MitigatedModels(GeneralModelClass):
             if adversarial:
                 self.model = tf.keras.Sequential([input, self.model])
 
-
-
             monitor_val = f"val_loss"
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
@@ -576,7 +593,7 @@ class MitigatedModels(GeneralModelClass):
             adam = optimizers.Adam(self.learning_rate)
             optimizer = adam
 
-            #tf.get_logger().setLevel("ERROR")
+            # tf.get_logger().setLevel("ERROR")
             # Wrap the model with adversarial regularization.
             if adversarial:
                 adv_config = nsl.configs.make_adv_reg_config(
@@ -588,7 +605,7 @@ class MitigatedModels(GeneralModelClass):
                 self.model.compile(
                     optimizer=optimizer,
                     metrics=["accuracy"],
-                    loss=[self.adv_custom_loss()],
+                    loss=[self.adv_custom_loss(bs=self.batch_size)],
                 )
                 self.history = self.model.fit(
                     x={"image": X, "label": y},
@@ -608,9 +625,9 @@ class MitigatedModels(GeneralModelClass):
                     optimizer=optimizer,
                     metrics=["accuracy"],
                     loss=[
-                        self.custom_loss(out=0),
-                        self.custom_loss(out=1),
-                        self.custom_loss(out=2),
+                        self.custom_loss(out=0, bs=self.batch_size),
+                        self.custom_loss(out=1, bs=self.batch_size),
+                        self.custom_loss(out=2, bs=self.batch_size),
                     ],
                 )
                 # print(np.linalg.norm(np.array([i[0] for i in self.model.layers[len(self.model.layers)-2].get_weights()])-np.array([i[0] for i in self.model.layers[len(self.model.layers)-1].get_weights()])))
@@ -624,9 +641,6 @@ class MitigatedModels(GeneralModelClass):
                     batch_size=self.batch_size,
                 )
 
-            
-
-                
             if gradcam:
                 # Instantiation of the explainer
                 for name in gradcam_layers:
@@ -640,7 +654,15 @@ class MitigatedModels(GeneralModelClass):
                         self.save(output, out_dir, name)
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0
+        self,
+        TS,
+        VS=None,
+        adversary=0,
+        eps=0.05,
+        mult=0.2,
+        gradcam=False,
+        out_dir="./",
+        complete=0,
     ):
         """
         General function for implementing model selection
@@ -655,8 +677,8 @@ class MitigatedModels(GeneralModelClass):
         if self.type == "DL" or "RESNET":
             if complete:
                 self.DL_complete_model_selection(
-                TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
-            )
+                    TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
+                )
             else:
                 self.DL_model_selection(
                     TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
@@ -664,20 +686,19 @@ class MitigatedModels(GeneralModelClass):
         else:
             if complete:
                 self.DL_complete_model_selection(
-                TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
-            )
+                    TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
+                )
             else:
                 self.DL_model_selection(
                     TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
                 )
 
-
-    def get_model_from_weights(self, size, adversarial=0, eps=0.05, mult=0.2, path="./"):
+    def get_model_from_weights(
+        self, size, adversarial=0, eps=0.05, mult=0.2, path="./"
+    ):
         input = Input(size, name="image")
 
-        resnet = ResNet50V2(
-            input_shape=size, weights="imagenet", include_top=False
-        )
+        resnet = ResNet50V2(input_shape=size, weights="imagenet", include_top=False)
         fl = Flatten()(resnet.output)
 
         if adversarial:
@@ -687,9 +708,7 @@ class MitigatedModels(GeneralModelClass):
             y1 = (Dense(1, activation="sigmoid", name="dense_0"))(fl)
             y2 = (Dense(1, activation="sigmoid", name="dense_1"))(fl)
             y3 = (Dense(1, activation="sigmoid", name="dense_2"))(fl)
-            self.model = Model(
-                inputs=resnet.input, outputs=[y1, y2, y3], name="model"
-            )
+            self.model = Model(inputs=resnet.input, outputs=[y1, y2, y3], name="model")
 
         gradcam_layers = []
         if adversarial:
@@ -711,8 +730,6 @@ class MitigatedModels(GeneralModelClass):
         if adversarial:
             self.model = tf.keras.Sequential([input, self.model])
 
-
-
         monitor_val = f"val_loss"
         lr_reduce = ReduceLROnPlateau(
             monitor=monitor_val,
@@ -732,7 +749,7 @@ class MitigatedModels(GeneralModelClass):
         adam = optimizers.Adam(self.learning_rate)
         optimizer = adam
 
-        #tf.get_logger().setLevel("ERROR")
+        # tf.get_logger().setLevel("ERROR")
         # Wrap the model with adversarial regularization.
         if adversarial:
             adv_config = nsl.configs.make_adv_reg_config(
@@ -744,7 +761,7 @@ class MitigatedModels(GeneralModelClass):
             self.model.compile(
                 optimizer=optimizer,
                 metrics=["accuracy"],
-                loss=[self.adv_custom_loss()],
+                loss=[self.adv_custom_loss(self.batch_size)],
             )
 
             self.model = Model(
@@ -757,11 +774,11 @@ class MitigatedModels(GeneralModelClass):
                 optimizer=optimizer,
                 metrics=["accuracy"],
                 loss=[
-                    self.custom_loss(out=0),
-                    self.custom_loss(out=1),
-                    self.custom_loss(out=2),
+                    self.custom_loss(out=0, bs=self.batch_size),
+                    self.custom_loss(out=1, bs=self.batch_size),
+                    self.custom_loss(out=2, bs=self.batch_size),
                 ],
             )
-        
+
         path = tf.train.latest_checkpoint(path)
         self.model.load_weights(path)

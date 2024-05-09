@@ -45,13 +45,11 @@ class GeneralModelClass:
                     yP = np.asarray(self.model(X))
                     if type(self.model) == keras.engine.functional.Functional:
                         if tf.shape(yP)[0] > 1:
-                            # print(np.shape(yP))
                             res = yP[:, 0]
                             if (out>0):
                                 res = res[out]
                             return res
                         else:
-                            # print(np.shape(yP))
                             res = yP[0]
                             if (out>0):
                                 res = res[out]
