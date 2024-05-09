@@ -190,7 +190,7 @@ def print_tables(standards, lamps, cultures, percents, augments, adversary, lamb
                                                     pt,
                                                 )
 
-def from_perstr2float(val):
+def perstr2float(val):
     val = val.split("%")
     val = val[0]
     val = float(val)
@@ -211,23 +211,17 @@ def plotandsave(stddf, mitdfs, plot=True, title='', save=False, path='./'):
     X_err = []
     y_err = []
     for i in range(len(mitdfs)):
-        X.append(from_perstr2float(mitdfs[i]['ERR'][0]))
-        y.append(from_perstr2float(mitdfs[i]['CIC'][0]))
-        X_err.append(from_perstr2float(mitdfs[i]['ERR std'][0]))
-        y_err.append(from_perstr2float(mitdfs[i]['CIC std'][0]))
-        #print(mitdfs[i]['ERR'][0])
-        #print(mitdfs[i]['CIC'][0])
-        #print(mitdfs[i]['ERR std'][0])
-        #print(mitdfs[i]['CIC std'][0])
-        #print("\n\n")
-
+        X.append(perstr2float(mitdfs[i]['ERR'][0]))
+        y.append(perstr2float(mitdfs[i]['CIC'][0]))
+        X_err.append(perstr2float(mitdfs[i]['ERR std'][0]))
+        y_err.append(perstr2float(mitdfs[i]['CIC std'][0]))
     
     # Plotting both the curves simultaneously 
-    plt.scatter(from_perstr2float(stddf['ERR'][0]), from_perstr2float(stddf['CIC'][0]), color='r', label='Standard Model') 
+    plt.scatter(perstr2float(stddf['ERR'][0]), perstr2float(stddf['CIC'][0]), color='r', label='Standard Model') 
     plt.plot(X, y, color='k', label='Mitigated Model') 
 
     # Plot errors
-    plt.errorbar(from_perstr2float(stddf['ERR'][0]), from_perstr2float(stddf['CIC'][0]), xerr=from_perstr2float(stddf['ERR std'][0]), yerr=from_perstr2float(stddf['CIC std'][0]), fmt="ro")
+    plt.errorbar(perstr2float(stddf['ERR'][0]), perstr2float(stddf['CIC'][0]), xerr=perstr2float(stddf['ERR std'][0]), yerr=perstr2float(stddf['CIC std'][0]), fmt="ro")
     plt.errorbar(X, y, xerr=X_err, yerr=y_err, fmt="ko")
     
     # Naming the x-axis, y-axis and the whole graph 
@@ -248,6 +242,7 @@ def plotandsave(stddf, mitdfs, plot=True, title='', save=False, path='./'):
     if save:
         plt.savefig(path)
 
+    #print(path)
     plt.close()
     
 
@@ -284,6 +279,7 @@ def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadvers
             title += "Using TOTAUG in training "
             svpath += 'TOTAUG/'
         else:
+            print(f"Going in else")
             title += "Using STDAUG in training "
             svpath += 'STDAUG/'
     else:
@@ -292,6 +288,7 @@ def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadvers
             title += "Using ADVAUG in training "
             svpath += 'ADVAUG/'
         else:
+            print(f"Going in else")
             title += "Using NOAUG in training "
             svpath += 'NOAUG/'
 
@@ -314,38 +311,36 @@ def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadvers
     fObj = FileManagerClass(svpath)
     del fObj
     svpath += 'img.png'
-    print(f"svpath is {svpath}")
+    #(f"svpath is {svpath}")
     return title, svpath
 
 def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj:ResAcquisitionClass, basePath='../Results/', plot=False):
-        
+        print(f"augments are {augments}")
+        print(f"adversaries are {adversary}")
         for lamp in lamps:
             for culture in cultures:
                 for percent in percents:
                     for augment in augments:
-                        print(augment)
                         for adv in adversary:
                             for taugment in taugments:
                                 for tadversary in tadversaries:
-                                        #tgaug = None
-                                        #teps = None
                                         if taugment and tadversary:
                                             for tgaug in test_g_augs:
                                                 for teps in test_eps:
                                                     pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            1,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            0,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
+                                                            basePath = basePath,
+                                                            standard = 1,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = 0,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = tgaug,
+                                                            teps = teps,
                                                         )
                                                     
                                                     pt = pt.split('/')
@@ -358,19 +353,19 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                     mitdfs = []
                                                     for lambda_index in lambda_indeces:
                                                         pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            0,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            lambda_index,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
+                                                            basePath=basePath,
+                                                            standard =0,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = lambda_index,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = tgaug,
+                                                            teps = teps,
                                                         )
                                                         pt = pt.split('/')
                                                         pt = pt[:len(pt)-2]
@@ -381,25 +376,25 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
 
-                                                    title, svpath = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
+                                                    title, svpath = gen_title_plot(lamp, culture, percent, augment, adv, taugment, tadversary, tgaug, teps)
                                                     plotandsave(stddf=stddf, mitdfs=mitdfs, plot = plot, title=title, save=True, path=svpath)
 
                                         if taugment and not tadversary:
                                             for tgaug in test_g_augs:
                                                 pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            1,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            0,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
+                                                            basePath=basePath,
+                                                            standard =1,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = 0,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = tgaug,
+                                                            teps = 0,
                                                         )
                                                     
                                                 pt = pt.split('/')
@@ -412,19 +407,19 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                 mitdfs = []
                                                 for lambda_index in lambda_indeces:
                                                         pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            0,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            lambda_index,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
+                                                            basePath=basePath,
+                                                            standard =0,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = lambda_index,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = tgaug,
+                                                            teps = 0,
                                                         )
                                                         pt = pt.split('/')
                                                         pt = pt[:len(pt)-2]
@@ -435,25 +430,25 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
 
-                                                title, svpath = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, tgaug, teps)
+                                                title, svpath = gen_title_plot(lamp, culture, percent, augment, adv, taugment, tadversary, tgaug, 0)
                                                 plotandsave(stddf=stddf, mitdfs=mitdfs, plot = plot, title=title, save=True, path=svpath)
 
                                         if not taugment and tadversary:
                                             for teps in test_eps:
                                                 pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            1,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            0,
-                                                            taugment,
-                                                            tadversary,
-                                                            0,
-                                                            teps,
+                                                            basePath=basePath,
+                                                            standard =1,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = 0,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = 0,
+                                                            teps = teps,
                                                         )
                                                 pt = pt.split('/')
                                                 pt = pt[0:len(pt)-2]
@@ -465,19 +460,19 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                 mitdfs = []
                                                 for lambda_index in lambda_indeces:
                                                         pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            0,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            lambda_index,
-                                                            taugment,
-                                                            tadversary,
-                                                            0,
-                                                            teps,
+                                                            basePath=basePath,
+                                                            standard =0,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = lambda_index,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = 0,
+                                                            teps = teps,
                                                         )
                                                         pt = pt.split('/')
                                                         pt = pt[:len(pt)-2]
@@ -488,24 +483,24 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
 
-                                                title, svpath = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, 0, teps)
+                                                title, svpath = gen_title_plot(lamp, culture, percent, augment, adv, taugment, tadversary, 0, teps)
                                                 plotandsave(stddf=stddf, mitdfs=mitdfs, plot = plot, title=title, save=True, path=svpath)
 
                                         if (not taugment) and (not tadversary):
                                             pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            1,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            0,
-                                                            taugment,
-                                                            tadversary,
-                                                            0,
-                                                            0,
+                                                            basePath=basePath,
+                                                            standard =1,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = 0,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = 0,
+                                                            teps = 0,
                                                         )
                                             pt = pt.split('/')
                                             pt = pt[0:len(pt)-2]
@@ -517,19 +512,19 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                             mitdfs = []
                                             for lambda_index in lambda_indeces:
                                                         pt = resacqobj.buildPath(
-                                                            basePath,
-                                                            0,
-                                                            'DL',
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            lambda_index,
-                                                            taugment,
-                                                            tadversary,
-                                                            0,
-                                                            0,
+                                                            basePath=basePath,
+                                                            standard =0,
+                                                            alg = 'DL',
+                                                            lamp = lamp,
+                                                            culture = culture,
+                                                            percent = percent,
+                                                            augment = augment,
+                                                            adversary = adv,
+                                                            lambda_index = lambda_index,
+                                                            taugment = taugment,
+                                                            tadversary = tadversary,
+                                                            tgaug = 0,
+                                                            teps = 0,
                                                         )
                                                         pt = pt.split('/')
                                                         pt = pt[:len(pt)-2]
@@ -539,7 +534,7 @@ def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, a
                                                         pt = mitpt + "res.csv"
                                                         df = pd.read_csv(pt)
                                                         mitdfs.append(df)
-                                            title, svpath = gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, 0, 0)
+                                            title, svpath = gen_title_plot(lamp, culture, percent, augment, adv, taugment, tadversary, 0, 0)
                                             plotandsave(stddf=stddf, mitdfs=mitdfs, plot = plot, title=title, save=True, path=svpath)
 
                                         
