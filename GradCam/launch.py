@@ -96,7 +96,7 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
 
 
 percents = [0.05, 0.1]
-standards = [1, 0]
+standards = [0]
 
 verbose_param = 0
 n = 1000
