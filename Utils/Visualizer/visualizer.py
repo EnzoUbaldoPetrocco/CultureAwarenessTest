@@ -32,7 +32,6 @@ class VisualizerClass:
         ax.set_title(title)
         plt.show()
 
-
 def print_tables(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, paths, visobj):
     for standard in standards:
         for lamp in lamps:
@@ -245,8 +244,6 @@ def plotandsave(stddf, mitdfs, plot=True, title='', save=False, path='./'):
     #print(path)
     plt.close()
     
-
-
 def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadversary, gaug, geps):
     test_g_augs = [0.01, 0.05, 0.1]
     test_eps = [0.0005, 0.001, 0.005]
@@ -279,7 +276,6 @@ def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadvers
             title += "Using TOTAUG in training "
             svpath += 'TOTAUG/'
         else:
-            print(f"Going in else")
             title += "Using STDAUG in training "
             svpath += 'STDAUG/'
     else:
@@ -288,7 +284,6 @@ def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadvers
             title += "Using ADVAUG in training "
             svpath += 'ADVAUG/'
         else:
-            print(f"Going in else")
             title += "Using NOAUG in training "
             svpath += 'NOAUG/'
 
@@ -315,8 +310,6 @@ def gen_title_plot(lamp, culture, percent, augment, adversary, taugment, tadvers
     return title, svpath
 
 def graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj:ResAcquisitionClass, basePath='../Results/', plot=False):
-        print(f"augments are {augments}")
-        print(f"adversaries are {adversary}")
         for lamp in lamps:
             for culture in cultures:
                 for percent in percents:
