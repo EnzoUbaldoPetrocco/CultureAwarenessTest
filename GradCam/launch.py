@@ -34,6 +34,8 @@ def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1, standard=0):
     #print(f"yt after is {yt}")
     yP = procObj.model.test(Xt, out)  # Predictions
     #print(f"yP is {yP}")
+    print(np.shape(yP))
+    print(np.shape(yt))
     cm = confusion_matrix(np.asarray(yt, dtype=object), yP)
     if cm[0][0] == 0:  # tn
         tn = []
