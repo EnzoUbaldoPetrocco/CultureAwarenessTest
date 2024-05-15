@@ -22,7 +22,7 @@ bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
-epochs = 15
+epochs = 1
 
 g_aug = 0.1
 eps = 0.03
@@ -40,7 +40,7 @@ for lamp in lamps:
             c = 2 #scandinavian
         print(f"Training...")
         procObj.process(
-            standard=1,
+            standard=0,
             type="DL",
             verbose_param=verbose_param,
             learning_rate=learning_rate,
