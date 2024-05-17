@@ -36,7 +36,9 @@ def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1, standard=0):
     #print(f"yP is {yP}")
     print(np.shape(yP))
     print(np.shape(yt))
-    cm = confusion_matrix(np.asarray(yt, dtype=object), yP)
+    print(np.shape(yP[0]))
+    print(np.shape(yt[0]))
+    cm = confusion_matrix(yt, yP)
     if cm[0][0] == 0:  # tn
         tn = []
     else:
@@ -111,7 +113,7 @@ bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
-epochs = 10
+epochs = 1
 
 g_aug = 0.05
 test_g_augs = [0.0005, 0.005]
