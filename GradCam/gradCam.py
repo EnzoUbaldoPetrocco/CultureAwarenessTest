@@ -50,10 +50,11 @@ class GradCAM:
 				inputs = tf.cast(image, tf.float32)
 				#convOutputs = gradModel(inputs)
 				(convOutputs, predictions) = gradModel(np.expand_dims(inputs, 0), out)
-				print(np.shape(gradModel(np.expand_dims(inputs, 0), out)))
 				#predictions = self.model(inputs)
-				print(np.shape(predictions))
-				loss = predictions[:, self.classIdx]
+				if (out<0):
+					loss = predictions[:, self.classIdx]
+				else:
+					loss = predictions[out, 0]
 
 			# use automatic differentiation to compute the gradients
 			grads = tape.gradient(loss, convOutputs)
