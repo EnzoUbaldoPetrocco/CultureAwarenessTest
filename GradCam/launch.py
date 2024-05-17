@@ -66,8 +66,6 @@ def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1, standard=0):
 
 
 def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: ProcessingClass):
-    Xt = np.asarray(Xt, dtype=object)
-    yt = np.asarray(yt , dtype=object)
     for culture in range(3):
         path = pt + f"CULTURE{culture}/"
         mkdirs(path, nt)
