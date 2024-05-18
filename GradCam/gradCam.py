@@ -49,7 +49,7 @@ class GradCAM:
 				# associated with the specific class index
 				inputs = tf.cast(image, tf.float32)
 				#convOutputs = gradModel(inputs)
-				(convOutputs, predictions) = gradModel(np.expand_dims(inputs, 0), out)
+				(convOutputs, predictions) = gradModel(np.expand_dims(inputs, 0))
 				#predictions = self.model(inputs)
 				print(np.shape(predictions))
 				if (out<0):
