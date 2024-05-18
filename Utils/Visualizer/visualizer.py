@@ -668,22 +668,25 @@ def get_best_df_gamma(mitdfs, tau=0.1):
     n = int(len(mitdfs) * tau)
     for i, mitdf in enumerate(mitdfs):
         err = perstr2float(mitdf["ERR"][0])
-        errs.append([err, i])
-        cic = perstr2float(mitdf["CIC"][0])
-        cics.append(cic)
+        if err >0:
+            errs.append([err, i])
+            cic = perstr2float(mitdf["CIC"][0])
+            cics.append(cic)
 
     errs = np.asarray(errs, dtype=object)
     errs = np.sort(errs, axis=0)
     errs = errs[:n]
 
     # tempcics = cics[:,1]
-
+    print("\n")
+    print(mitdfs)
+    print("\n")
     tempcics = [cics[i] for i in errs[:, 1]]
 
     cicstar = min(tempcics)
     idx = cics.index(cicstar)
-
-    return mitdfs[idx]
+    print(f"Best index is {idx}")
+    return mitdfs[idx], idx
 
 
 def get_test_name(taug, tadv, gaug=0, geps=0):
@@ -907,7 +910,8 @@ class Res2TabClass:
                                                     tempdf = pd.read_csv(pt)
                                                     mitdfs.append(tempdf)
 
-                                                mitdf = get_best_df_gamma(mitdfs)
+                                                mitdf, igamma = get_best_df_gamma(mitdfs)
+                                                gamma = np.logspace(-1, 13)[igamma+1]
                                                 test_name = get_test_name(
                                                     taug, tadv, tgaug, teps
                                                 )
@@ -915,7 +919,7 @@ class Res2TabClass:
                                                     test_name, "STD", stddf
                                                 )
                                                 df.loc[len(df)] = self.convert2list(
-                                                    test_name, "MIT", mitdf
+                                                    test_name, f"MIT gamma={gamma:3.2f}", mitdf
                                                 )
 
                                     if taug and not tadv:
@@ -969,7 +973,8 @@ class Res2TabClass:
                                                 tempdf = pd.read_csv(pt)
                                                 mitdfs.append(tempdf)
 
-                                            mitdf = get_best_df_gamma(mitdfs)
+                                            mitdf, igamma = get_best_df_gamma(mitdfs)
+                                            gamma = np.logspace(-1, 13)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, tgaug, 0
                                             )
@@ -977,7 +982,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, "MIT", mitdf
+                                                test_name, f"MIT gamma={gamma:3.2f}", mitdf
                                             )
 
                                     if not taug and tadv:
@@ -1030,7 +1035,8 @@ class Res2TabClass:
                                                 tempdf = pd.read_csv(pt)
                                                 mitdfs.append(tempdf)
 
-                                            mitdf = get_best_df_gamma(mitdfs)
+                                            mitdf, igamma = get_best_df_gamma(mitdfs)
+                                            gamma = np.logspace(-1, 13)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, 0, teps
                                             )
@@ -1038,7 +1044,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, "MIT", mitdf
+                                                test_name, f"MIT gamma={gamma:3.2f}", mitdf
                                             )
 
                                     if (not taug) and (not tadv):
@@ -1090,25 +1096,18 @@ class Res2TabClass:
                                             tempdf = pd.read_csv(pt)
                                             mitdfs.append(tempdf)
 
-                                        mitdf = get_best_df_gamma(mitdfs)
-                                        # print(f"df is {df}")
-                                        # print(f"mit df is {mitdf}")
+                                        mitdf, igamma = get_best_df_gamma(mitdfs)
+                                        gamma = np.logspace(-1, 13)[igamma+1]
                                         test_name = get_test_name(taug, tadv, 0, 0)
-                                        # print(f"test name is {test_name}")
-                                        # print(f"len of df is {len(df)}")
-                                        # print(f"columns of df is {df.columns}")
-                                        # print(f"list of values is {self.convert2list(test_name, 'STD',  stddf)}")
-                                        # print(f"len of df columns is {len(df.columns)}")
-                                        # print(f"len of list is {len(self.convert2list(test_name, 'STD',  stddf))}")
                                         df.loc[len(df)] = self.convert2list(
                                             test_name, "STD", stddf
                                         )
 
                                         df.loc[len(df)] = self.convert2list(
-                                            test_name, "MIT", mitdf
+                                            test_name, f"MIT gamma={gamma:3.2f}", mitdf
                                         )
                             print(name)
-                            print(df)
+                            #print(df)
                             pt = self.get_path('../Results/TABRES/', lamp, culture, percent, aug, adv)
                             fileObj =  FileManagerClass(pt)
                             df.to_csv(pt + 'df')
