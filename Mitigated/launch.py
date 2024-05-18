@@ -42,7 +42,7 @@ with tf.device("/CPU:0"):
                 for c in cs:
                     for k in ks:
                         model = None
-                        for i in range(1):
+                        for i in range(2):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,

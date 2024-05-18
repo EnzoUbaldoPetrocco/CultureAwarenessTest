@@ -51,6 +51,7 @@ class GradCAM:
 				#convOutputs = gradModel(inputs)
 				(convOutputs, predictions) = gradModel(np.expand_dims(inputs, 0), out)
 				#predictions = self.model(inputs)
+				print(np.shape(predictions))
 				if (out<0):
 					loss = predictions[:, self.classIdx]
 				else:
