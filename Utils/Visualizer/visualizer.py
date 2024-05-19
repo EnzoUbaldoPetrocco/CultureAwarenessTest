@@ -932,7 +932,7 @@ class Res2TabClass:
                                                     mitdfs.append(tempdf)
 
                                                 mitdf, igamma = get_best_df_gamma(mitdfs)
-                                                gamma = np.logspace(-1, 13)[igamma+1]
+                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
                                                 test_name = get_test_name(
                                                     taug, tadv, tgaug, teps
                                                 )
@@ -940,7 +940,7 @@ class Res2TabClass:
                                                     test_name, "STD", stddf
                                                 )
                                                 df.loc[len(df)] = self.convert2list(
-                                                    test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                                    test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                                 )
 
                                     if taug and not tadv:
@@ -995,7 +995,7 @@ class Res2TabClass:
                                                 mitdfs.append(tempdf)
 
                                             mitdf, igamma = get_best_df_gamma(mitdfs)
-                                            gamma = np.logspace(-1, 13)[igamma+1]
+                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, tgaug, 0
                                             )
@@ -1003,7 +1003,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                                test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                             )
 
                                     if not taug and tadv:
@@ -1057,7 +1057,7 @@ class Res2TabClass:
                                                 mitdfs.append(tempdf)
 
                                             mitdf, igamma = get_best_df_gamma(mitdfs)
-                                            gamma = np.logspace(-1, 13)[igamma+1]
+                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, 0, teps
                                             )
@@ -1065,7 +1065,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                                test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                             )
 
                                     if (not taug) and (not tadv):
@@ -1118,14 +1118,14 @@ class Res2TabClass:
                                             mitdfs.append(tempdf)
 
                                         mitdf, igamma = get_best_df_gamma(mitdfs)
-                                        gamma = np.logspace(-1, 13)[igamma+1]
+                                        gamma = np.logspace(-3, 2, 31)[igamma+1]
                                         test_name = get_test_name(taug, tadv, 0, 0)
                                         df.loc[len(df)] = self.convert2list(
                                             test_name, "STD", stddf
                                         )
 
                                         df.loc[len(df)] = self.convert2list(
-                                            test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                            test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                         )
                             print(name)
                             print(df)
