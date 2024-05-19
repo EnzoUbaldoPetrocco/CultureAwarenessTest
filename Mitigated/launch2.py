@@ -34,7 +34,7 @@ ks = [0,1,2,3]
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
-        for j in range(1, 5):
+        for j in range(2, 5):
             for percent in percents:
                 for c in cs:
                     for k in ks:
