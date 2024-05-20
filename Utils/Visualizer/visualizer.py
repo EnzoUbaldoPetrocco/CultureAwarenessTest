@@ -662,30 +662,51 @@ def graphic_lambdas_comparison(
                                     )
 
 
-def get_best_df_gamma(mitdfs, tau=0.1):
+def sort_errs(errs):
+    res = []
+    errs = np.asarray(errs, dtype=object)
+    
+    for i in range(len(errs)):
+        err = min(errs[:,0])
+        j = np.where(errs[:,0] == err)[0][0]
+        idx = errs[j, 1]
+        res.append([err, idx])
+        errs = np.delete(errs, j, 0)
+
+    res = np.asarray(res)
+    return res
+
+
+def get_best_df_gamma(mitdfs, tau=0.3):
     errs = []
     cics = []
     n = int(len(mitdfs) * tau)
+    #print(f"\n\n\n\n")
+    #print(f"n is {n}")
     for i, mitdf in enumerate(mitdfs):
         err = perstr2float(mitdf["ERR"][0])
         if err >0:
             errs.append([err, i])
             cic = perstr2float(mitdf["CIC"][0])
             cics.append(cic)
+        else:
+            errs.append([101, i])
+            cics.append(100)
 
     errs = np.asarray(errs, dtype=object)
-    errs = np.sort(errs, axis=0)
-    errs = errs[:n]
-
-    # tempcics = cics[:,1]
-    print("\n")
-    print(mitdfs)
-    print("\n")
-    tempcics = [cics[i] for i in errs[:, 1]]
+    #print(f"Errs are {errs}")
+    errs = sort_errs(errs)[:n]
+    #print(f"Errs sorted are {errs}")
+    #errs = errs[:n]
+    #print(f"Selected errs are {errs}")
+    
+    tempcics = [cics[int(i)] for i in errs[:, 1]]
+    #print(f"tempcics are {tempcics}")
 
     cicstar = min(tempcics)
+    #print(f"cicstar is {cicstar}")
     idx = cics.index(cicstar)
-    print(f"Best index is {idx}")
+    #print(f"Best index is {idx}")
     return mitdfs[idx], idx
 
 
@@ -911,7 +932,7 @@ class Res2TabClass:
                                                     mitdfs.append(tempdf)
 
                                                 mitdf, igamma = get_best_df_gamma(mitdfs)
-                                                gamma = np.logspace(-1, 13)[igamma+1]
+                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
                                                 test_name = get_test_name(
                                                     taug, tadv, tgaug, teps
                                                 )
@@ -919,7 +940,7 @@ class Res2TabClass:
                                                     test_name, "STD", stddf
                                                 )
                                                 df.loc[len(df)] = self.convert2list(
-                                                    test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                                    test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                                 )
 
                                     if taug and not tadv:
@@ -974,7 +995,7 @@ class Res2TabClass:
                                                 mitdfs.append(tempdf)
 
                                             mitdf, igamma = get_best_df_gamma(mitdfs)
-                                            gamma = np.logspace(-1, 13)[igamma+1]
+                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, tgaug, 0
                                             )
@@ -982,7 +1003,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                                test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                             )
 
                                     if not taug and tadv:
@@ -1036,7 +1057,7 @@ class Res2TabClass:
                                                 mitdfs.append(tempdf)
 
                                             mitdf, igamma = get_best_df_gamma(mitdfs)
-                                            gamma = np.logspace(-1, 13)[igamma+1]
+                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, 0, teps
                                             )
@@ -1044,7 +1065,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                                test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                             )
 
                                     if (not taug) and (not tadv):
@@ -1097,17 +1118,17 @@ class Res2TabClass:
                                             mitdfs.append(tempdf)
 
                                         mitdf, igamma = get_best_df_gamma(mitdfs)
-                                        gamma = np.logspace(-1, 13)[igamma+1]
+                                        gamma = np.logspace(-3, 2, 31)[igamma+1]
                                         test_name = get_test_name(taug, tadv, 0, 0)
                                         df.loc[len(df)] = self.convert2list(
                                             test_name, "STD", stddf
                                         )
 
                                         df.loc[len(df)] = self.convert2list(
-                                            test_name, f"MIT gamma={gamma:3.2f}", mitdf
+                                            test_name, f"MIT gamma={gamma:3.3f}", mitdf
                                         )
                             print(name)
-                            #print(df)
+                            print(df)
                             pt = self.get_path('../Results/TABRES/', lamp, culture, percent, aug, adv)
                             fileObj =  FileManagerClass(pt)
                             df.to_csv(pt + 'df')
