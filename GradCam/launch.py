@@ -28,15 +28,10 @@ def mkdirs(path, nt):
 
 
 def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1, standard=0):
-    #print(f"yt before is {yt}")
     if not standard:
         yt = list(np.asarray(yt, dtype=object)[:,1])
-    #print(f"yt after is {yt}")
-    yP = procObj.model.test(Xt, out)  # Predictions
-    #print(f"yP is {yP}")
-    print(np.shape(yP))
-    print(np.shape(yt))
-    cm = confusion_matrix(np.asarray(yt, dtype=object), yP)
+    yP = procObj.model.test(Xt, out)  # Prediction
+    cm = confusion_matrix(yt, yP)
     if cm[0][0] == 0:  # tn
         tn = []
     else:
@@ -111,7 +106,7 @@ bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
-epochs = 10
+epochs = 1
 
 g_aug = 0.05
 test_g_augs = [0.0005, 0.005]
