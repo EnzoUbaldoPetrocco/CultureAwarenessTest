@@ -55,7 +55,11 @@ class GradCAM:
 				if (out<0):
 					loss = predictions[:, self.classIdx]
 				else:
-					loss = predictions[out][0]
+					if len(predictions)>1:
+						loss = predictions[out][0]
+					else:
+						loss = predictions[0][out]
+						print(f"Shape of loss= {np.shape(loss)}")
 
 			# use automatic differentiation to compute the gradients
 			grads = tape.gradient(loss, convOutputs)
