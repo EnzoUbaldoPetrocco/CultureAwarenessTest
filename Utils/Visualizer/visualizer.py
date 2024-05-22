@@ -940,7 +940,7 @@ class Res2TabClass:
                                                     test_name, "STD", stddf
                                                 )
                                                 df.loc[len(df)] = self.convert2list(
-                                                    test_name, f"MIT gamma={gamma:3.3f}", mitdf
+                                                    test_name, f"MIT g={gamma:3.3f}", mitdf
                                                 )
 
                                     if taug and not tadv:
@@ -1003,7 +1003,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT gamma={gamma:3.3f}", mitdf
+                                                test_name, f"MIT g={gamma:3.3f}", mitdf
                                             )
 
                                     if not taug and tadv:
@@ -1065,7 +1065,7 @@ class Res2TabClass:
                                                 test_name, "STD", stddf
                                             )
                                             df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT gamma={gamma:3.3f}", mitdf
+                                                test_name, f"MIT g={gamma:3.3f}", mitdf
                                             )
 
                                     if (not taug) and (not tadv):
@@ -1125,10 +1125,12 @@ class Res2TabClass:
                                         )
 
                                         df.loc[len(df)] = self.convert2list(
-                                            test_name, f"MIT gamma={gamma:3.3f}", mitdf
+                                            test_name, f"MIT g={gamma:3.3f}", mitdf
                                         )
                             print(name)
-                            print(df)
+                            #with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+                            #    print(df)
+                            print(df.to_string())
                             pt = self.get_path('../Results/TABRES/', lamp, culture, percent, aug, adv)
                             fileObj =  FileManagerClass(pt)
                             df.to_csv(pt + 'df')
