@@ -878,8 +878,9 @@ class Res2TabClass:
                             )
 
                             df = pd.DataFrame(columns=columns)
-                            for taug in taugments:
-                                for tadv in tadversaries:
+                            
+                            for tadv in tadversaries:
+                                for taug in taugments:
                                     if taug and tadv:
                                         for tgaug in test_g_augs:
                                             for teps in test_eps:
