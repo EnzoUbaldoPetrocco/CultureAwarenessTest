@@ -12,6 +12,10 @@ from Utils.Results.Results import ResAcquisitionClass
 from Utils.FileManager.FileManager import FileManagerClass
 
 
+taus = [0.2, 0.3, 0.5]
+
+
+
 class VisualizerClass:
     def plot_table(self, df, title):
         """
@@ -932,17 +936,20 @@ class Res2TabClass:
                                                     tempdf = pd.read_csv(pt)
                                                     mitdfs.append(tempdf)
 
-                                                mitdf, igamma = get_best_df_gamma(mitdfs)
-                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
+
                                                 test_name = get_test_name(
                                                     taug, tadv, tgaug, teps
                                                 )
                                                 df.loc[len(df)] = self.convert2list(
                                                     test_name, "STD", stddf
                                                 )
-                                                df.loc[len(df)] = self.convert2list(
-                                                    test_name, f"MIT g={gamma:3.3f}", mitdf
-                                                )
+                                                for tau in taus:
+                                                    mitdf, igamma = get_best_df_gamma(mitdfs, tau)
+                                                    gamma = np.logspace(-3, 2, 31)[igamma+1]
+                                                    
+                                                    df.loc[len(df)] = self.convert2list(
+                                                        test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
+                                                    )
 
                                     if taug and not tadv:
                                         for tgaug in test_g_augs:
@@ -995,17 +1002,19 @@ class Res2TabClass:
                                                 tempdf = pd.read_csv(pt)
                                                 mitdfs.append(tempdf)
 
-                                            mitdf, igamma = get_best_df_gamma(mitdfs)
-                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
                                             test_name = get_test_name(
-                                                taug, tadv, tgaug, 0
-                                            )
+                                                    taug, tadv, tgaug, 0
+                                                )
                                             df.loc[len(df)] = self.convert2list(
                                                 test_name, "STD", stddf
                                             )
-                                            df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT g={gamma:3.3f}", mitdf
-                                            )
+                                            for tau in taus:
+                                                mitdf, igamma = get_best_df_gamma(mitdfs, tau)
+                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
+                                                
+                                                df.loc[len(df)] = self.convert2list(
+                                                    test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
+                                                )
 
                                     if not taug and tadv:
                                         for teps in test_eps:
@@ -1057,17 +1066,19 @@ class Res2TabClass:
                                                 tempdf = pd.read_csv(pt)
                                                 mitdfs.append(tempdf)
 
-                                            mitdf, igamma = get_best_df_gamma(mitdfs)
-                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
                                             test_name = get_test_name(
                                                 taug, tadv, 0, teps
                                             )
                                             df.loc[len(df)] = self.convert2list(
                                                 test_name, "STD", stddf
                                             )
-                                            df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT g={gamma:3.3f}", mitdf
-                                            )
+                                            for tau in taus:
+                                                mitdf, igamma = get_best_df_gamma(mitdfs, tau)
+                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
+                                                
+                                                df.loc[len(df)] = self.convert2list(
+                                                    test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
+                                                )
 
                                     if (not taug) and (not tadv):
                                         pt = resacqobj.buildPath(
@@ -1118,16 +1129,19 @@ class Res2TabClass:
                                             tempdf = pd.read_csv(pt)
                                             mitdfs.append(tempdf)
 
-                                        mitdf, igamma = get_best_df_gamma(mitdfs)
-                                        gamma = np.logspace(-3, 2, 31)[igamma+1]
-                                        test_name = get_test_name(taug, tadv, 0, 0)
+                                        test_name = get_test_name(
+                                            taug, tadv, 0, 0
+                                        )
                                         df.loc[len(df)] = self.convert2list(
                                             test_name, "STD", stddf
                                         )
-
-                                        df.loc[len(df)] = self.convert2list(
-                                            test_name, f"MIT g={gamma:3.3f}", mitdf
-                                        )
+                                        for tau in taus:
+                                            mitdf, igamma = get_best_df_gamma(mitdfs, tau)
+                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
+                                            
+                                            df.loc[len(df)] = self.convert2list(
+                                                test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
+                                            )
                             print(name)
                             #with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
                             #    print(df)
