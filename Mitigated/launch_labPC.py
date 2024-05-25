@@ -29,8 +29,8 @@ mult = 0.25
 memory_limit = 5500
 
 with tf.device("/CPU:0"):
-        for j in [7,8]:
-            for lamp in [0, 1]:
+        for j in [9,9, 8, 7]:
+            for lamp in [1, 0]:
                 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
                 for percent in percents:
                     for c in range(0,3):
