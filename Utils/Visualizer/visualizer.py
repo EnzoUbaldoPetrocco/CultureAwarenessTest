@@ -732,10 +732,11 @@ def get_test_name(taug, tadv, gaug=0, geps=0):
 class Res2TabClass:
     def borderTop(self, strRow, srRow):
         #print(strRow, type(sRow), sRow.name)
-        if srRow.index%4 == 0:
+        """if srRow.index%4 == 0:
             return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
         else:
-            return [""] * len(srRow)
+            return [""] * len(srRow)"""
+        return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
 
     def convert2list(self, test_name, std, df):
         res = [
@@ -1154,10 +1155,14 @@ class Res2TabClass:
                             df.style\
                                 .set_properties(subset=['Total'], **{'font-weight': 'bold', "border-left": "1pt solid black"})\
                                 .apply(functools.partial(self.borderTop, "STD"), axis=1)
+                            #print(df.to_string())
                             print(df.to_string())
                             pt = self.get_path('../Results/TABRES/', lamp, culture, percent, aug, adv)
                             fileObj =  FileManagerClass(pt)
                             df.to_csv(pt + 'df')
+                            pt = self.get_path('../Results/HTML/', lamp, culture, percent, aug, adv)
+                            fileObj =  FileManagerClass(pt)
+                            df.to_html(pt + 'res.html')
 
                             
 
@@ -1180,7 +1185,7 @@ def main():
     t_cults = [0, 1, 2]
 
     # print_tables(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, paths, visobj)
-    graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj)
+    # graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj)
 
     res2tabObj = Res2TabClass()
     res2tabObj.conversion()
