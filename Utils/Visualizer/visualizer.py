@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from Utils.Results.Results import ResAcquisitionClass
 from Utils.FileManager.FileManager import FileManagerClass
-
+import functools
 
 taus = [0.2, 0.3, 0.5]
 
@@ -260,7 +260,7 @@ def plotandsave(stddf, mitdfs, plot=True, title="", save=False, path="./"):
         color="r",
         label="Standard Model",
     )
-    plt.plot(X, y, color="k", label="Mitigated Model")
+    plt.scatter(X, y, color="k", label="Mitigated Model")
 
     # Plot errors
     plt.errorbar(
@@ -730,6 +730,13 @@ def get_test_name(taug, tadv, gaug=0, geps=0):
 
 
 class Res2TabClass:
+    def borderTop(self, strRow, srRow):
+        #print(strRow, type(sRow), sRow.name)
+        """if srRow.index%4 == 0:
+            return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
+        else:
+            return [""] * len(srRow)"""
+        return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
 
     def convert2list(self, test_name, std, df):
         res = [
@@ -1145,13 +1152,19 @@ class Res2TabClass:
                             print(name)
                             #with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
                             #    print(df)
+                            df.style\
+                                .set_properties(subset=['Total'], **{'font-weight': 'bold', "border-left": "1pt solid black"})\
+                                .apply(functools.partial(self.borderTop, "STD"), axis=1)
+                            #print(df.to_string())
                             print(df.to_string())
                             pt = self.get_path('../Results/TABRES/', lamp, culture, percent, aug, adv)
                             fileObj =  FileManagerClass(pt)
                             df.to_csv(pt + 'df')
+                            pt = self.get_path('../Results/HTML/', lamp, culture, percent, aug, adv)
+                            fileObj =  FileManagerClass(pt)
+                            df.to_html(pt + 'res.html')
 
                             
-
 
 def main():
     visobj = VisualizerClass()
