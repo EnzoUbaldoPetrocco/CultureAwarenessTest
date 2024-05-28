@@ -12,7 +12,7 @@ from Utils.Results.Results import ResAcquisitionClass
 from Utils.FileManager.FileManager import FileManagerClass
 import functools
 
-taus = [0.2, 0.3, 0.5]
+taus = [0.1, 0.3, 0.5]
 
 
 
