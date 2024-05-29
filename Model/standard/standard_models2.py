@@ -384,8 +384,8 @@ class StandardModels(GeneralModelClass):
         pass
 
     def newDL(self, TS, VS, show_imgs=True, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2):
-        TS = tf.convert_to_tensor(TS)
-        VS = tf.convert_to_tensor(VS)
+        TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
+        VS = tf.data.Dataset.from_tensors_slices((VS[0], VS[1]))
         TS = tf.data.Dataset(TS).batch(batch_size).prefetch(buffer_size=10)
         VS = tf.data.Dataset(VS).batch(batch_size).prefetch(buffer_size=10)
         
@@ -474,7 +474,7 @@ class StandardModels(GeneralModelClass):
         )
 
         
-        model.fit(TS, epochs=epochs, validation_data=VS)
+        model.fit(TS, epochs=epochs, validation_data=VS, verbose=self.verbose_param)
 
         #FINE TUNING
         base_model.trainable = True
@@ -486,7 +486,7 @@ class StandardModels(GeneralModelClass):
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        model.fit(TS, epochs=fine_epochs, validation_data=VS)
+        model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param)
 
         self.model = model        
 
