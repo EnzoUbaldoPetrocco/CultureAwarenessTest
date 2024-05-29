@@ -81,7 +81,7 @@ class DataClass:
                 dir_list.append(d)
         return dir_list
 
-    def get_images(self, path, n=1000):
+    def get_images(self, path, n=1000, rescale=False):
         """
         get_images returns min(n, #images contained in a directory)
 
@@ -97,7 +97,9 @@ class DataClass:
             paths.extend(pathlib.Path(path).glob(typ))
         paths = paths[0 : min(len(paths), n)]
         for i in paths:
-            im = cv2.imread(str(i)) / 255
+            im = cv2.imread(str(i)) 
+            if rescale:
+                im = im  /255
             im = im[..., ::-1]
             images.append(im)
         return images

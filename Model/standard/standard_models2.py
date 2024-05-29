@@ -380,27 +380,33 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self):
-        pass
+    def newModelSelection(self, TS, VS, aug, show_imgs, batches=[1,2,4,8], lrs=[1e-4, 1e-3, 1e-5], fine_lrs=[1e-5, 1e-6, 1e-7], epochs=5, fine_epochs=5, nDropouts=[0.1, 0.2, 0.5]):
+        best_loss = np.inf
+        for b in batches:
+            for lr in lrs:
+                for fine_lr in fine_lrs:
+                    for nDropout in nDropouts:
+                        print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
+                        history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
+                        if history.history["val_binary_accuracy"][-1] < best_loss:
+                            best_loss = self.history.history["val_binary_accuracy"][-1]
+                            best_bs = b
+                            best_lr = lr
+                            best_fine_lr = fine_lr
+                            best_nDropout = nDropout
 
-    def newDL(self, TS, VS, show_imgs=True, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2):
-        TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
-        VS = tf.data.Dataset.from_tensors_slices((VS[0], VS[1]))
-        TS = tf.data.Dataset(TS).batch(batch_size).prefetch(buffer_size=10)
-        VS = tf.data.Dataset(VS).batch(batch_size).prefetch(buffer_size=10)
+        self.newDL(TS, VS, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout)
+
         
-        #TS = tf.data.Dataset(tf.TensorArray(TS))
-        #X = np.split(TS[0], self.batch_size)
-        #y = np.split(TS[1], self.batch_size)
-        #Xv = np.split(VS[0], self.batch_size)
-        #yv = np.split(VS[1], self.batch_size)
 
-        #X = tf.stack(TS[0])
-        #y = tf.stack(TS[1])
-        #Xv = tf.stack(VS[0])
-        #yv = tf.stack(VS[1])
+    def newDL(self, TS, VS, aug=False, show_imgs=True, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2):
         shape = np.shape(TS[0][0])
-        print(f"shape of TS is {np.shape(TS)}")
+    
+        TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
+        VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
+        
+
+        
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
@@ -411,20 +417,23 @@ class StandardModels(GeneralModelClass):
         if show_imgs:
             #DISPLAY IMAGES
             #NOAUGMENTATION
-            idxs = tf.range(tf.shape(TS)[0])
-            ridxs = tf.random.shuffle(idxs)[:9]
+            
             plt.figure(figsize=(10, 10))
             for i, (image, label) in enumerate(TS.take(9)):
                 ax = plt.subplot(3, 3, i + 1)
                 plt.imshow(image)
                 plt.title(int(label))
                 plt.axis("off")
+            plt.show()
 
-            
-            ridxs = tf.random.shuffle(idxs)[:1]
-            rinput = tf.gather(TS, ridxs)
+        #DIVIDE IN BATCHES
+        TS = TS.batch(batch_size).prefetch(buffer_size=10)
+        VS = VS.batch(batch_size).prefetch(buffer_size=10)
+
+        if show_imgs:
+            #DISPLAY IMAGES
             #AUGMENTATION
-            for images, labels in rinput:
+            for images, labels in TS.take(1):
                 plt.figure(figsize=(10, 10))
                 first_image = images[0]
                 for i in range(9):
@@ -435,9 +444,10 @@ class StandardModels(GeneralModelClass):
                     plt.imshow(augmented_image[0].numpy().astype("int32"))
                     plt.title(int(labels[0]))
                     plt.axis("off")
+                plt.show()
 
         #MODEL IMPLEMENTATION
-        base_model = keras.applications.Xception(
+        base_model = keras.applications.ResNet50V2(
             weights="imagenet",  # Load weights pre-trained on ImageNet.
             input_shape=shape,
             include_top=False,
@@ -448,13 +458,16 @@ class StandardModels(GeneralModelClass):
 
         # Create new model on top
         inputs = keras.Input(shape=shape)
-        x = data_augmentation(inputs)  # Apply random data augmentation
-
         # Pre-trained Xception weights requires that input be scaled
         # from (0, 255) to a range of (-1., +1.), the rescaling layer
         # outputs: `(inputs * scale) + offset`
-        scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
-        x = scale_layer(x)
+        #scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
+        scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
+        if aug:
+            x = data_augmentation(inputs)  # Apply random data augmentation
+            x = scale_layer(x)
+        else:
+            x = scale_layer(inputs)
 
         # The base model contains batchnorm layers. We want to keep them in inference mode
         # when we unfreeze the base model for fine-tuning, so we make sure that the
@@ -486,14 +499,15 @@ class StandardModels(GeneralModelClass):
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param)
+        history = model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param)
 
-        self.model = model        
+        self.model = model   
+        return history     
 
 
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0,
+        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0, aug=0
     ):
         """
         General function for implementing model selection
@@ -511,12 +525,12 @@ class StandardModels(GeneralModelClass):
         elif self.type == "RFC":
             self.RFC(TS)
         elif self.type == "DL" or "RESNET":
-            self.newDL(TS, VS, True, batch_size=2)
+            self.newModelSelection(TS, VS, aug=aug, show_imgs=False)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )"""
         else:
-            self.newDL(TS, VS, True, batch_size=2)
+            self.newModelSelection(TS, VS, aug=aug, show_imgs=False)
 
 
 

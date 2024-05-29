@@ -292,10 +292,7 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
-            augment=augment,
-            g_rot=g_rot,
-            g_noise=g_noise,
-            g_bright=g_bright,
+            augment=0
         )
         self.model = None
         if standard:
@@ -374,7 +371,8 @@ class ProcessingClass:
             mult=mult,
             gradcam=gradcam,
             out_dir=self.basePath,
-            complete = complete
+            complete = complete,
+            aug=augment
         )
 
     def test(
