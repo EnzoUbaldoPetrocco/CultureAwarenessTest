@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(1, "../")
 from Model.mitigated.mitigated_models import MitigatedModels
-from Model.standard.standard_models import StandardModels
+from Model.standard.standard_models2 import StandardModels
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
 from Utils.Results.Results import ResultsClass

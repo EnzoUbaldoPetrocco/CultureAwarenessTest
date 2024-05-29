@@ -14,7 +14,7 @@ import tensorflow as tf
 tf.config.set_soft_device_placement(True)
 
 percents = [0.05, 0.1]
-standard = 0
+standard = 1
 lamp = 1
 
 verbose_param = 0
@@ -77,7 +77,7 @@ with tf.device("/CPU:0"):
                                 adversary=0,
                                 eps=test_eps,
                             )
-                            print(f"Testing->aug={1};adv={0}")
+                            """print(f"Testing->aug={1};adv={0}")
                             for t_g_aug in test_g_augs:
                                 procObj.test(
                                         standard=standard,
@@ -112,5 +112,5 @@ with tf.device("/CPU:0"):
                                         adversary=1,
                                         eps=test_ep)
                             model = procObj.model.model   
-                            path = procObj.basePath + "out.jpg"
+                            path = procObj.basePath + "out.jpg"""
                             procObj.partial_clear()
