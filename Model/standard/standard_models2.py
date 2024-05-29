@@ -380,23 +380,24 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs, batches=[1,2,4,8], lrs=[1e-4, 1e-3, 1e-5], fine_lrs=[1e-5, 1e-6, 1e-7], epochs=5, fine_epochs=5, nDropouts=[0.1, 0.2, 0.5]):
+    def newModelSelection(self, TS, VS, aug, show_imgs, batches=[8, 16], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=5, fine_epochs=5, nDropouts=[0.25]):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
                 for fine_lr in fine_lrs:
                     for nDropout in nDropouts:
-                        print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                        history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
-                        loss = history.history["val_loss"][-1]
-                        if loss < best_loss:
-                            best_loss = loss
-                            best_bs = b
-                            best_lr = lr
-                            best_fine_lr = fine_lr
-                            best_nDropout = nDropout
-
-        self.newDL(TS, VS, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout)
+                        with tf.device("/gpu:0"):
+                            print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
+                            history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
+                            loss = history.history["val_loss"][-1]
+                            if loss < best_loss:
+                                best_loss = loss
+                                best_bs = b
+                                best_lr = lr
+                                best_fine_lr = fine_lr
+                                best_nDropout = nDropout
+        with tf.device("/gpu:0"):
+            self.newDL(TS, VS, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout)
 
         
 
@@ -412,6 +413,11 @@ class StandardModels(GeneralModelClass):
             [
                 layers.RandomFlip("horizontal"),
                 layers.RandomRotation(0.1),
+                layers.GaussianNoise(0.01),
+                #layers.RandomBrightness(0.1),
+                tf.keras.layers.RandomBrightness(0.01),
+                layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
+                layers.RandomZoom(0.02, 0.02)
             ]
         )
 
@@ -477,32 +483,31 @@ class StandardModels(GeneralModelClass):
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
         outputs = keras.layers.Dense(1)(x)
-        model = keras.Model(inputs, outputs)
+        self.model = keras.Model(inputs, outputs)
 
-        model.summary()
+        #self.model.summary()
         #MODEL TRAINING
-        model.compile(
+        self.model.compile(
             optimizer=keras.optimizers.Adam(lr),
             loss=keras.losses.BinaryCrossentropy(from_logits=True),
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
         
-        model.fit(TS, epochs=epochs, validation_data=VS, verbose=self.verbose_param)
+        self.model.fit(TS, epochs=epochs, validation_data=VS, verbose=self.verbose_param)
 
         #FINE TUNING
         base_model.trainable = True
-        model.summary()
+        #self.model.summary()
 
-        model.compile(
+        self.model.compile(
             optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
             loss=keras.losses.BinaryCrossentropy(from_logits=True),
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        history = model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param)
-
-        self.model = model   
+        history = self.model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param)
+ 
         return history     
 
 
