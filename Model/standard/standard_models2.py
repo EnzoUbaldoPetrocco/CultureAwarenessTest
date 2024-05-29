@@ -388,8 +388,9 @@ class StandardModels(GeneralModelClass):
                     for nDropout in nDropouts:
                         print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
                         history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
-                        if history.history["val_binary_accuracy"][-1] < best_loss:
-                            best_loss = self.history.history["val_binary_accuracy"][-1]
+                        loss = history.history["val_loss"][-1]
+                        if loss < best_loss:
+                            best_loss = loss
                             best_bs = b
                             best_lr = lr
                             best_fine_lr = fine_lr
