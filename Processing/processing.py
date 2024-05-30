@@ -245,9 +245,7 @@ class ProcessingClass:
         test_split: float = 0.2,
         n: int = 1000,
         augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
+        gaug: float = 0.1,
         adversary=0,
         eps=0.3,
         mult=0.05,
@@ -349,9 +347,9 @@ class ProcessingClass:
         self.basePath = self.basePath + c + str(percent) + "/"
         if augment:
             if adversary:
-                aug = "TOTAUG/"
+                aug = f"TOTAUG/g={gaug}/"
             else:
-                aug = "STDAUG/"
+                aug = f"STDAUG/g={gaug}/"
         else:
             if adversary:
                 aug = "AVD/"
@@ -372,7 +370,8 @@ class ProcessingClass:
             gradcam=gradcam,
             out_dir=self.basePath,
             complete = complete,
-            aug=augment
+            aug=augment,
+            gaug=gaug
         )
 
     def test(

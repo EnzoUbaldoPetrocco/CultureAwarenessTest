@@ -380,7 +380,7 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs=True, batches=[32], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=20, fine_epochs=5, nDropouts=[0.3]):
+    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=25, fine_epochs=5, nDropouts=[0.4], g=0.1):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
@@ -397,27 +397,28 @@ class StandardModels(GeneralModelClass):
                                 best_fine_lr = fine_lr
                                 best_nDropout = nDropout
         with tf.device("/gpu:0"):
-            self.newDL(TS, VS, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout)
+            print(f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}")
+            TS = TS + VS
+            self.newDL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False)
 
         
 
-    def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2):
+    def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
     
         TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
-        VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
-        
-
+        if val:
+            VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
         
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
-                layers.RandomRotation(0.1),
-                layers.GaussianNoise(0.1),
+                layers.RandomRotation(g),
+                layers.GaussianNoise(g),
                 #layers.RandomBrightness(0.1),
-                tf.keras.layers.RandomBrightness(0.1),
+                tf.keras.layers.RandomBrightness(g),
                 #layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
-                layers.RandomZoom(0.02, 0.02)
+                layers.RandomZoom(g/5, g/5)
             ]
         )
 
@@ -513,7 +514,7 @@ class StandardModels(GeneralModelClass):
 
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0, aug=0
+        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0, aug=0, g=0.1
     ):
         """
         General function for implementing model selection
@@ -531,12 +532,12 @@ class StandardModels(GeneralModelClass):
         elif self.type == "RFC":
             self.RFC(TS)
         elif self.type == "DL" or "RESNET":
-            self.newModelSelection(TS, VS, aug=aug)
+            self.newModelSelection(TS, VS, aug=aug, g=g)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )"""
         else:
-            self.newModelSelection(TS, VS, aug=aug)
+            self.newModelSelection(TS, VS, aug=aug, g=g)
 
 
 
