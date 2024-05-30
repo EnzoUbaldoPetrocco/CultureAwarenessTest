@@ -409,6 +409,8 @@ class StandardModels(GeneralModelClass):
         TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
         if val:
             VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
+
+        print(np.shape(TS))
         
         data_augmentation = keras.Sequential(
             [
@@ -436,7 +438,8 @@ class StandardModels(GeneralModelClass):
 
         #DIVIDE IN BATCHES
         TS = TS.batch(batch_size).prefetch(buffer_size=10)
-        VS = VS.batch(batch_size).prefetch(buffer_size=10)
+        if val:
+            VS = VS.batch(batch_size).prefetch(buffer_size=10)
 
         if show_imgs:
             #DISPLAY IMAGES

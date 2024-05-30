@@ -371,7 +371,7 @@ class ProcessingClass:
             out_dir=self.basePath,
             complete = complete,
             aug=augment,
-            gaug=gaug
+            g=gaug
         )
 
     def test(
