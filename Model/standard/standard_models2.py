@@ -380,7 +380,7 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs, batches=[8, 16], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=5, fine_epochs=5, nDropouts=[0.25]):
+    def newModelSelection(self, TS, VS, aug, show_imgs, batches=[32], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=15, fine_epochs=5, nDropouts=[0.3]):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
@@ -412,12 +412,12 @@ class StandardModels(GeneralModelClass):
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
-                layers.RandomRotation(0.1),
-                layers.GaussianNoise(0.01),
+                layers.RandomRotation(0.15),
+                layers.GaussianNoise(0.02),
                 #layers.RandomBrightness(0.1),
-                tf.keras.layers.RandomBrightness(0.01),
-                layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
-                layers.RandomZoom(0.02, 0.02)
+                tf.keras.layers.RandomBrightness(0.02),
+                #layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
+                #layers.RandomZoom(0.02, 0.02)
             ]
         )
 
