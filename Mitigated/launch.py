@@ -15,7 +15,7 @@ tf.config.set_soft_device_placement(True)
 
 percents = [0.05, 0.1]
 standard = 1
-lamp = 1
+lamp = 0
 
 verbose_param = 1
 n = 1000
