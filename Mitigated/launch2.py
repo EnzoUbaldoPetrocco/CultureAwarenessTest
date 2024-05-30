@@ -32,12 +32,11 @@ test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 memory_limit = 5000
 cs = [0,1,2]
-ks = [0,1,2,3]
+ks = [0,1]
 
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
-        for j in [3,3]:
             for percent in percents:
                 for c in cs:
                     for k in ks:
@@ -51,7 +50,7 @@ with tf.device("/CPU:0"):
                                 learning_rate=learning_rate,
                                 epochs=epochs,
                                 batch_size=bs,
-                                lambda_index=j,
+                                lambda_index=0,
                                 culture=c,
                                 percent=percent,
                                 val_split=val_split,
