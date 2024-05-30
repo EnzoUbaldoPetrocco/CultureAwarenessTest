@@ -98,7 +98,7 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
 
 
 percents = [0.05, 0.1]
-standards = [0]
+standard = 1
 
 verbose_param = 0
 n = 1000
@@ -122,10 +122,9 @@ memory_limit = 3000
 for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
     with tf.device("/CPU:0"):
-        for standard in standards:
             for percent in percents:
                 for c in range(3):
-                    for k in range(4):
+                    for k in range(2):
                         print(f"Training->aug={k%2};adv={floor(k/2)}")
                         procObj.process(
                             standard=standard,
@@ -173,36 +172,4 @@ for lamp in [0, 1]:
                             Xt = procObj.Xt_aug
                             cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
-                        print(f"Testing->aug={0};adv={1}")
-                        for test_ep in test_eps:
-                            procObj.prepare_test(
-                                augment=0,
-                                g_rot=None,
-                                g_noise=None,
-                                g_bright=None,
-                                adversary=1,
-                                eps=test_ep,
-                            )
-                            pt = procObj.basePath + f"TAVD/EPS={test_ep}/"
-                            Xt = procObj.Xt_adv
-                            cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
-
-                        print(f"Testing->aug={1};adv={1}")
-                        for t, t_g_aug in enumerate(test_g_augs):
-                            for test_ep in test_eps:
-                                procObj.prepare_test(
-                                    augment=1,
-                                    g_rot=t_g_aug,
-                                    g_noise=t_g_aug,
-                                    g_bright=t_g_aug,
-                                    adversary=1,
-                                    eps=test_ep,
-                                )
-                                pt = (
-                                    procObj.basePath
-                                    + f"TTOTAUG//G_AUG={t_g_aug}/EPS={test_ep}/"
-                                )
-                                Xt = procObj.Xt_totaug
-                                cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
-
-                        procObj.partial_clear()
+                        
