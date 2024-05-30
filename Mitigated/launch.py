@@ -17,7 +17,7 @@ percents = [0.05, 0.1]
 standard = 1
 lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -56,7 +56,7 @@ with tf.device("/CPU:0"):
                                 val_split=val_split,
                                 test_split=test_split,
                                 n=n,
-                                augment=k % 2,
+                                augment=1, #k % 2,
                                 g_rot=g_aug,
                                 g_noise=g_aug,
                                 g_bright=g_aug,
