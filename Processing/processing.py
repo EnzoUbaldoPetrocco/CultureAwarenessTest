@@ -379,9 +379,7 @@ class ProcessingClass:
         standard,
         culture=0,
         augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
+        gaug=0.1,
         adversary=0,
         eps=0.3,
         nt = None
@@ -404,9 +402,9 @@ class ProcessingClass:
         if self.model:
             self.prepare_test(
                 augment=augment,
-                g_rot=g_rot,
-                g_noise=g_noise,
-                g_bright=g_bright,
+                g_rot=gaug,
+                g_noise=gaug,
+                g_bright=gaug,
                 adversary=adversary,
                 culture=culture,
                 eps=eps,
@@ -421,12 +419,12 @@ class ProcessingClass:
                         cm = self.model.get_model_stats(
                             self.Xt_totaug[culture], self.dataobj.yt[culture]
                         )
-                        testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
+                        testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
                     else:
                         cm = self.model.get_model_stats(
                             self.Xt_aug[culture], self.dataobj.yt[culture]
                         )
-                        testaug = f"TSTDAUG/G_AUG={g_noise}/"
+                        testaug = f"TSTDAUG/G_AUG={gaug}/"
                 else:
                     if adversary:
                         cm = self.model.get_model_stats(
@@ -448,12 +446,12 @@ class ProcessingClass:
                             cm = self.model.get_model_stats(
                                 self.Xt_totaug[culture], self.dataobj.yt[culture], i
                             )
-                            testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
+                            testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
                         else:
                             cm = self.model.get_model_stats(
                                 self.Xt_aug[culture], self.dataobj.yt[culture], i
                             )
-                            testaug = f"TSTDAUG/G_AUG={g_noise}/"
+                            testaug = f"TSTDAUG/G_AUG={gaug}/"
                     else:
                         if adversary:
                             cm = self.model.get_model_stats(
