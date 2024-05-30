@@ -416,8 +416,8 @@ class StandardModels(GeneralModelClass):
                 layers.GaussianNoise(0.01),
                 #layers.RandomBrightness(0.1),
                 tf.keras.layers.RandomBrightness(0.01),
-                layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
-                layers.RandomZoom(0.02, 0.02)
+                #layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
+                #layers.RandomZoom(0.02, 0.02)
             ]
         )
 

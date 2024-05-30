@@ -17,7 +17,7 @@ percents = [0.05, 0.1]
 standard = 1
 lamp = 0
 
-verbose_param = 1
+verbose_param = 0
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -30,7 +30,7 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-memory_limit = 3000
+memory_limit = 5000
 cs = [0,1,2]
 ks = [0,1,2,3]
 
