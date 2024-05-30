@@ -15,9 +15,9 @@ tf.config.set_soft_device_placement(True)
 
 percents = [0.05, 0.1]
 standard = 1
-lamp = 0
+lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -32,7 +32,7 @@ test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 memory_limit = 5000
 cs = [0,1,2]
-ks = [0,1,2,3]
+ks = [0,1]
 
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
