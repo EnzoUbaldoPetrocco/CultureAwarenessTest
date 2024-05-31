@@ -42,7 +42,7 @@ with tf.device("/CPU:0"):
                 for c in cs:
                     for k in ks:
                         model = None
-                        for i in range(2):
+                        for i in range(6):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,
@@ -57,7 +57,7 @@ with tf.device("/CPU:0"):
                                 val_split=val_split,
                                 test_split=test_split,
                                 n=n,
-                                augment=k % 2,
+                                augment=1,#k % 2,
                                 gaug=g_aug,
                                 adversary=floor(k / 2),
                                 eps=eps,
