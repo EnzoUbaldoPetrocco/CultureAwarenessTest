@@ -37,7 +37,7 @@ ks = [0,1]
 
 
 with tf.device("/CPU:0"):
-    for lamp in [0,1]:
+    for lamp in [1]:
         procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
         for g_aug in g_gaugs:
             for percent in percents:
