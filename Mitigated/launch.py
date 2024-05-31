@@ -15,7 +15,7 @@ tf.config.set_soft_device_placement(True)
 
 percents = [0.05]
 standard = 1
-lamp = 1
+#lamp = 1
 
 verbose_param = 1
 n = 1000
@@ -35,8 +35,10 @@ cs = [0,1,2]
 ks = [0,1]
 
 
-procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
+
 with tf.device("/CPU:0"):
+    for lamp in [0,1]:
+        procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
         for g_aug in g_gaugs:
             for percent in percents:
                 for c in cs:
@@ -57,7 +59,7 @@ with tf.device("/CPU:0"):
                                 val_split=val_split,
                                 test_split=test_split,
                                 n=n,
-                                augment=1, #k % 2,
+                                augment=k % 2,
                                 gaug=g_aug,
                                 adversary=floor(k / 2),
                                 eps=eps,
