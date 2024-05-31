@@ -97,10 +97,10 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
         )
 
 
-percents = [0.05, 0.1]
+percent = 0.05
 standard = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -108,21 +108,21 @@ val_split = 0.2
 test_split = 0.1
 epochs = 10
 
-g_aug = 0.05
+g_augs = [0.001, 0.05, 0.1, 0.5]
 test_g_augs = [0.0005, 0.005]
 eps = 0.03
 test_eps = [0.0005, 0.005]
 mult = 0.25
 
-nt = 1
+nt = 5
 
-memory_limit = 3000
+memory_limit = 5000
 
 
 for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
     with tf.device("/CPU:0"):
-            for percent in percents:
+            for gaug in g_augs:
                 for c in range(3):
                     for k in range(2):
                         print(f"Training->aug={k%2};adv={floor(k/2)}")
@@ -140,9 +140,7 @@ for lamp in [0, 1]:
                             test_split=test_split,
                             n=n,
                             augment=k % 2,
-                            g_rot=g_aug,
-                            g_noise=g_aug,
-                            g_bright=g_aug,
+                            gaug=gaug,
                             adversary=floor(k / 2),
                             eps=eps,
                             mult=mult,
@@ -158,18 +156,5 @@ for lamp in [0, 1]:
                         yt = procObj.dataobj.yt
                         cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
-                        print(f"Testing->aug={1};adv={0}")
-                        for t_g_aug in test_g_augs:
-                            procObj.prepare_test(
-                                augment=1,
-                                g_rot=t_g_aug,
-                                g_noise=t_g_aug,
-                                g_bright=t_g_aug,
-                                adversary=0,
-                                eps=None,
-                            )
-                            pt = procObj.basePath + f"TSTDAUG/G_AUG={t_g_aug}/"
-                            Xt = procObj.Xt_aug
-                            cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
                         
