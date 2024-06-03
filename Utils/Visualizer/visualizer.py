@@ -358,6 +358,7 @@ def gen_title_plot(
     del fObj
     svpath += "img.png"
     # (f"svpath is {svpath}")
+
     return title, svpath
 
 
@@ -738,10 +739,9 @@ class Res2TabClass:
             return [""] * len(srRow)"""
         return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
 
-    def convert2list(self, test_name, std, df):
+    def convert2list(self, test_name, df):
         res = [
             test_name,
-            std,
             perstr2float(df["ERR^CULTURE 0"][0]),
             perstr2float(df["ERR^CULTURE 0 std"][0]),
             perstr2float(df["ERR^CULTURE 1"][0]),
@@ -755,7 +755,7 @@ class Res2TabClass:
         ]
         return res
 
-    def get_path(self, base, lamp, culture, percent, aug, adv):
+    def get_path(self, base, lamp, culture, percent):
         pt = base
         if lamp:
             if culture == 0:
@@ -774,26 +774,15 @@ class Res2TabClass:
 
         pt += str(percent) + '/'
 
-        if aug:
-            if adv:
-                pt+= 'TOTAUG/'
-            else:
-                pt += 'AUG/'
-        else:
-            if adv:
-                pt += 'ADV/'
-            else:
-                pt += 'NOAUG/'
 
         return pt
 
     def conversion(self):
-        def get_name_column(lamp, culture, percent, aug, adv):
+        def get_name_column(lamp, culture, percent):
             ## Returns the name of tab and the columns
             if lamp:
                 columns = {
-                    "TestSet": [],
-                    "Mitigation": [],
+                    "TS": [],
                     "ERR^LC": [],
                     "ERR^LC std": [],
                     "ERR^LF": [],
@@ -813,8 +802,7 @@ class Res2TabClass:
                     name = "LT"
             else:
                 columns = {
-                    "TestSet": [],
-                    "Mitigation": [],
+                    "TS": [],
                     "ERR^CI": [],
                     "ERR^CI std": [],
                     "ERR^CJ": [],
@@ -833,18 +821,8 @@ class Res2TabClass:
                 if culture == 2:
                     name = "CS"
 
-            name += f" with p_u={percent},"
-            if aug:
-                if adv:
-                    name += f"TOTAUG in Train"
-                else:
-                    name += f"AUG in Train"
-
-            else:
-                if adv:
-                    name += f"ADV in Train"
-                else:
-                    name += f"NOAUG in Train"
+            name += f" with p_u={percent}"
+            
 
             return name, columns
 
@@ -867,9 +845,10 @@ class Res2TabClass:
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
-        percents = [0.05, 0.1]
+        percents = [0.05]
         augments = [0, 1]
-        adversary = [0, 1]
+        adversary = [0]
+        g_augments = [0.0005, 0.001, 0.05, 0.1, 0.5, 0.75]
 
         taugments = [0, 1]
         tadversaries = [0, 1]
@@ -881,288 +860,88 @@ class Res2TabClass:
         for lamp in lamps:
             for culture in cultures:
                 for percent in percents:
-                    for adv in adversary:
+                        # Here we have to divide the DataFrames
+                        name, columns = get_name_column(
+                            lamp, culture, percent
+                        )
+
+                        df = pd.DataFrame(columns=columns)
                         for aug in augments:
-                            # Here we have to divide the DataFrames
-                            name, columns = get_name_column(
-                                lamp, culture, percent, aug, adv
-                            )
-
-                            df = pd.DataFrame(columns=columns)
-                            
-                            for tadv in tadversaries:
-                                for taug in taugments:
-                                    if taug and tadv:
-                                        for tgaug in test_g_augs:
-                                            for teps in test_eps:
-                                                pt = resacqobj.buildPath(
-                                                    basePath=basePath,
-                                                    standard=1,
-                                                    alg="DL",
-                                                    lamp=lamp,
-                                                    culture=culture,
-                                                    percent=percent,
-                                                    augment=aug,
-                                                    adversary=adv,
-                                                    lambda_index=0,
-                                                    taugment=taug,
-                                                    tadversary=tadv,
-                                                    tgaug=tgaug,
-                                                    teps=teps,
-                                                )
-                                                pt = pt.split("/")
-                                                pt = pt[0 : len(pt) - 2]
-                                                stdpt = ""
-                                                for p in pt:
-                                                    stdpt += p + "/"
-                                                stdpt += "res.csv"
-                                                stddf = pd.read_csv(stdpt)
-                                                mitdfs = []
-                                                for lambda_index in lambda_indeces:
-                                                    pt = resacqobj.buildPath(
-                                                        basePath=basePath,
-                                                        standard=0,
-                                                        alg="DL",
-                                                        lamp=lamp,
-                                                        culture=culture,
-                                                        percent=percent,
-                                                        augment=aug,
-                                                        adversary=adv,
-                                                        lambda_index=lambda_index,
-                                                        taugment=taug,
-                                                        tadversary=tadv,
-                                                        tgaug=tgaug,
-                                                        teps=teps,
-                                                    )
-                                                    pt = pt.split("/")
-                                                    pt = pt[: len(pt) - 2]
-                                                    mitpt = ""
-                                                    for p in pt:
-                                                        mitpt += p + "/"
-                                                    pt = mitpt + "res.csv"
-                                                    tempdf = pd.read_csv(pt)
-                                                    mitdfs.append(tempdf)
-
-
-                                                test_name = get_test_name(
-                                                    taug, tadv, tgaug, teps
-                                                )
-                                                df.loc[len(df)] = self.convert2list(
-                                                    test_name, "STD", stddf
-                                                )
-                                                for tau in taus:
-                                                    mitdf, igamma = get_best_df_gamma(mitdfs, tau)
-                                                    gamma = np.logspace(-3, 2, 31)[igamma+1]
-                                                    
-                                                    df.loc[len(df)] = self.convert2list(
-                                                        test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
-                                                    )
-
-                                    if taug and not tadv:
-                                        for tgaug in test_g_augs:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=1,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=aug,
-                                                adversary=adv,
-                                                lambda_index=0,
-                                                taugment=taug,
-                                                tadversary=tadv,
-                                                tgaug=tgaug,
-                                                teps=0,
-                                            )
-
-                                            pt = pt.split("/")
-                                            pt = pt[0 : len(pt) - 2]
-                                            stdpt = ""
-                                            for p in pt:
-                                                stdpt += p + "/"
-                                            stdpt += "res.csv"
-                                            stddf = pd.read_csv(stdpt)
-                                            mitdfs = []
-                                            for lambda_index in lambda_indeces:
-                                                pt = resacqobj.buildPath(
-                                                    basePath=basePath,
-                                                    standard=0,
-                                                    alg="DL",
-                                                    lamp=lamp,
-                                                    culture=culture,
-                                                    percent=percent,
-                                                    augment=aug,
-                                                    adversary=adv,
-                                                    lambda_index=lambda_index,
-                                                    taugment=taug,
-                                                    tadversary=tadv,
-                                                    tgaug=tgaug,
-                                                    teps=0,
-                                                )
-                                                pt = pt.split("/")
-                                                pt = pt[: len(pt) - 2]
-                                                mitpt = ""
-                                                for p in pt:
-                                                    mitpt += p + "/"
-                                                pt = mitpt + "res.csv"
-                                                tempdf = pd.read_csv(pt)
-                                                mitdfs.append(tempdf)
-
-                                            test_name = get_test_name(
-                                                    taug, tadv, tgaug, 0
-                                                )
-                                            df.loc[len(df)] = self.convert2list(
-                                                test_name, "STD", stddf
-                                            )
-                                            for tau in taus:
-                                                mitdf, igamma = get_best_df_gamma(mitdfs, tau)
-                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
-                                                
-                                                df.loc[len(df)] = self.convert2list(
-                                                    test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
-                                                )
-
-                                    if not taug and tadv:
-                                        for teps in test_eps:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=1,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=aug,
-                                                adversary=adv,
-                                                lambda_index=0,
-                                                taugment=taug,
-                                                tadversary=tadv,
-                                                tgaug=0,
-                                                teps=teps,
-                                            )
-                                            pt = pt.split("/")
-                                            pt = pt[0 : len(pt) - 2]
-                                            stdpt = ""
-                                            for p in pt:
-                                                stdpt += p + "/"
-                                            stdpt += "res.csv"
-                                            stddf = pd.read_csv(stdpt)
-                                            mitdfs = []
-                                            for lambda_index in lambda_indeces:
-                                                pt = resacqobj.buildPath(
-                                                    basePath=basePath,
-                                                    standard=0,
-                                                    alg="DL",
-                                                    lamp=lamp,
-                                                    culture=culture,
-                                                    percent=percent,
-                                                    augment=aug,
-                                                    adversary=adv,
-                                                    lambda_index=lambda_index,
-                                                    taugment=taug,
-                                                    tadversary=tadv,
-                                                    tgaug=0,
-                                                    teps=teps,
-                                                )
-                                                pt = pt.split("/")
-                                                pt = pt[: len(pt) - 2]
-                                                mitpt = ""
-                                                for p in pt:
-                                                    mitpt += p + "/"
-                                                pt = mitpt + "res.csv"
-                                                tempdf = pd.read_csv(pt)
-                                                mitdfs.append(tempdf)
-
-                                            test_name = get_test_name(
-                                                taug, tadv, 0, teps
-                                            )
-                                            df.loc[len(df)] = self.convert2list(
-                                                test_name, "STD", stddf
-                                            )
-                                            for tau in taus:
-                                                mitdf, igamma = get_best_df_gamma(mitdfs, tau)
-                                                gamma = np.logspace(-3, 2, 31)[igamma+1]
-                                                
-                                                df.loc[len(df)] = self.convert2list(
-                                                    test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
-                                                )
-
-                                    if (not taug) and (not tadv):
-                                        pt = resacqobj.buildPath(
-                                            basePath=basePath,
-                                            standard=1,
-                                            alg="DL",
-                                            lamp=lamp,
-                                            culture=culture,
-                                            percent=percent,
-                                            augment=aug,
-                                            adversary=adv,
-                                            lambda_index=0,
-                                            taugment=taug,
-                                            tadversary=tadv,
-                                            tgaug=0,
-                                            teps=0,
-                                        )
-                                        pt = pt.split("/")
-                                        pt = pt[0 : len(pt) - 2]
-                                        stdpt = ""
-                                        for p in pt:
-                                            stdpt += p + "/"
-                                        stdpt += "res.csv"
-                                        stddf = pd.read_csv(stdpt)
-                                        mitdfs = []
-                                        for lambda_index in lambda_indeces:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=0,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=aug,
-                                                adversary=adv,
-                                                lambda_index=lambda_index,
-                                                taugment=taug,
-                                                tadversary=tadv,
-                                                tgaug=0,
-                                                teps=0,
-                                            )
-                                            pt = pt.split("/")
-                                            pt = pt[: len(pt) - 2]
-                                            mitpt = ""
-                                            for p in pt:
-                                                mitpt += p + "/"
-                                            pt = mitpt + "res.csv"
-                                            tempdf = pd.read_csv(pt)
-                                            mitdfs.append(tempdf)
-
-                                        test_name = get_test_name(
-                                            taug, tadv, 0, 0
-                                        )
-                                        df.loc[len(df)] = self.convert2list(
-                                            test_name, "STD", stddf
-                                        )
-                                        for tau in taus:
-                                            mitdf, igamma = get_best_df_gamma(mitdfs, tau)
-                                            gamma = np.logspace(-3, 2, 31)[igamma+1]
-                                            
-                                            df.loc[len(df)] = self.convert2list(
-                                                test_name, f"MIT g={gamma:3.3f} and tau={tau}", mitdf
-                                            )
-                            print(name)
-                            #with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-                            #    print(df)
-                            df.style\
-                                .set_properties(subset=['Total'], **{'font-weight': 'bold', "border-left": "1pt solid black"})\
-                                .apply(functools.partial(self.borderTop, "STD"), axis=1)
-                            #print(df.to_string())
-                            print(df.to_string())
-                            pt = self.get_path('../Results/TABRES/', lamp, culture, percent, aug, adv)
-                            fileObj =  FileManagerClass(pt)
-                            df.to_csv(pt + 'df')
-                            pt = self.get_path('../Results/HTML/', lamp, culture, percent, aug, adv)
-                            fileObj =  FileManagerClass(pt)
-                            df.to_html(pt + 'res.html')
+                            if not aug:
+                                pt = resacqobj.buildPath(
+                                        basePath=basePath,
+                                        standard=1,
+                                        alg="DL",
+                                        lamp=lamp,
+                                        culture=culture,
+                                        percent=percent,
+                                        augment=aug,
+                                        adversary=0,
+                                        lambda_index=0,
+                                        taugment=0,
+                                        tadversary=0,
+                                        tgaug=0,
+                                        teps=0,
+                                )
+                                pt = pt.split("/")
+                                pt = pt[0 : len(pt) - 2]
+                                stdpt = ""
+                                for p in pt:
+                                    stdpt += p + "/"
+                                stdpt += "res.csv"
+                                stddf = pd.read_csv(stdpt)
+                                trainName = "NOAUG"
+                                ls = self.convert2list(
+                                trainName, stddf
+                                )
+                                print(f"Shape of row={np.shape(ls)}")
+                                df.loc[len(df)] = ls
+                            else:
+                                stddfs = []
+                                for g_augment in g_augments:
+                                    pt = resacqobj.buildPath(
+                                        basePath=basePath,
+                                        standard=1,
+                                        alg="DL",
+                                        lamp=lamp,
+                                        culture=culture,
+                                        percent=percent,
+                                        augment=aug,
+                                        adversary=0,
+                                        lambda_index=0,
+                                        taugment=0,
+                                        tadversary=0,
+                                        tgaug=0,
+                                        teps=0,
+                                        g_augment=g_augment
+                                    )
+                                    pt = pt.split("/")
+                                    pt = pt[0 : len(pt) - 2]
+                                    stdpt = ""
+                                    for p in pt:
+                                        stdpt += p + "/"
+                                    stdpt += "res.csv"
+                                    stddf = pd.read_csv(stdpt)
+                                    stddfs.append(stddf)
+                                    trainName = f"AUG, g={g_augment}"
+                                    df.loc[len(df)] = self.convert2list(
+                                    trainName, stddf
+                                    )
+                        
+                        print(name)
+                        #with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+                        #    print(df)
+                        df.style\
+                            .set_properties(subset=['Total'], **{'font-weight': 'bold', "border-left": "1pt solid black"})\
+                            .apply(functools.partial(self.borderTop, "STD"), axis=1)
+                        #print(df.to_string())
+                        print(df.to_string())
+                        pt = self.get_path('../Results/TABRES/', lamp, culture, percent)
+                        fileObj =  FileManagerClass(pt)
+                        df.to_csv(pt + 'df')
+                        pt = self.get_path('../Results/HTML/', lamp, culture, percent)
+                        fileObj =  FileManagerClass(pt)
+                        df.to_html(pt + 'res.html')
 
                             
 
