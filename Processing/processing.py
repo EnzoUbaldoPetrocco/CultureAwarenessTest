@@ -25,7 +25,7 @@ class ProcessingClass:
     ProcessingClass is a middleware that takes into account
     the the processing modules for testing the models
     """
-    def __init__(self, shallow, lamp, gpu=False, memory_limit=2700) -> None:
+    def __init__(self, shallow, lamp, gpu=False, memory_limit=2700, basePath='./') -> None:
         """
         init function initialize the dataset object and the gpu setup
         :param shallow: if enabled, shallow learning mode is activated and
@@ -54,6 +54,7 @@ class ProcessingClass:
             raise Exception("Carpet Problem has not been tackled in shallow learning")
         self.shallow = shallow
         self.lamp = lamp
+        self.basePath = basePath
         if gpu:
             gpus = tf.config.experimental.list_physical_devices("GPU")
             if gpus:
@@ -323,9 +324,9 @@ class ProcessingClass:
         # Complete path:
         # - augment in Test: TNOAUG, TSTDAUG, TADV, TTOTAUG
         if standard:
-            self.basePath = "./STD/" + type
+            self.basePath = self.basePath + "STD/" + type
         else:
-            self.basePath = "./MIT/" + type
+            self.basePath = self.basePath + "MIT/" + type
         if self.lamp:
             if culture == 0:
                 c = "/LC/"

@@ -34,6 +34,7 @@ memory_limit = 5000
 cs = [0,1,2]
 ks = [0,1]
 
+basePath = './PREDICT/'
 
 
 with tf.device("/CPU:0"):
