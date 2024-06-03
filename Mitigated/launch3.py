@@ -57,7 +57,7 @@ with tf.device("/CPU:0"):
                                 val_split=val_split,
                                 test_split=test_split,
                                 n=n,
-                                augment=k % 2,
+                                augment=1,#k % 2,
                                 gaug=g_aug,
                                 adversary=floor(k / 2),
                                 eps=eps,
