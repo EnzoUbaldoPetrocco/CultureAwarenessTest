@@ -31,7 +31,7 @@ class GeneralModelClass:
         if self.model != None:
             with tf.device("/gpu:0"):
                 if tf.is_tensor(X):
-                    yP = self.model(X)
+                    yP = self.model.predict(X)
                     if tf.shape(yP)[0] > 1:
                         res = tf.gather(yP, indices=[[0, 0], [1, 0], [2, 0]])
                         if(out>0):
@@ -43,7 +43,7 @@ class GeneralModelClass:
                             res = res[out]
                         return res
                 else:
-                    yP = np.asarray(self.model(X))
+                    yP = np.asarray(self.model.predict(X))
                     if type(self.model) == keras.engine.functional.Functional:
                         if tf.shape(yP)[0] > 1:
                             # print(np.shape(yP))
