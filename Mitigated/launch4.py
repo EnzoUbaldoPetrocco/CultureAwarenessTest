@@ -2,16 +2,20 @@
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
+import cv2
+
 sys.path.insert(1, "../")
+from GradCam.gradCam import GradCAM
+from Utils.FileManager.FileManager import FileManagerClass
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
-percents = [0.1, 0.05]
-standard = 0
-lamp = 0
+percents = [0.05]
+standard = 1
+lamp = 1
 
 verbose_param = 0
 n = 1000
@@ -21,22 +25,24 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-g_aug = 0.1
+g_gaugs = [0.0005, 0.75]
 test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-memory_limit = 3000
-
+memory_limit = 5000
+cs = [0,1,2]
+ks = [1]
 
 
 procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
 with tf.device("/CPU:0"):
-        for j in range(2, 5):
+        for g_aug in g_gaugs:
             for percent in percents:
-                for c in range(0,3):
-                    for k in range(0,4):
-                        for i in range(2):
+                for c in cs:
+                    for k in ks:
+                        model = None
+                        for i in range(10):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,
@@ -45,16 +51,14 @@ with tf.device("/CPU:0"):
                                 learning_rate=learning_rate,
                                 epochs=epochs,
                                 batch_size=bs,
-                                lambda_index=j,
+                                lambda_index=0,
                                 culture=c,
                                 percent=percent,
                                 val_split=val_split,
                                 test_split=test_split,
                                 n=n,
-                                augment=k % 2,
-                                g_rot=g_aug,
-                                g_noise=g_aug,
-                                g_bright=g_aug,
+                                augment=1,#k % 2,
+                                gaug=g_aug,
                                 adversary=floor(k / 2),
                                 eps=eps,
                                 mult=mult,
@@ -65,13 +69,11 @@ with tf.device("/CPU:0"):
                                 standard=standard,
                                 culture=c,
                                 augment=0,
-                                g_rot=g_aug,
-                                g_noise=g_aug,
-                                g_bright=g_aug,
+                                gaug=g_aug,
                                 adversary=0,
                                 eps=test_eps,
                             )
-                            print(f"Testing->aug={1};adv={0}")
+                            """print(f"Testing->aug={1};adv={0}")
                             for t_g_aug in test_g_augs:
                                 procObj.test(
                                         standard=standard,
@@ -105,5 +107,6 @@ with tf.device("/CPU:0"):
                                         g_bright=t_g_aug,
                                         adversary=1,
                                         eps=test_ep)
-                                        
+                            model = procObj.model.model   
+                            path = procObj.basePath + "out.jpg"""
                             procObj.partial_clear()
