@@ -438,6 +438,7 @@ class ResAcquisitionClass:
         teps,
         t_cult=0,
         out=0,
+        g_augment=0
     ):
         if standard:
             basePath = basePath + "STD/" + alg
@@ -464,9 +465,9 @@ class ResAcquisitionClass:
         basePath = basePath + c + str(percent) + "/"
         if augment:
             if adversary:
-                aug = "TOTAUG/"
+                aug = f"TOTAUG/g={g_augment}"
             else:
-                aug = "STDAUG/"
+                aug = f"STDAUG/g={g_augment}"
         else:
             if adversary:
                 aug = "AVD/"
@@ -507,16 +508,17 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [0, 1]
+        standards = [1]
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
         percents = [0.05, 0.1]
         augments = [0, 1]
-        adversary = [0, 1]
+        g_augments = []
+        adversary = [0]
         lambda_indeces = range(-1, 13)
-        taugments = [0, 1]
-        tadversaries = [0, 1]
+        taugments = [0]
+        tadversaries = [0]
         test_g_augs = [0.01, 0.05, 0.1]
         test_eps = [0.0005, 0.001, 0.005]
         t_cults = [0, 1, 2]

@@ -380,13 +380,14 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=25, fine_epochs=5, nDropouts=[0.4], g=0.1):
+    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=25, fine_epochs=5, nDropouts=[0.6], g=0.1):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
                 for fine_lr in fine_lrs:
                     for nDropout in nDropouts:
                         with tf.device("/gpu:0"):
+                            self.model=None
                             print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
                             history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
                             loss = history.history["val_loss"][-1]
