@@ -38,14 +38,14 @@ basePath = './PREDICT/'
 
 
 with tf.device("/CPU:0"):
-    for lamp in [1]:
+    for lamp in [0,1]:
         procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit, basePath=basePath)
         for percent in percents:
             for c in cs:
                 for k in ks:
                         for g_aug in g_gaugs:
                             model = None
-                            for i in range(1):
+                            for i in range(5):
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
                                     standard=standard,
@@ -76,4 +76,4 @@ with tf.device("/CPU:0"):
                                     adversary=0,
                                     eps=test_eps,
                                 )
-                                procObj.partial_clear()
+                                procObj.partial_clear(basePath)

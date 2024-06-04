@@ -480,7 +480,7 @@ class ProcessingClass:
         fObj.writecm(cm)
         del fObj
 
-    def partial_clear(self):
+    def partial_clear(self, basePath=None):
         """
         Partially clear the space for avoiding memory issues
         """
@@ -493,6 +493,6 @@ class ProcessingClass:
         del self.Xt_adv
         self.Xt_aug = None
         del self.Xt_aug
-        self.basePath = None
-        del self.basePath
+        self.basePath = basePath
+        
         gc.collect()
