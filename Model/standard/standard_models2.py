@@ -416,7 +416,7 @@ class StandardModels(GeneralModelClass):
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
-                layers.RandomRotation(g),
+                #layers.RandomRotation(g),
                 layers.GaussianNoise(g),
                 #layers.RandomBrightness(0.1),
                 tf.keras.layers.RandomBrightness(g),

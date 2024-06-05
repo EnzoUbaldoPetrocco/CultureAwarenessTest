@@ -13,6 +13,31 @@ import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
+memory_limit = 3000
+
+gpus = tf.config.experimental.list_physical_devices("GPU")
+if gpus:
+    # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
+    try:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [
+                tf.config.experimental.VirtualDeviceConfiguration(
+                    memory_limit=memory_limit
+                )
+            ],
+        )
+        logical_gpus = tf.config.experimental.list_logical_devices("GPU")
+        print(
+            len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs"
+        )
+
+    except RuntimeError as e:
+        # Virtual devices must be set before GPUs have been initialized
+        print(e)
+else:
+    print("no gpus")
+
 percents = [0.05]
 standard = 1
 #lamp = 1
@@ -38,8 +63,8 @@ basePath = './PREDICT/'
 
 
 with tf.device("/CPU:0"):
-    for lamp in [1,0]:
-        procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit, basePath=basePath)
+    for lamp in [0,1]:
+        procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=False, memory_limit=memory_limit, basePath=basePath)
         for percent in percents:
             for c in cs:
                 for k in ks:
