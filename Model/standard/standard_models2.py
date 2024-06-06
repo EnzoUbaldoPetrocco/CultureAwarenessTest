@@ -380,7 +380,7 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs=True, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=30, fine_epochs=10, nDropouts=[0.4], g=0.1):
+    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=30, fine_epochs=10, nDropouts=[0.4], g=0.1):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
