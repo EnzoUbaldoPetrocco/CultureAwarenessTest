@@ -380,7 +380,7 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-3, 1e-4, 1e-5], fine_lrs=[1e-6, 1e-7], epochs=25, fine_epochs=5, nDropouts=[0.4], g=0.1):
+    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4, 1e-5], fine_lrs=[1e-5, 1e-6, 1e-7], epochs=10, fine_epochs=5, nDropouts=[0.4], g=0.1):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
@@ -406,12 +406,13 @@ class StandardModels(GeneralModelClass):
 
     def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
+        n = np.shape(TS[0])
+        print(f"Len of TS is {n}")
     
         TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
         if val:
             VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
 
-        print(np.shape(TS))
         
         data_augmentation = keras.Sequential(
             [
@@ -441,22 +442,22 @@ class StandardModels(GeneralModelClass):
         TS = TS.batch(batch_size).prefetch(buffer_size=10)
         if val:
             VS = VS.batch(batch_size).prefetch(buffer_size=10)
-
-        if show_imgs:
-            #DISPLAY IMAGES
-            #AUGMENTATION
-            for images, labels in TS.take(1):
-                plt.figure(figsize=(10, 10))
-                first_image = images[0]
-                for i in range(9):
-                    ax = plt.subplot(3, 3, i + 1)
-                    augmented_image = data_augmentation(
-                        tf.expand_dims(first_image, 0), training=True
-                    )
-                    plt.imshow(augmented_image[0].numpy().astype("int32"))
-                    plt.title(int(labels[0]))
-                    plt.axis("off")
-                plt.show()
+        if aug:
+            if show_imgs:
+                #DISPLAY IMAGES
+                #AUGMENTATION
+                for images, labels in TS.take(1):
+                    plt.figure(figsize=(10, 10))
+                    first_image = images[0]
+                    for i in range(9):
+                        ax = plt.subplot(3, 3, i + 1)
+                        augmented_image = data_augmentation(
+                            tf.expand_dims(first_image, 0), training=True
+                        )
+                        plt.imshow(augmented_image[0].numpy().astype("int32"))
+                        plt.title(int(labels[0]))
+                        plt.axis("off")
+                    plt.show()
 
         #MODEL IMPLEMENTATION
         base_model = keras.applications.ResNet50V2(
