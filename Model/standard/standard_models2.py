@@ -380,7 +380,7 @@ class StandardModels(GeneralModelClass):
                         # Save output
                         self.save(output, out_dir, name)
 
-    def newModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4, 1e-5], fine_lrs=[1e-5, 1e-6, 1e-7], epochs=10, fine_epochs=5, nDropouts=[0.4], g=0.1):
+    def newModelSelection(self, TS, VS, aug, show_imgs=True, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=30, fine_epochs=10, nDropouts=[0.4], g=0.1):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
@@ -389,7 +389,7 @@ class StandardModels(GeneralModelClass):
                         with tf.device("/gpu:0"):
                             self.model=None
                             print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                            history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
+                            history = self.newDL(TS, VS, aug, False, b, lr, fine_lr, epochs, fine_epochs, nDropout)
                             loss = history.history["val_loss"][-1]
                             if loss < best_loss:
                                 best_loss = loss
@@ -491,6 +491,23 @@ class StandardModels(GeneralModelClass):
         outputs = keras.layers.Dense(1)(x)
         self.model = keras.Model(inputs, outputs)
 
+        lr_reduce = ReduceLROnPlateau(
+                        monitor="val_loss",
+                        factor=0.1,
+                        patience=3,
+                        verbose=self.verbose_param,
+                        mode="max",
+                        min_lr=1e-9,
+                    )
+        early = EarlyStopping(
+            monitor="val_loss",
+            min_delta=0.001,
+            patience=8,
+            verbose=self.verbose_param,
+            mode="auto",
+        )
+        callbacks = [early]
+
         #self.model.summary()
         #MODEL TRAINING
         self.model.compile(
@@ -500,7 +517,7 @@ class StandardModels(GeneralModelClass):
         )
 
         
-        self.model.fit(TS, epochs=epochs, validation_data=VS, verbose=self.verbose_param)
+        self.model.fit(TS, epochs=epochs, validation_data=VS, verbose=self.verbose_param, callbacks=callbacks)
 
         #FINE TUNING
         base_model.trainable = True
@@ -512,7 +529,7 @@ class StandardModels(GeneralModelClass):
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        history = self.model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param)
+        history = self.model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param, callbacks=callbacks)
  
         return history     
 
