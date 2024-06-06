@@ -404,7 +404,7 @@ class StandardModels(GeneralModelClass):
 
         
 
-    def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=1, lr = 1e-3, fine_lr = 1e-5, epochs=5, fine_epochs=5, nDropout = 0.2, g=0.1, val=True):
+    def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
         print(f"Len of TS is {n}")
@@ -417,12 +417,12 @@ class StandardModels(GeneralModelClass):
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
-                #layers.RandomRotation(g),
+                layers.RandomRotation(g/10),
                 layers.GaussianNoise(g),
-                #layers.RandomBrightness(0.1),
-                tf.keras.layers.RandomBrightness(g),
-                #layers.RandomCrop(int(shape[0]*0.95),int(shape[1]*0.95)),
-                layers.RandomZoom(g/5, g/5)
+                tf.keras.layers.RandomBrightness(g/10),
+                layers.RandomCrop(int(shape[0]*(1-g)),int(shape[1]*(1-g))),
+                layers.RandomZoom(g/5, g/5),
+                layers.Resizing(shape[0], shape[1])
             ]
         )
 
@@ -436,7 +436,7 @@ class StandardModels(GeneralModelClass):
                 plt.imshow(image)
                 plt.title(int(label))
                 plt.axis("off")
-            plt.show()
+            #plt.show()
 
         #DIVIDE IN BATCHES
         TS = TS.batch(batch_size).prefetch(buffer_size=10)
