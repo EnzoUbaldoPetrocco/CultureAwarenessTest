@@ -13,7 +13,7 @@ from Utils.FileManager.FileManager import FileManagerClass
 import functools
 
 taus = [0.1, 0.3, 0.5]
-
+basePath = "../Results/PREDICT/"
 
 
 class VisualizerClass:
@@ -838,7 +838,7 @@ class Res2TabClass:
         # ...
         # Using TAU=0.1, we have to select the right LAMBDA
 
-        basePath = "../Results/"
+        
 
         resacqobj = ResAcquisitionClass()
 
@@ -848,7 +848,7 @@ class Res2TabClass:
         percents = [0.05]
         augments = [0, 1]
         adversary = [0]
-        g_augments = [0.0005, 0.001, 0.05, 0.1, 0.5, 0.75]
+        g_augments = [ 0.05, 0.1, 0.5, 0.75]
 
         taugments = [0, 1]
         tadversaries = [0, 1]
