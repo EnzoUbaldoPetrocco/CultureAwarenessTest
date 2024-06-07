@@ -13,7 +13,7 @@ import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
-memory_limit = 3000
+memory_limit = 3500
 
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
@@ -50,12 +50,11 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-g_gaugs = [0.0005, 0.001, 0.05, 0.1, 0.5, 0.75]
+g_gaugs = [ 0.05, 0.1, 0.5, 0.75]
 test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-memory_limit = 1000
 cs = [0,1,2]
 ks = [1]
 
@@ -70,7 +69,7 @@ with tf.device("/CPU:0"):
                 for k in ks:
                         for g_aug in g_gaugs:
                             model = None
-                            for i in range(5):
+                            for i in range(2):
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
                                     standard=standard,
