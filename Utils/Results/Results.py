@@ -717,7 +717,8 @@ def mkdir(dir):
 
 def main():
     rac = ResAcquisitionClass()
-    rac.get_cm_structure("../../Mitigated/")
+    basepath = "../../Mitigated/PREDICT/"
+    rac.get_cm_structure(basepath)
 
 
 if __name__ == "__main__":
