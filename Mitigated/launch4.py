@@ -40,7 +40,7 @@ else:
 
 percents = [0.05]
 standard = 1
-lamp = 0
+lamp = 1
 
 verbose_param = 0
 n = 1000
@@ -55,7 +55,7 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0,1,2]
+cs = [1,2]
 ks = [1]
 
 basePath = './PREDICT/'
@@ -68,7 +68,7 @@ with tf.device("/CPU:0"):
                 for c in cs:
                     for k in ks:
                         model = None
-                        for i in range(2):
+                        for i in range(4):
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,
