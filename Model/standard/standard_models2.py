@@ -390,7 +390,7 @@ class StandardModels(GeneralModelClass):
                         with tf.device("/gpu:0"):
                             self.model=None
                             print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                            history = self.newDL(TS, VS, aug, False, b, lr, fine_lr, epochs, fine_epochs, nDropout)
+                            history = self.newDL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
                             loss = history.history["val_loss"][-1]
                             if loss < best_loss:
                                 best_loss = loss
@@ -408,11 +408,6 @@ class StandardModels(GeneralModelClass):
     def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
-    
-        #TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
-        #if val:
-        #    VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
-
         
         data_augmentation = keras.Sequential(
             [
@@ -428,9 +423,6 @@ class StandardModels(GeneralModelClass):
 
         # Apply data augmentation to the training dataset
         train_datagen = ImageDataGenerator(preprocessing_function=lambda img: data_augmentation(img, training=aug))
-        #print(f"Shape of TS[0]={np.shape(TS[0])}")
-        #print(f"Shape of TS[1]={np.shape(TS[1])}")
-        #print(f"Shape of TS[1][0]={np.shape(TS[1][0])}")
         train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
         validation_generator = None
         if val:
@@ -441,14 +433,17 @@ class StandardModels(GeneralModelClass):
         if show_imgs:
             #DISPLAY IMAGES
             #NOAUGMENTATION
-            
+            images = []
+            for i in range(9):
+                idx = np.random.randint(0, len(TS[0])-1)
+                images.append((TS[0][idx], TS[1][idx]))
             plt.figure(figsize=(10, 10))
-            for i, (image, label) in enumerate(TS.take(9)):
+            for i, (image, label) in enumerate(images):
                 ax = plt.subplot(3, 3, i + 1)
                 plt.imshow(image)
                 plt.title(int(label))
                 plt.axis("off")
-            #plt.show()
+            plt.show()
 
         #DIVIDE IN BATCHES
         #TS = TS.batch(batch_size).prefetch(buffer_size=10)
@@ -458,16 +453,19 @@ class StandardModels(GeneralModelClass):
             if show_imgs:
                 #DISPLAY IMAGES
                 #AUGMENTATION
-                for images, labels in TS.take(1):
+                idx = np.random.randint(0, len(TS)-1)
+                images = []
+                images.append((TS[0][idx], TS[1][idx]))
+                for ims, labels in images:
                     plt.figure(figsize=(10, 10))
-                    first_image = images[0]
                     for i in range(9):
                         ax = plt.subplot(3, 3, i + 1)
+
                         augmented_image = data_augmentation(
-                            tf.expand_dims(first_image, 0), training=True
+                            tf.expand_dims(ims, 0), training=True
                         )
                         plt.imshow(augmented_image[0].numpy().astype("int32"))
-                        plt.title(int(labels[0]))
+                        plt.title(int(labels))
                         plt.axis("off")
                     plt.show()
 
