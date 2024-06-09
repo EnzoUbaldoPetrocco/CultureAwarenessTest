@@ -13,7 +13,7 @@ import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
-memory_limit = 3000
+memory_limit = 4000
 
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
