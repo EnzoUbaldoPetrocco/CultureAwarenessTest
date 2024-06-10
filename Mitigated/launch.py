@@ -13,7 +13,7 @@ import tensorflow as tf
 
 tf.config.set_soft_device_placement(True)
 
-memory_limit = 3500
+memory_limit = 4000
 
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
@@ -70,7 +70,7 @@ with tf.device("/CPU:0"):
                     if k:
                         for g_aug in g_gaugs:
                             model = None
-                            for i in range(3):
+                            for i in range(2):
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
                                     standard=standard,
