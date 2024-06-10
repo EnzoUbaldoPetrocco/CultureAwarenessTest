@@ -24,6 +24,7 @@ from Model.GeneralModel import GeneralModelClass
 import neural_structured_learning as nsl
 import gc
 import os
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
 class StandardModels(GeneralModelClass):
@@ -407,11 +408,10 @@ class StandardModels(GeneralModelClass):
     def newDL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
-        print(f"Len of TS is {n}")
     
-        TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
-        if val:
-            VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
+        #TS = tf.data.Dataset.from_tensor_slices((TS[0], TS[1]))
+        #if val:
+        #    VS = tf.data.Dataset.from_tensor_slices((VS[0], VS[1]))
 
         
         data_augmentation = keras.Sequential(
@@ -426,6 +426,18 @@ class StandardModels(GeneralModelClass):
             ]
         )
 
+        # Apply data augmentation to the training dataset
+        train_datagen = ImageDataGenerator(preprocessing_function=lambda img: data_augmentation(img, training=aug))
+        #print(f"Shape of TS[0]={np.shape(TS[0])}")
+        #print(f"Shape of TS[1]={np.shape(TS[1])}")
+        #print(f"Shape of TS[1][0]={np.shape(TS[1][0])}")
+        train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
+        validation_generator = None
+        if val:
+            val_datagen = ImageDataGenerator()
+            validation_generator = val_datagen.flow(x=np.asarray(VS[0], dtype=object).astype('float32'),y=np.asarray(VS[1], dtype=object).astype('float32'), batch_size=32)
+    
+        print("Generated data")
         if show_imgs:
             #DISPLAY IMAGES
             #NOAUGMENTATION
@@ -439,9 +451,9 @@ class StandardModels(GeneralModelClass):
             #plt.show()
 
         #DIVIDE IN BATCHES
-        TS = TS.batch(batch_size).prefetch(buffer_size=10)
-        if val:
-            VS = VS.batch(batch_size).prefetch(buffer_size=10)
+        #TS = TS.batch(batch_size).prefetch(buffer_size=10)
+        #if val:
+        #    VS = VS.batch(batch_size).prefetch(buffer_size=10)
         if aug:
             if show_imgs:
                 #DISPLAY IMAGES
@@ -517,7 +529,7 @@ class StandardModels(GeneralModelClass):
         )
 
         
-        self.model.fit(TS, epochs=epochs, validation_data=VS, verbose=self.verbose_param, callbacks=callbacks)
+        self.model.fit(train_generator, epochs=epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
 
         #FINE TUNING
         base_model.trainable = True
@@ -529,7 +541,7 @@ class StandardModels(GeneralModelClass):
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        history = self.model.fit(TS, epochs=fine_epochs, validation_data=VS, verbose=self.verbose_param, callbacks=callbacks)
+        history = self.model.fit(train_generator, epochs=fine_epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
  
         return history     
 

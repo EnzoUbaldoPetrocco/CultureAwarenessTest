@@ -42,7 +42,7 @@ percents = [0.05]
 standard = 1
 #lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -59,7 +59,7 @@ memory_limit = 3000
 cs = [2,1]
 ks = [0]
 
-basePath = './PREDICT/'
+basePath = './Prova/'
 
 
 with tf.device("/CPU:0"):
