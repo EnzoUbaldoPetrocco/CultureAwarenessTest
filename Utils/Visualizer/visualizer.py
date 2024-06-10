@@ -13,7 +13,7 @@ from Utils.FileManager.FileManager import FileManagerClass
 import functools
 
 taus = [0.1, 0.3, 0.5]
-basePath = "../Results/PREDICT/"
+basePath = "../Results/"
 
 
 class VisualizerClass:

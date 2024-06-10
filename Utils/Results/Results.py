@@ -717,7 +717,7 @@ def mkdir(dir):
 
 def main():
     rac = ResAcquisitionClass()
-    basepath = "../../Mitigated/PREDICT/"
+    basepath = "../../Mitigated/"
     rac.get_cm_structure(basepath)
 
 
