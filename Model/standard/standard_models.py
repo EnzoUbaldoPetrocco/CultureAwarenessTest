@@ -136,7 +136,7 @@ class StandardModels(GeneralModelClass):
                         with tf.device("/gpu:0"):
                             self.model=None
                             print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                            history = self.DL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
+                            history = self.DL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout, g=g)
                             loss = history.history["val_loss"][-1]
                             if loss < best_loss:
                                 best_loss = loss
@@ -152,13 +152,18 @@ class StandardModels(GeneralModelClass):
         with tf.device("/gpu:0"):
             print(f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}")
             TS = TS + VS
-            self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False)
+            self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False, g=g)
 
         
 
     def DL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
+
+        if val:
+            monitor_val="val_loss"
+        else:
+            monitor_val="loss"
         
         data_augmentation = keras.Sequential(
             [
@@ -174,11 +179,11 @@ class StandardModels(GeneralModelClass):
 
         # Apply data augmentation to the training dataset
         train_datagen = ImageDataGenerator(preprocessing_function=lambda img: data_augmentation(img, training=aug))
-        train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
+        train_generator = train_datagen.flow(x=tf.constant(TS[0]).astype('float32'),y=tf.constant(TS[1]).astype('float32'), batch_size=32)
         validation_generator = None
         if val:
             val_datagen = ImageDataGenerator()
-            validation_generator = val_datagen.flow(x=np.asarray(VS[0], dtype=object).astype('float32'),y=np.asarray(VS[1], dtype=object).astype('float32'), batch_size=32)
+            validation_generator = val_datagen.flow(x=tf.constant(VS[0]).astype('float32'),y=tf.constant(VS[1]).astype('float32'), batch_size=32)
     
         if show_imgs:
             #DISPLAY IMAGES
@@ -252,7 +257,7 @@ class StandardModels(GeneralModelClass):
         self.model = keras.Model(inputs, outputs)
 
         lr_reduce = ReduceLROnPlateau(
-                        monitor="val_loss",
+                        monitor=monitor_val,
                         factor=0.1,
                         patience=3,
                         verbose=self.verbose_param,
@@ -260,7 +265,7 @@ class StandardModels(GeneralModelClass):
                         min_lr=1e-9,
                     )
         early = EarlyStopping(
-            monitor="val_loss",
+            monitor=monitor_val,
             min_delta=0.001,
             patience=8,
             verbose=self.verbose_param,

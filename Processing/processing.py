@@ -3,7 +3,7 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../")
-from Model.mitigated.mitigated_models2 import MitigatedModels
+from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
@@ -316,6 +316,8 @@ class ProcessingClass:
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
             )
+
+        self.model.standard=standard
             # Base path:
         # - STD/MIT
         # - model: SVC, RFC, DL
