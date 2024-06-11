@@ -29,7 +29,8 @@ import math
 
 from tensorflow.keras import regularizers
 
-@tf.keras.utils.register_keras_serializable(package='Custom', name='reg')
+
+@tf.keras.utils.register_keras_serializable(package="Custom", name="reg")
 class REG(regularizers.Regularizer):
 
     def __init__(self, mu, n_culture=3):
@@ -43,7 +44,7 @@ class REG(regularizers.Regularizer):
         return (self.mu) * sum
 
     def get_config(self):
-        return {'mu': self.mu}
+        return {"mu": self.mu}
 
 
 class MitigatedModels(GeneralModelClass):
@@ -80,7 +81,6 @@ class MitigatedModels(GeneralModelClass):
         else:
             self.lamb = 0
 
-    
     def computeCIC(self, errs):
         tf.add(errs, -tf.math.reduce_min(errs))
         cic = tf.reduce_mean(errs)
@@ -88,36 +88,32 @@ class MitigatedModels(GeneralModelClass):
 
     def get_cic(self, valX, valY):
         losses = []
-        valY = list(np.asarray(valY)[:, 1])
-        for out in range(3):
+        valY = list(np.asarray(valY)[:, self.n_cultures])
+        for out in range(self.n_cultures):
             yPred = self.model(valX)
             yPred = list(np.asarray(yPred)[:, out])
             ls = tf.keras.losses.binary_crossentropy(valY, yPred)
             losses.append(ls)
         cic = self.computeCIC(losses)
         return cic
-    
-    
-    def custom_loss(self, bs=1):
+
+    def custom_loss(self):
         """
         This function implements the loss and the regularizer of the mitigation stratyegy
         :param out: related to the corresponding output to be optimized
         :return loss function
         """
+
         @tf.function
         def loss(y_true, y_pred):
-            sum = 0.0
-            n = 0.0
-            for b in range(len(y_true)):
-                n += 1.0
-                for out in range(self.n_cultures):
-                    mask = tf.equal(y_true[b][0], out)
-                    if mask:
-                        sum += tf.keras.losses.binary_crossentropy(
-                            tf.expand_dims(y_true[b][1], axis=0),
-                            tf.expand_dims(y_pred[b][out], axis=0),
-                        )
-            return sum/n
+            pred = tf.linalg.tensor_diag_part(
+                tf.multiply(y_pred, y_true[:, 0 : self.n_cultures])
+            )
+            ls = tf.keras.losses.binary_crossentropy(
+                y_true[:, self.n_cultures + 1], pred
+            )
+            return ls
+
         return loss
 
     def get_best_idx(self, losses: list, cics: list, tau=0.1):
@@ -142,10 +138,25 @@ class MitigatedModels(GeneralModelClass):
 
         return pairs[i][1]
 
-    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=3, fine_epochs=10, nDropouts=[0.4], g=0.1, n_cultures=3):
+    def ModelSelection(
+        self,
+        TS,
+        VS,
+        aug,
+        show_imgs=False,
+        batches=[32],
+        lrs=[1e-2, 1e-3, 1e-4],
+        fine_lrs=[1e-5, 1e-6],
+        epochs=3,
+        fine_epochs=10,
+        nDropouts=[0.4],
+        g=0.1,
+        n_cultures=3,
+    ):
         best_loss = np.inf
         losses = []
         cics = []
+
         lambdas = np.logspace(-3, 1, 4)
         for lmb in lambdas:
             self.lamb = lmb
@@ -154,12 +165,27 @@ class MitigatedModels(GeneralModelClass):
                     for fine_lr in fine_lrs:
                         for nDropout in nDropouts:
                             with tf.device("/gpu:0"):
-                                self.model=None
-                                print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                                history = self.DL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout, n_cultures=n_cultures)
+                                self.model = None
+                                print(
+                                    f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
+                                )
+                                history = self.DL(
+                                    TS,
+                                    VS,
+                                    aug,
+                                    show_imgs,
+                                    b,
+                                    lr,
+                                    fine_lr,
+                                    epochs,
+                                    fine_epochs,
+                                    nDropout,
+                                    n_cultures=n_cultures,
+                                    g=g
+                                )
                                 loss = history.history["val_loss"][-1]
                                 CIC = self.get_cic(VS[0], VS[1])
-                                print(f'loss is {loss}, cic is {CIC}')
+                                print(f"loss is {loss}, cic is {CIC}")
                                 losses.append(loss)
                                 cics.append(CIC)
                                 if loss < best_loss:
@@ -168,58 +194,89 @@ class MitigatedModels(GeneralModelClass):
                                     best_lr = lr
                                     best_fine_lr = fine_lr
                                     best_nDropout = nDropout
-
                                 self.model = None
                                 gc.collect()
 
         idx = self.get_best_idx(losses, cics)
         best_loss = losses[idx]
         best_bs = batches[idx % len(batches)]
-        best_lr = lrs[
-            math.floor(idx / len(batches)) % len(lrs)
-        ]
+        best_lr = lrs[math.floor(idx / len(batches)) % len(lrs)]
         best_lmb = lambdas[math.floor(idx / (len(batches) * len(lrs)))]
         best_CIC = cics[idx]
-
         self.lamb = best_lmb
-
         with tf.device("/gpu:0"):
-            print(f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}, best lambda={best_lmb}, best CIC={best_CIC}")
+            print(
+                f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}, best lambda={best_lmb}, best CIC={best_CIC}"
+            )
             TS = TS + VS
-            self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False, n_cultures=n_cultures)
+            self.DL(
+                TS,
+                None,
+                aug,
+                show_imgs,
+                best_bs,
+                best_lr,
+                best_fine_lr,
+                epochs,
+                fine_epochs,
+                best_nDropout,
+                val=False,
+                n_cultures=n_cultures,
+                g=g
+            )
 
-        
-
-    def DL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True, n_cultures=3):
+    def DL(
+        self,
+        TS,
+        VS,
+        aug=False,
+        show_imgs=False,
+        batch_size=32,
+        lr=1e-3,
+        fine_lr=1e-5,
+        epochs=1,
+        fine_epochs=1,
+        nDropout=0.2,
+        g=0.1,
+        val=True,
+        n_cultures=3,
+    ):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
-        
+
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
-                layers.RandomRotation(g/10),
+                layers.RandomRotation(g / 10),
                 layers.GaussianNoise(g),
-                tf.keras.layers.RandomBrightness(g/10),
-                layers.RandomCrop(int(shape[0]*(1-g)),int(shape[1]*(1-g))),
-                layers.RandomZoom(g/5, g/5),
-                layers.Resizing(shape[0], shape[1])
+                tf.keras.layers.RandomBrightness(g / 10),
+                layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
+                layers.RandomZoom(g / 5, g / 5),
+                layers.Resizing(shape[0], shape[1]),
             ]
         )
 
         # Apply data augmentation to the training dataset
-        train_datagen = ImageDataGenerator(preprocessing_function=lambda img: data_augmentation(img, training=aug))
-        train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=lambda img: data_augmentation(img, training=aug)
+        )
+        X = tf.constant(TS[0], dtype="float32")
+        y = tf.ragged.constant(TS[1], dtype="float32")
+        train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
+        # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
         validation_generator = None
         if val:
             val_datagen = ImageDataGenerator()
-            validation_generator = val_datagen.flow(x=np.asarray(VS[0], dtype=object).astype('float32'),y=np.asarray(VS[1], dtype=object).astype('float32'), batch_size=32)
-    
+            Xv = tf.constant(VS[0], dtype="float32")
+            yv = tf.ragged.constant(VS[1], dtype="float32")
+            validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
+
         if show_imgs:
-            #DISPLAY IMAGES
-            #NOAUGMENTATION
+            # DISPLAY IMAGES
+            # NOAUGMENTATION
             images = []
             for i in range(9):
-                idx = np.random.randint(0, len(TS[0])-1)
+                idx = np.random.randint(0, len(TS[0]) - 1)
                 images.append((TS[0][idx], TS[1][idx]))
             plt.figure(figsize=(10, 10))
             for i, (image, label) in enumerate(images):
@@ -229,15 +286,12 @@ class MitigatedModels(GeneralModelClass):
                 plt.axis("off")
             plt.show()
 
-        #DIVIDE IN BATCHES
-        #TS = TS.batch(batch_size).prefetch(buffer_size=10)
-        #if val:
-        #    VS = VS.batch(batch_size).prefetch(buffer_size=10)
+        # DIVIDE IN BATCHES
         if aug:
             if show_imgs:
-                #DISPLAY IMAGES
-                #AUGMENTATION
-                idx = np.random.randint(0, len(TS)-1)
+                # DISPLAY IMAGES
+                # AUGMENTATION
+                idx = np.random.randint(0, len(TS) - 1)
                 images = []
                 images.append((TS[0][idx], TS[1][idx]))
                 for ims, labels in images:
@@ -253,7 +307,7 @@ class MitigatedModels(GeneralModelClass):
                         plt.axis("off")
                     plt.show()
 
-        #MODEL IMPLEMENTATION
+        # MODEL IMPLEMENTATION
         base_model = keras.applications.ResNet50V2(
             weights="imagenet",  # Load weights pre-trained on ImageNet.
             input_shape=shape,
@@ -268,7 +322,6 @@ class MitigatedModels(GeneralModelClass):
         # Pre-trained Xception weights requires that input be scaled
         # from (0, 255) to a range of (-1., +1.), the rescaling layer
         # outputs: `(inputs * scale) + offset`
-        #scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
         scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
         if aug:
             x = data_augmentation(inputs)  # Apply random data augmentation
@@ -282,17 +335,22 @@ class MitigatedModels(GeneralModelClass):
         x = base_model(x, training=False)
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-        outputs = keras.layers.Dense(n_cultures, kernel_initializer='ones', kernel_regularizer=REG(mu=self.lamb, n_culture=n_cultures))(x)
+        outputs = keras.layers.Dense(
+            n_cultures,
+            kernel_initializer="ones",
+            kernel_regularizer=REG(mu=self.lamb, n_culture=n_cultures),
+        )(x)
+        outputs = keras.layers.Dense(n_cultures)(x)
         self.model = keras.Model(inputs, outputs)
 
         lr_reduce = ReduceLROnPlateau(
-                        monitor="val_loss",
-                        factor=0.1,
-                        patience=3,
-                        verbose=self.verbose_param,
-                        mode="max",
-                        min_lr=1e-9,
-                    )
+            monitor="val_loss",
+            factor=0.1,
+            patience=3,
+            verbose=self.verbose_param,
+            mode="max",
+            min_lr=1e-9,
+        )
         early = EarlyStopping(
             monitor="val_loss",
             min_delta=0.001,
@@ -302,39 +360,60 @@ class MitigatedModels(GeneralModelClass):
         )
         callbacks = [early]
 
-        self.model.summary()
-        #MODEL TRAINING
+        # self.model.summary()
+        # MODEL TRAINING
         self.model.compile(
             optimizer=keras.optimizers.Adam(lr),
-            loss=self.custom_loss(bs=batch_size),
+            loss=self.custom_loss(),
             metrics=["accuracy"],
-            #run_eagerly=True
+            # run_eagerly=True
         )
         self.n_cultures = n_cultures
         print("\n\n")
-        print(np.linalg.norm(self.model.layers[-1].weights))
-        self.model.fit(train_generator, epochs=epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
-        print(np.linalg.norm(self.model.layers[-1].weights))
+        ws = np.linalg.norm(self.model.layers[-1].weights)
+        self.model.fit(
+            train_generator,
+            epochs=epochs,
+            validation_data=validation_generator,
+            verbose=self.verbose_param,
+            callbacks=callbacks,
+        )
+        ws2 = np.linalg.norm(self.model.layers[-1].weights)
+        print(f"Same = {ws2==ws}")
         print("\n\n")
 
-        #FINE TUNING
+        # FINE TUNING
         base_model.trainable = True
-        #self.model.summary()
+        # self.model.summary()
 
         self.model.compile(
             optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-            loss=self.custom_loss(bs=batch_size),
+            loss=self.custom_loss(),
             metrics=["accuracy"],
         )
 
-        history = self.model.fit(train_generator, epochs=fine_epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
- 
-        return history     
+        history = self.model.fit(
+            train_generator,
+            epochs=fine_epochs,
+            validation_data=validation_generator,
+            verbose=self.verbose_param,
+            callbacks=callbacks,
+        )
 
-
+        return history
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0, aug=0, g=0.1
+        self,
+        TS,
+        VS=None,
+        adversary=0,
+        eps=0.05,
+        mult=0.2,
+        gradcam=False,
+        out_dir="./",
+        complete=0,
+        aug=0,
+        g=0.1,
     ):
         """
         General function for implementing model selection
@@ -358,8 +437,6 @@ class MitigatedModels(GeneralModelClass):
             )"""
         else:
             self.ModelSelection(TS, VS, aug=aug, g=g)
-
-
 
     def get_model_from_weights(self, size, adversary=0, eps=0.05, mult=0.2, path="./"):
         self.model = tf.keras.models.load_model(path)

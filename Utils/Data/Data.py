@@ -116,6 +116,7 @@ class DataClass:
         val_split=0.2,
         test_split=0.2,
         n=1000,
+        n_cultures=3
     ):
         """
         this function prepares time by time the sets for training
@@ -152,6 +153,11 @@ class DataClass:
                 for img, label in lDS:
                     if standard:
                         label = int(label[1])
+                    else:
+                        a = np.zeros(n_cultures)
+                        a[c] = 1
+                        np.append(a, label[1])
+                        label = list(a)
                     if shallow:
                         img = img[0::]
                         img = img.flatten()
@@ -183,6 +189,8 @@ class DataClass:
                 del yds
             self.Xt.append(cultureXt)
             self.yt.append(cultureyT)
+
+        
 
     def clear(self):
         """
