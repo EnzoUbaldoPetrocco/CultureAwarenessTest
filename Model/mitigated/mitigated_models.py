@@ -120,24 +120,19 @@ class MitigatedModels(GeneralModelClass):
             ls = tf.keras.losses.binary_crossentropy(
                 y_true[:, self.n_cultures], pred
             )
-            return ls
-
+            
+            return ls/ tf.cast(tf.size(y_true), dtype='float32')
         return loss
+    
     @tf.function
     def regularizer(self, w):
         sum = tf.constant(0.0, dtype='float32')
-        #print(f"\nshape of weights is {np.shape(w)}")
-        #print(f"weights are")
         
         mean = tf.reduce_mean(w, axis=1)
         for i in range(self.n_cultures):
             sum += tf.math.square(tf.norm(w[:,i] - mean))
-            #print(w[:,i])
-        
-        #print(f"mean is {mean}")
-        #print(f"sum is {sum}")
+            
         res = (self.lamb) * sum
-        #print(f"Res in reg is {res}")
         return res
 
     def get_best_idx(self, losses: list, cics: list, tau=0.1):
@@ -292,7 +287,6 @@ class MitigatedModels(GeneralModelClass):
         X = tf.constant(TS[0], dtype="float32")
         y = tf.constant(TS[1], dtype="float32")
         train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
-        # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
         validation_generator = None
         if val:
             val_datagen = ImageDataGenerator()
