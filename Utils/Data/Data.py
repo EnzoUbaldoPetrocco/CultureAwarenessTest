@@ -156,7 +156,7 @@ class DataClass:
                     else:
                         a = np.zeros(n_cultures)
                         a[c] = 1
-                        np.append(a, label[1])
+                        a = np.append(a, label[1])
                         label = list(a)
                     if shallow:
                         img = img[0::]

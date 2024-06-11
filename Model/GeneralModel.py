@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import cv2
 from tf_explain.utils.display import grid_display, heatmap_display
 from tf_explain.utils.saver import save_rgb
+import gc
 
 
 class GeneralModelClass:
@@ -19,6 +20,7 @@ class GeneralModelClass:
         Init function links self.model attribute
         """
         self.model = 0
+        self.standard = 0
 
     def __call__(self, X, out=-1):
         """
@@ -30,39 +32,12 @@ class GeneralModelClass:
         """
         if self.model != None:
             with tf.device("/gpu:0"):
-
-                if tf.is_tensor(X):
-                    yP = self.model.predict(X)
-                    if tf.shape(yP)[0] > 1:
-                        res = tf.gather(yP, indices=[[0, 0], [1, 0], [2, 0]])
-                        if(out>0):
-                            res = res[out]
-                        return res
-                    else:
-                        res = yP[0][0]
-                        if (out>0):
-                            res = res[out]
-                        return res
+                if self.standard:
+                    return self.model(X, training=False)
                 else:
-                    yP = np.asarray(self.model.predict(X))
-                    if type(self.model) == keras.engine.functional.Functional:
-                        if tf.shape(yP)[0] > 1:
-                            # print(np.shape(yP))
-                            res = yP[:, 0]
-                            if (out>0):
-                                res = res[out]
-                            return res
-                        else:
-                            # print(np.shape(yP))
-                            res = yP[0]
-                            if (out>0):
-                                res = res[out]
-                            return res
-                    else:
-                        yP = res
-                        if (out>0):
-                            res = res[out]
-                        return res
+                    res = self.model(X, training=False)
+                    res = res[:,out]
+                    return res
         else:
             print("Try fitting the model before")
             return None
