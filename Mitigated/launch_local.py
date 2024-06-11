@@ -57,7 +57,7 @@ test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 memory_limit = 3000
 cs = [0,1,2]
-ks = [0]
+ks = [1]
 
 basePath = './Prova/'
 

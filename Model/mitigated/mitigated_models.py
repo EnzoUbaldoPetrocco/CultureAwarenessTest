@@ -398,8 +398,8 @@ class MitigatedModels(GeneralModelClass):
             #run_eagerly=True
         )
         self.n_cultures = n_cultures
-        print("\n\n")
-        ws = np.linalg.norm(self.model.layers[-1].weights)
+       
+        #ws = np.linalg.norm(self.model.layers[-1].weights)
         self.model.fit(
             train_generator,
             epochs=epochs,
@@ -407,9 +407,8 @@ class MitigatedModels(GeneralModelClass):
             verbose=self.verbose_param,
             callbacks=callbacks,
         )
-        ws2 = np.linalg.norm(self.model.layers[-1].weights)
-        print(f"Same = {ws2==ws}")
-        print("\n\n")
+        #ws2 = np.linalg.norm(self.model.layers[-1].weights)
+        #print(f"Same = {ws2==ws}")
 
         # FINE TUNING
         base_model.trainable = True
