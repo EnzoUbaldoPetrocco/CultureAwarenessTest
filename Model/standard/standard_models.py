@@ -176,15 +176,21 @@ class StandardModels(GeneralModelClass):
                 layers.Resizing(shape[0], shape[1])
             ]
         )
-
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=lambda img: data_augmentation(img, training=aug)
+        )
         # Apply data augmentation to the training dataset
-        train_datagen = ImageDataGenerator(preprocessing_function=lambda img: data_augmentation(img, training=aug))
-        train_generator = train_datagen.flow(x=tf.constant(TS[0]).astype('float32'),y=tf.constant(TS[1]).astype('float32'), batch_size=32)
+        X = tf.constant(TS[0], dtype="float32")
+        y = tf.constant(TS[1], dtype="float32")
+        train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
+        # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
         validation_generator = None
         if val:
             val_datagen = ImageDataGenerator()
-            validation_generator = val_datagen.flow(x=tf.constant(VS[0]).astype('float32'),y=tf.constant(VS[1]).astype('float32'), batch_size=32)
-    
+            Xv = tf.constant(VS[0], dtype="float32")
+            yv = tf.constant(VS[1], dtype="float32")
+            validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
+
         if show_imgs:
             #DISPLAY IMAGES
             #NOAUGMENTATION
