@@ -18,6 +18,7 @@ import gc
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 
 class ProcessingClass:

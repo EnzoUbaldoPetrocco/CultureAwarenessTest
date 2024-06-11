@@ -10,6 +10,12 @@ from Utils.FileManager.FileManager import FileManagerClass
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
+import os
+import gc
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 tf.config.set_soft_device_placement(True)
 
@@ -55,7 +61,7 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0,1,2]
+cs = [1,2]
 ks = [1]
 
 basePath = './'
@@ -69,8 +75,8 @@ with tf.device("/CPU:0"):
                 for k in ks:
                     if k:
                         for g_aug in g_gaugs:
-                            model = None
                             for i in range(2):
+                                model = None
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
                                     standard=standard,
@@ -105,6 +111,7 @@ with tf.device("/CPU:0"):
                     else:
                         model = None
                         for i in range(5):
+                            model = None
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
                                 standard=standard,
