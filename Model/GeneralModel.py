@@ -30,6 +30,7 @@ class GeneralModelClass:
         """
         if self.model != None:
             with tf.device("/gpu:0"):
+
                 if tf.is_tensor(X):
                     yP = self.model.predict(X)
                     if tf.shape(yP)[0] > 1:
@@ -79,6 +80,7 @@ class GeneralModelClass:
                 values.append(1)
             else:
                 values.append(0)
+            gc.collect()
         return values
 
     def test(self, Xt, out=-1):
@@ -98,8 +100,10 @@ class GeneralModelClass:
                     pL = np.asarray(self(xt[None, ...]))[out]
                     yF.append(pL)
             yFq = self.quantize(yF)
+            gc.collect()
             return yFq
         else:
+            gc.collect()
             print("Try fitting the model before")
             return None
 
@@ -118,7 +122,8 @@ class GeneralModelClass:
                 yT = yT[:, 1]
             elif type(yT) == list:
                 yT = np.asarray(yT)[:, 1]
-        
+            gc.collect()
+        gc.collect()
         if yFq:
             # yT = list([c_i, y_i])
             cm = confusion_matrix(y_true=yT, y_pred=yFq)

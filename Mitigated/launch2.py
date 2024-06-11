@@ -10,6 +10,12 @@ from Utils.FileManager.FileManager import FileManagerClass
 from Processing.processing import ProcessingClass
 from math import floor
 import tensorflow as tf
+import os
+import gc
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 tf.config.set_soft_device_placement(True)
 
@@ -55,7 +61,7 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0,1,2]
+cs = [1,2]
 ks = [0,1]
 
 basePath = './'
