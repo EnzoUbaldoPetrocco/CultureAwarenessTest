@@ -25,138 +25,172 @@ import neural_structured_learning as nsl
 import gc
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import math
+
+from tensorflow.keras import regularizers
+
+@tf.keras.utils.register_keras_serializable(package='Custom', name='reg')
+class REG(regularizers.Regularizer):
+
+    def __init__(self, mu, n_culture=3):
+        self.mu = mu
+        self.n_culture = n_culture
+
+    def __call__(self, w):
+        sum = 0.0
+        for i in range(self.n_culture):
+            sum += tf.math.square(tf.norm(w[i] - tf.reduce_mean(w, axis=0)))
+        return (self.mu) * sum
+
+    def get_config(self):
+        return {'mu': self.mu}
 
 
-class StandardModels(GeneralModelClass):
+class MitigatedModels(GeneralModelClass):
     def __init__(
         self,
-        type="SVC",
-        points=50,
-        kernel="linear",
+        type="DL",
+        culture=0,
         verbose_param=0,
-        learning_rate=1e-3,
         epochs=15,
         batch_size=1,
+        learning_rate=1e-3,
+        lambda_index=-1,
     ):
         """
-        Initialization function for modeling standard ML models.
+        Initialization function for modeling mitigated ML models.
         We have narrowed the problems to image classification problems.
-        I have implemented SVM (with linear and gaussian kernel) and Random Forest, using scikit-learn library;
-        ResNet using Tensorflow library.
-        :param type: selects the algorithm "SVC", "RFC" and "RESNET" are possible values.
-        :param points: n of points in gridsearch for SVC and RFC
-        :param kernel: type of kernel for SVC: "linear" and "gaussian" are possible values.
+        :param type: selects the algorithm even if up to now "RESNET" is the only possible value.
+        :param culture: selects the majority culture
         :param verbose_param: if enabled, the program logs more information
         :param learning_rate: hyperparameter for DL
         :param epochs: hyperparameter for DL
         :param batch_size: hyperparameter for DL
+        :param lambda_index: select the gain of the regularizer in a logspace(-3, 2, 31)
         """
-        GeneralModelClass.__init__(self)
         self.type = type
-        self.points = points
-        self.kernel = kernel
+        self.culture = culture
         self.verbose_param = verbose_param
-        self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        if lambda_index >= 0:
+            lambda_grid = np.logspace(-3, 2, 31)
+            self.lamb = lambda_grid[lambda_index]
+        else:
+            self.lamb = 0
 
-    def SVC(self, TS):
+    
+    def computeCIC(self, errs):
+        tf.add(errs, -tf.math.reduce_min(errs))
+        cic = tf.reduce_mean(errs)
+        return cic
+
+    def get_cic(self, valX, valY):
+        losses = []
+        valY = list(np.asarray(valY)[:, 1])
+        for out in range(3):
+            yPred = self.model(valX)
+            yPred = list(np.asarray(yPred)[:, out])
+            ls = tf.keras.losses.binary_crossentropy(valY, yPred)
+            losses.append(ls)
+        cic = self.computeCIC(losses)
+        return cic
+    
+    
+    def custom_loss(self, bs=1):
         """
-        This function performs the model selection on SVM for Classification
-        :param TS: union between training and validation set
-        :return the best model
+        This function implements the loss and the regularizer of the mitigation stratyegy
+        :param out: related to the corresponding output to be optimized
+        :return loss function
         """
-        if self.kernel == "rbf":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
-            grid = {"C": logspaceC, "kernel": [self.kernel], "gamma": logspaceGamma}
-        if self.kernel == "linear":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
-            grid = {"C": logspaceC, "kernel": [self.kernel]}
+        @tf.function
+        def loss(y_true, y_pred):
+            sum = 0.0
+            n = 0.0
+            for b in range(len(y_true)):
+                n += 1.0
+                for out in range(self.n_cultures):
+                    mask = tf.equal(y_true[b][0], out)
+                    if mask:
+                        sum += tf.keras.losses.binary_crossentropy(
+                            tf.expand_dims(y_true[b][1], axis=0),
+                            tf.expand_dims(y_pred[b][out], axis=0),
+                        )
+            return sum/n
+        return loss
 
-        MS = GridSearchCV(
-            estimator=SVC(),
-            param_grid=grid,
-            scoring="balanced_accuracy",
-            cv=10,
-            verbose=self.verbose_param,
-        )
-        # training set is divided into (X,y)
-        TS = np.array(TS, dtype=object)
-        del TS
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
-        print("SVC TRAINING")
-        H = MS.fit(X, y)
-        # Check that C and gamma are not the extreme values
-        print(f"C best param {H.best_params_['C']}")
-        # print(f"gamma best param {H.best_params_['gamma']}")
-        self.model = H
+    def get_best_idx(self, losses: list, cics: list, tau=0.1):
+        tmp_losses = losses
+        n_ls = math.floor(len(losses) * tau)
 
-    def RFC(self, TS):
-        """
-        This function performs the model selection on Random Forest for Classification
-        :param TS: union between training and validation set
-        :return the best model
-        """
-        rfc = RandomForestClassifier(random_state=42)
-        logspace_max_depth = []
-        for i in np.logspace(0, 3, self.points):
-            logspace_max_depth.append(int(i))
-        param_grid = {
-            "n_estimators": [500],  # logspace_n_estimators,
-            "max_depth": logspace_max_depth,
-        }
+        pairs = []
+        tmp_cics = []
 
-        CV_rfc = GridSearchCV(
-            estimator=rfc, param_grid=param_grid, cv=5, verbose=self.verbose_param
-        )
-        # training set is divided into (X,y)
-        TS = np.array(TS, dtype=object)
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
-        del TS
-        print("RFC TRAINING")
-        H = CV_rfc.fit(X, y)
-        # print(CV_rfc.best_params_)
-        self.model = H
+        for i in range(n_ls):
+            val = min(tmp_losses)
+            idx = tmp_losses.index(val)
+            pairs.append((val, idx))
+            tmp_losses.remove(val)
 
+            tmp_cics.append(cics[idx])
 
-    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=30, fine_epochs=10, nDropouts=[0.4], g=0.1):
+        mincic = min(tmp_cics)
+        for i in range(n_ls):
+            if mincic == cics[i]:
+                idx = i
+
+        return pairs[i][1]
+
+    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=3, fine_epochs=10, nDropouts=[0.4], g=0.1, n_cultures=3):
         best_loss = np.inf
-        for b in batches:
-            for lr in lrs:
-                for fine_lr in fine_lrs:
-                    for nDropout in nDropouts:
-                        with tf.device("/gpu:0"):
-                            self.model=None
-                            print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                            history = self.DL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout)
-                            loss = history.history["val_loss"][-1]
-                            if loss < best_loss:
-                                best_loss = loss
-                                best_bs = b
-                                best_lr = lr
-                                best_fine_lr = fine_lr
-                                best_nDropout = nDropout
+        losses = []
+        cics = []
+        lambdas = np.logspace(-3, 1, 4)
+        for lmb in lambdas:
+            self.lamb = lmb
+            for b in batches:
+                for lr in lrs:
+                    for fine_lr in fine_lrs:
+                        for nDropout in nDropouts:
+                            with tf.device("/gpu:0"):
+                                self.model=None
+                                print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
+                                history = self.DL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout, n_cultures=n_cultures)
+                                loss = history.history["val_loss"][-1]
+                                CIC = self.get_cic(VS[0], VS[1])
+                                print(f'loss is {loss}, cic is {CIC}')
+                                losses.append(loss)
+                                cics.append(CIC)
+                                if loss < best_loss:
+                                    best_loss = loss
+                                    best_bs = b
+                                    best_lr = lr
+                                    best_fine_lr = fine_lr
+                                    best_nDropout = nDropout
 
-                            self.model = None
-                            gc.collect()
+                                self.model = None
+                                gc.collect()
 
-                            
+        idx = self.get_best_idx(losses, cics)
+        best_loss = losses[idx]
+        best_bs = batches[idx % len(batches)]
+        best_lr = lrs[
+            math.floor(idx / len(batches)) % len(lrs)
+        ]
+        best_lmb = lambdas[math.floor(idx / (len(batches) * len(lrs)))]
+        best_CIC = cics[idx]
+
+        self.lamb = best_lmb
+
         with tf.device("/gpu:0"):
-            print(f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}")
+            print(f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}, best lambda={best_lmb}, best CIC={best_CIC}")
             TS = TS + VS
-            self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False)
+            self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False, n_cultures=n_cultures)
 
         
 
-    def DL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
+    def DL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True, n_cultures=3):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
         
@@ -248,7 +282,7 @@ class StandardModels(GeneralModelClass):
         x = base_model(x, training=False)
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-        outputs = keras.layers.Dense(1)(x)
+        outputs = keras.layers.Dense(n_cultures, kernel_initializer='ones', kernel_regularizer=REG(mu=self.lamb, n_culture=n_cultures))(x)
         self.model = keras.Model(inputs, outputs)
 
         lr_reduce = ReduceLROnPlateau(
@@ -268,16 +302,20 @@ class StandardModels(GeneralModelClass):
         )
         callbacks = [early]
 
-        #self.model.summary()
+        self.model.summary()
         #MODEL TRAINING
         self.model.compile(
             optimizer=keras.optimizers.Adam(lr),
-            loss=keras.losses.BinaryCrossentropy(from_logits=True),
-            metrics=[keras.metrics.BinaryAccuracy()],
+            loss=self.custom_loss(bs=batch_size),
+            metrics=["accuracy"],
+            #run_eagerly=True
         )
-
-        
+        self.n_cultures = n_cultures
+        print("\n\n")
+        print(np.linalg.norm(self.model.layers[-1].weights))
         self.model.fit(train_generator, epochs=epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
+        print(np.linalg.norm(self.model.layers[-1].weights))
+        print("\n\n")
 
         #FINE TUNING
         base_model.trainable = True
@@ -285,8 +323,8 @@ class StandardModels(GeneralModelClass):
 
         self.model.compile(
             optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-            loss=keras.losses.BinaryCrossentropy(from_logits=True),
-            metrics=[keras.metrics.BinaryAccuracy()],
+            loss=self.custom_loss(bs=batch_size),
+            metrics=["accuracy"],
         )
 
         history = self.model.fit(train_generator, epochs=fine_epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)

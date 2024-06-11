@@ -39,7 +39,7 @@ else:
     print("no gpus")
 
 percents = [0.05]
-standard = 1
+standard = 0
 #lamp = 1
 
 verbose_param = 1
