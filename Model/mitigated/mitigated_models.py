@@ -27,33 +27,6 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 
-from tensorflow.keras import regularizers
-
-
-"""@tf.keras.utils.register_keras_serializable(package="Custom", name="reg")
-class REG(regularizers.Regularizer):
-
-    def __init__(self, mu, n_culture=3):
-        self.mu = mu
-        self.n_culture = n_culture
-
-   
-    def __call__(self, w):
-        sum = tf.constant(0.0, dtype='float32')
-        #print(f"\nshape of weights is {np.shape(w)}")
-        #print(f"weights are")
-        
-        mean = tf.reduce_mean(w, axis=1)
-        for i in range(self.n_culture):
-            sum += tf.math.square(tf.norm(w[:,i] - mean))
-            #print(w[:,i])
-        
-        #print(f"mean is {mean}")
-        #print(f"sum is {sum}")
-        return (self.mu) * sum
-
-    def get_config(self):
-        return {"mu": self.mu}"""
 
 
 class MitigatedModels(GeneralModelClass):
@@ -78,6 +51,7 @@ class MitigatedModels(GeneralModelClass):
         :param batch_size: hyperparameter for DL
         :param lambda_index: select the gain of the regularizer in a logspace(-3, 2, 31)
         """
+        GeneralModelClass.__init__(self, standard=0)
         self.type = type
         self.culture = culture
         self.verbose_param = verbose_param
@@ -90,6 +64,7 @@ class MitigatedModels(GeneralModelClass):
         else:
             self.lamb = 0
 
+
     def computeCIC(self, errs):
         tf.add(errs, -tf.math.reduce_min(errs))
         cic = tf.reduce_mean(errs)
@@ -98,12 +73,14 @@ class MitigatedModels(GeneralModelClass):
     def get_cic(self, valX, valY):
         losses = []
         valY = list(np.asarray(valY)[:, self.n_cultures])
+        print("Shape of valX is ")
+        print(np.shape(valX))
         for out in range(self.n_cultures):
-            yPred = self.model(valX)
+            yPred = self.model.predict(np.asarray(valX, dtype='int32'))
             yPred = list(np.asarray(yPred)[:, out])
             ls = tf.keras.losses.binary_crossentropy(valY, yPred)
             losses.append(ls)
-        cic = self.computeCIC(losses)
+        cic = float(self.computeCIC(losses))
         return cic
 
     def custom_loss(self):
@@ -112,7 +89,7 @@ class MitigatedModels(GeneralModelClass):
         :param out: related to the corresponding output to be optimized
         :return loss function
         """
-
+        
         @tf.function
         def loss(y_true, y_pred):
             pred = tf.linalg.matmul(y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True)
@@ -121,8 +98,20 @@ class MitigatedModels(GeneralModelClass):
                 y_true[:, self.n_cultures], pred
             )
             
-            return ls/ tf.cast(tf.size(y_true), dtype='float32')
+            return ls
         return loss
+    
+    def custom_accuracy(self):
+        @tf.function
+        def accuracy(y_true, y_pred):
+            pred = tf.linalg.matmul(y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True)
+            pred = tf.linalg.tensor_diag_part(pred)
+            acc = tf.keras.metrics.binary_accuracy(
+                y_true[:, self.n_cultures], pred
+            )
+            return acc
+        return accuracy
+
     
     @tf.function
     def regularizer(self, w):
@@ -137,7 +126,7 @@ class MitigatedModels(GeneralModelClass):
 
     def get_best_idx(self, losses: list, cics: list, tau=0.1):
         tmp_losses = losses
-        n_ls = math.floor(len(losses) * tau)
+        n_ls = math.ceil(len(losses) * tau)
 
         pairs = []
         tmp_cics = []
@@ -147,7 +136,6 @@ class MitigatedModels(GeneralModelClass):
             idx = tmp_losses.index(val)
             pairs.append((val, idx))
             tmp_losses.remove(val)
-
             tmp_cics.append(cics[idx])
 
         mincic = min(tmp_cics)
@@ -166,7 +154,7 @@ class MitigatedModels(GeneralModelClass):
         batches=[32],
         lrs=[1e-2, 1e-3, 1e-4],
         fine_lrs=[1e-5, 1e-6],
-        epochs=30,
+        epochs=25,
         fine_epochs=10,
         nDropouts=[0.4],
         g=0.1,
@@ -176,7 +164,7 @@ class MitigatedModels(GeneralModelClass):
         losses = []
         cics = []
 
-        lambdas = np.logspace(-3, 1, 4)
+        lambdas = np.logspace(-3, 1, 1)
         for lmb in lambdas:
             self.lamb = lmb
             for b in batches:
@@ -186,7 +174,7 @@ class MitigatedModels(GeneralModelClass):
                             with tf.device("/gpu:0"):
                                 self.model = None
                                 print(
-                                    f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
+                                    f"Training with: lamb={lmb}, batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
                                 )
                                 history = self.DL(
                                     TS,
@@ -388,8 +376,8 @@ class MitigatedModels(GeneralModelClass):
         self.model.compile(
             optimizer=keras.optimizers.Adam(lr),
             loss=self.custom_loss(),
-            metrics=["accuracy"],
-            #run_eagerly=True
+            metrics=[self.custom_accuracy()],
+            run_eagerly=True
         )
         self.n_cultures = n_cultures
        
@@ -411,7 +399,7 @@ class MitigatedModels(GeneralModelClass):
         self.model.compile(
             optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
             loss=self.custom_loss(),
-            metrics=["accuracy"],
+            metrics=[self.custom_accuracy()],
         )
 
         history = self.model.fit(

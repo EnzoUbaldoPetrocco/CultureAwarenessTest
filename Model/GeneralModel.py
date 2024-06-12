@@ -9,18 +9,19 @@ import cv2
 from tf_explain.utils.display import grid_display, heatmap_display
 from tf_explain.utils.saver import save_rgb
 import gc
+from keras.models import Model
 
 
 class GeneralModelClass:
     """
     This Class is the middleware for collecting common actions of the models
     """
-    def __init__(self) -> None:
+    def __init__(self, standard=0) -> None:
         """
         Init function links self.model attribute
         """
-        self.model = 0
-        self.standard = 0
+        self.model = Model()
+        self.standard = standard
 
     def __call__(self, X, out=-1):
         """
@@ -32,12 +33,12 @@ class GeneralModelClass:
         """
         if self.model != None:
             with tf.device("/gpu:0"):
-                if self.standard:
-                    return self.model(X, training=False)
-                else:
-                    res = self.model(X, training=False)
+                print(f"shape of X={np.shape(X)}")
+                print(f"out = {out}")
+                res = self.model.predict(np.asarray(X, dtype='int32'))
+                if not self.standard:
                     res = res[:,out]
-                    return res
+                return res
         else:
             print("Try fitting the model before")
             return None
@@ -67,13 +68,7 @@ class GeneralModelClass:
         :return list of quantized predictions of the model
         """
         if self.model:
-            yF = []
-            for xt in Xt:
-                if out < 0:
-                    yF.append(np.asarray(self(xt[None, ...])))
-                else:
-                    pL = np.asarray(self(xt[None, ...]))[out]
-                    yF.append(pL)
+            yF = self(Xt, out)
             yFq = self.quantize(yF)
             gc.collect()
             return yFq
