@@ -51,7 +51,7 @@ class StandardModels(GeneralModelClass):
         :param epochs: hyperparameter for DL
         :param batch_size: hyperparameter for DL
         """
-        GeneralModelClass.__init__(self)
+        GeneralModelClass.__init__(self, standard=1)
         self.type = type
         self.points = points
         self.kernel = kernel
@@ -59,6 +59,7 @@ class StandardModels(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
+
 
     def SVC(self, TS):
         """
@@ -127,7 +128,7 @@ class StandardModels(GeneralModelClass):
         self.model = H
 
 
-    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=30, fine_epochs=10, nDropouts=[0.4], g=0.1):
+    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=25, fine_epochs=10, nDropouts=[0.4], g=0.1):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
