@@ -16,12 +16,13 @@ class GeneralModelClass:
     """
     This Class is the middleware for collecting common actions of the models
     """
-    def __init__(self, standard=0) -> None:
+    def __init__(self, standard=0, n_cultures=3) -> None:
         """
         Init function links self.model attribute
         """
         self.model = Model()
         self.standard = standard
+        self.n_cultures = n_cultures
 
     def __call__(self, X, out=-1):
         """
@@ -33,8 +34,6 @@ class GeneralModelClass:
         """
         if self.model != None:
             with tf.device("/gpu:0"):
-                print(f"shape of X={np.shape(X)}")
-                print(f"out = {out}")
                 res = self.model.predict(np.asarray(X, dtype='int32'))
                 if not self.standard:
                     res = res[:,out]
@@ -88,14 +87,15 @@ class GeneralModelClass:
         """
         yFq = self.test(Xt, out)
         if len(np.shape(yT)) > 1:
-            if type(yT) == np.ndarray:
+            if type(yT) == list:
+                yT = np.asarray(yT)
+            if self.standard:
                 yT = yT[:, 1]
-            elif type(yT) == list:
-                yT = np.asarray(yT)[:, 1]
+            else:
+                yT = yT[:, self.n_cultures]
             gc.collect()
         gc.collect()
         if yFq:
-            # yT = list([c_i, y_i])
             cm = confusion_matrix(y_true=yT, y_pred=yFq)
             return cm
         

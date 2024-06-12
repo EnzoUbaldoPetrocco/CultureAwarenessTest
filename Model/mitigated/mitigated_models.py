@@ -28,7 +28,6 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 
 
-
 class MitigatedModels(GeneralModelClass):
     def __init__(
         self,
@@ -39,6 +38,7 @@ class MitigatedModels(GeneralModelClass):
         batch_size=1,
         learning_rate=1e-3,
         lambda_index=-1,
+        n_cultures = 3
     ):
         """
         Initialization function for modeling mitigated ML models.
@@ -51,19 +51,19 @@ class MitigatedModels(GeneralModelClass):
         :param batch_size: hyperparameter for DL
         :param lambda_index: select the gain of the regularizer in a logspace(-3, 2, 31)
         """
-        GeneralModelClass.__init__(self, standard=0)
+        GeneralModelClass.__init__(self, standard=0, n_cultures=n_cultures)
         self.type = type
         self.culture = culture
         self.verbose_param = verbose_param
         self.epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+
         if lambda_index >= 0:
             lambda_grid = np.logspace(-3, 2, 31)
             self.lamb = lambda_grid[lambda_index]
         else:
             self.lamb = 0
-
 
     def computeCIC(self, errs):
         tf.add(errs, -tf.math.reduce_min(errs))
@@ -73,10 +73,8 @@ class MitigatedModels(GeneralModelClass):
     def get_cic(self, valX, valY):
         losses = []
         valY = list(np.asarray(valY)[:, self.n_cultures])
-        print("Shape of valX is ")
-        print(np.shape(valX))
         for out in range(self.n_cultures):
-            yPred = self.model.predict(np.asarray(valX, dtype='int32'))
+            yPred = self.model.predict(np.asarray(valX, dtype="int32"))
             yPred = list(np.asarray(yPred)[:, out])
             ls = tf.keras.losses.binary_crossentropy(valY, yPred)
             losses.append(ls)
@@ -89,38 +87,39 @@ class MitigatedModels(GeneralModelClass):
         :param out: related to the corresponding output to be optimized
         :return loss function
         """
-        
+
         @tf.function
         def loss(y_true, y_pred):
-            pred = tf.linalg.matmul(y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True)
-            pred = tf.linalg.tensor_diag_part(pred)
-            ls = tf.keras.losses.binary_crossentropy(
-                y_true[:, self.n_cultures], pred
+            pred = tf.linalg.matmul(
+                y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True
             )
-            
+            pred = tf.linalg.tensor_diag_part(pred)
+            ls = tf.keras.losses.binary_crossentropy(y_true[:, self.n_cultures], pred)
             return ls
+
         return loss
-    
+
     def custom_accuracy(self):
         @tf.function
         def accuracy(y_true, y_pred):
-            pred = tf.linalg.matmul(y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True)
-            pred = tf.linalg.tensor_diag_part(pred)
-            acc = tf.keras.metrics.binary_accuracy(
-                y_true[:, self.n_cultures], pred
+            pred = tf.linalg.matmul(
+                y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True
             )
+            pred = tf.linalg.tensor_diag_part(pred)
+
+            acc = tf.keras.metrics.binary_accuracy(y_true[:, self.n_cultures], pred, threshold=0.5)
             return acc
+
         return accuracy
 
-    
     @tf.function
     def regularizer(self, w):
-        sum = tf.constant(0.0, dtype='float32')
-        
+        sum = tf.constant(0.0, dtype="float32")
+
         mean = tf.reduce_mean(w, axis=1)
         for i in range(self.n_cultures):
-            sum += tf.math.square(tf.norm(w[:,i] - mean))
-            
+            sum += tf.math.square(tf.norm(w[:, i] - mean))
+
         res = (self.lamb) * sum
         return res
 
@@ -152,13 +151,12 @@ class MitigatedModels(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[ 1e-5],
         fine_lrs=[1e-5, 1e-6],
         epochs=25,
         fine_epochs=10,
         nDropouts=[0.4],
         g=0.1,
-        n_cultures=3,
     ):
         best_loss = np.inf
         losses = []
@@ -187,8 +185,7 @@ class MitigatedModels(GeneralModelClass):
                                     epochs,
                                     fine_epochs,
                                     nDropout,
-                                    n_cultures=n_cultures,
-                                    g=g
+                                    g=g,
                                 )
                                 loss = history.history["val_loss"][-1]
                                 CIC = self.get_cic(VS[0], VS[1])
@@ -205,14 +202,21 @@ class MitigatedModels(GeneralModelClass):
                                 gc.collect()
 
         idx = self.get_best_idx(losses, cics)
-        print(f"losses = {losses}")
-        print(f"cics = {cics}")
-        print(f"idx is {idx}")
         best_loss = losses[idx]
-        best_bs = batches[idx % len(batches)]
-        best_lr = lrs[math.floor(idx / len(batches)) % len(lrs)]
-        best_lmb = lambdas[math.floor(idx / (len(batches) * len(lrs)))]
         best_CIC = cics[idx]
+        best_fine_lr_idx = idx % len(fine_lrs)
+        best_fine_lr = fine_lrs[best_fine_lr_idx]
+        best_lr_idx = math.floor(idx / len(fine_lrs)) % len(lrs)
+        best_lr = lrs[best_lr_idx]
+        best_bs_idx = math.floor(idx / (len(fine_lrs) * len(lrs))) % len(batches)
+        best_bs = batches[best_bs_idx]
+        best_lmb_idx = math.floor(idx / (len(fine_lrs) * len(batches) * len(lrs)))
+        best_lmb = lambdas[best_lmb_idx]
+
+        print(
+            f"best_fine_lr_idx = {best_fine_lr_idx}, best_fine_lr = {best_fine_lr}, best_lr_idx = {best_lr_idx}, best_lr = {best_lr}, best_bs_idx = {best_bs_idx}, best_bs = {best_bs}, best_lmb_idx = {best_lmb}"
+        )
+
         self.lamb = best_lmb
         with tf.device("/gpu:0"):
             print(
@@ -231,8 +235,7 @@ class MitigatedModels(GeneralModelClass):
                 fine_epochs,
                 best_nDropout,
                 val=False,
-                n_cultures=n_cultures,
-                g=g
+                g=g,
             )
 
     def DL(
@@ -249,15 +252,14 @@ class MitigatedModels(GeneralModelClass):
         nDropout=0.2,
         g=0.1,
         val=True,
-        n_cultures=3,
     ):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
 
         if val:
-            monitor_val="val_loss"
+            monitor_val = "val_loss"
         else:
-            monitor_val="loss"
+            monitor_val = "loss"
 
         data_augmentation = keras.Sequential(
             [
@@ -350,11 +352,12 @@ class MitigatedModels(GeneralModelClass):
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
         outputs = keras.layers.Dense(
-            n_cultures,
-            #kernel_initializer="ones",
+            self.n_cultures,
+            # kernel_initializer="ones",
             kernel_regularizer=self.regularizer,
+            activation='relu',
         )(x)
-        #outputs = keras.layers.Dense(n_cultures)(x)
+        # outputs = keras.layers.Dense(n_cultures)(x)
         self.model = keras.Model(inputs, outputs)
 
         lr_reduce = ReduceLROnPlateau(
@@ -380,11 +383,10 @@ class MitigatedModels(GeneralModelClass):
             optimizer=keras.optimizers.Adam(lr),
             loss=self.custom_loss(),
             metrics=[self.custom_accuracy()],
-            run_eagerly=True
+            run_eagerly=True,
         )
-        self.n_cultures = n_cultures
-       
-        #ws = np.linalg.norm(self.model.layers[-1].weights)
+
+        # ws = np.linalg.norm(self.model.layers[-1].weights)
         self.model.fit(
             train_generator,
             epochs=epochs,
@@ -392,8 +394,8 @@ class MitigatedModels(GeneralModelClass):
             verbose=self.verbose_param,
             callbacks=callbacks,
         )
-        #ws2 = np.linalg.norm(self.model.layers[-1].weights)
-        #print(f"Same = {ws2==ws}")
+        # ws2 = np.linalg.norm(self.model.layers[-1].weights)
+        # print(f"Same = {ws2==ws}")
 
         # FINE TUNING
         base_model.trainable = True

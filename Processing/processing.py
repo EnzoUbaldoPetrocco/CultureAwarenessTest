@@ -252,7 +252,8 @@ class ProcessingClass:
         eps=0.3,
         mult=0.05,
         gradcam=False,
-        complete = 0
+        complete = 0,
+        n_cultures=3
     ):
         """
         process function prepares the data and fit the model
@@ -315,6 +316,7 @@ class ProcessingClass:
                 batch_size=batch_size,
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
+                n_cultures=n_cultures
             )
 
         self.model.standard=standard
