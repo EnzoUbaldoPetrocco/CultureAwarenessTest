@@ -3,27 +3,15 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 from matplotlib import pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
 
 sys.path.insert(1, "../")
 import numpy as np
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
 import tensorflow as tf
 from tensorflow import keras
-from keras.layers import Dense, Flatten, Input
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.models import Model
-from keras.applications.resnet import ResNet50
-from keras.applications.resnet_v2 import ResNet50V2
-from keras.applications.efficientnet import EfficientNetB3
-from keras.applications.efficientnet_v2 import EfficientNetV2S
-from keras import layers, optimizers
+from keras import layers
 from Model.GeneralModel import GeneralModelClass
-import neural_structured_learning as nsl
 import gc
-import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 
@@ -125,7 +113,7 @@ class MitigatedModels(GeneralModelClass):
         return res
 
     def get_best_idx(self, losses: list, cics: list, tau=0.1):
-        tmp_losses = losses
+        tmp_losses = losses.copy()
         n_ls = math.ceil(len(losses) * tau)
 
         pairs = []
@@ -152,7 +140,7 @@ class MitigatedModels(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5, 1e-6],
         epochs=25,
         fine_epochs=10,
@@ -205,6 +193,9 @@ class MitigatedModels(GeneralModelClass):
                                 gc.collect()
 
         idx = self.get_best_idx(losses, cics)
+        print(f"losses = {losses}")
+        print(f"cics = {cics}")
+        print(f"idx is {idx}")
         best_loss = losses[idx]
         best_bs = batches[idx % len(batches)]
         best_lr = lrs[math.floor(idx / len(batches)) % len(lrs)]
