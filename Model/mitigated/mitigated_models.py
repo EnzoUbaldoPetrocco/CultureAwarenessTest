@@ -113,7 +113,7 @@ class MitigatedModels(GeneralModelClass):
         return res
 
     def get_best_idx(self, losses: list, cics: list, tau=0.1):
-        tmp_losses = losses
+        tmp_losses = losses.copy()
         n_ls = math.ceil(len(losses) * tau)
 
         pairs = []
@@ -140,7 +140,7 @@ class MitigatedModels(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5, 1e-6],
         epochs=25,
         fine_epochs=10,
@@ -193,6 +193,9 @@ class MitigatedModels(GeneralModelClass):
                                 gc.collect()
 
         idx = self.get_best_idx(losses, cics)
+        print(f"losses = {losses}")
+        print(f"cics = {cics}")
+        print(f"idx is {idx}")
         best_loss = losses[idx]
         best_bs = batches[idx % len(batches)]
         best_lr = lrs[math.floor(idx / len(batches)) % len(lrs)]
