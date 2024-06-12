@@ -7,7 +7,6 @@ import numpy as np
 import os
 from Utils.FileManager.FileManager import FileManagerClass
 import pandas as pd
-import xarray as xr
 
 
 class ResultsClass:

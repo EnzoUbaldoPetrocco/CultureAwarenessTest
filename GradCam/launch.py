@@ -73,7 +73,7 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
             out = -1
         else:
             out = culture
-        cms = get_cm_samples(procObj, Xt[culture], yt[culture], out, n=nt)
+        cms = get_cm_samples(procObj, Xt[culture], yt[culture], out, n=nt, standard=standard)
         
         heatmap = grdC.compute_heatmap(
             cms[0][0],

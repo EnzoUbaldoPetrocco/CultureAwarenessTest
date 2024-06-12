@@ -5,14 +5,7 @@ import sys
 
 sys.path.insert(1, "../../")
 import numpy as np
-import tensorflow as tf
-from keras.layers import Dense, Flatten, Input
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.models import Model
-from keras.applications.resnet_v2 import ResNet50V2
-from keras import layers, optimizers
 from Model.GeneralModel import GeneralModelClass
-import neural_structured_learning as nsl
 import gc
 
 

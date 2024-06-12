@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
 # import the necessary packages
-import tensorflow as tf
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt

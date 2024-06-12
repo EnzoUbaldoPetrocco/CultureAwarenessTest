@@ -4,17 +4,15 @@ import sys
 
 sys.path.insert(1, "../")
 from Model.mitigated.mitigated_models import MitigatedModels
-from Model.standard.standard_models2 import StandardModels
+from Model.standard.standard_models import StandardModels
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
-from Utils.Results.Results import ResultsClass
 from Utils.Data.deep_paths import DeepStrings
 from Utils.Data.shallow_paths import ShallowStrings
-from Utils.Data.Data import PreprocessingClass
 import numpy as np
-import tensorflow as tf
 import os
 import gc
+import torch
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -55,179 +53,12 @@ class ProcessingClass:
         self.shallow = shallow
         self.lamp = lamp
         if gpu:
-            gpus = tf.config.experimental.list_physical_devices("GPU")
-            if gpus:
-                # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
-                try:
-                    tf.config.experimental.set_virtual_device_configuration(
-                        gpus[0],
-                        [
-                            tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=memory_limit
-                            )
-                        ],
-                    )
-                    logical_gpus = tf.config.experimental.list_logical_devices("GPU")
-                    print(
-                        len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs"
-                    )
-
-                except RuntimeError as e:
-                    # Virtual devices must be set before GPUs have been initialized
-                    print(e)
-            else:
-                print("no gpus")
+            torch.cuda.set_per_process_memory_fraction(0.9, 0)
+            torch.cuda.empty_cache()
+            total_memory = torch.cuda.get_device_properties(0).total_memory
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-    def prepare_data(
-        self,
-        standard,
-        culture,
-        percent=0,
-        val_split: float = 0.2,
-        test_split: float = 0.2,
-        n: int = 1000,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-    ):
-        """
-        This function prepares the data for training
-
-        :param standard: if enabled, we prepare the dataset for
-        standard ML, else our mitigation strategy
-        :param culture: culture is an integer number from 0 to |C|-1,
-        that represents the majority culture used for training the dataset
-        :param percent: is the percentage of images from their dataset of the minority cultures
-        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
-        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
-        :param n: is the maximum number of images contained in each cultural dataset for each class
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        """
-        self.dataobj.prepare(
-            standard=standard,
-            culture=culture,
-            percent=percent,
-            shallow=self.shallow,
-            val_split=val_split,
-            test_split=test_split,
-            n=n,
-        )
-        if augment:
-            with tf.device("/gpu:0"):
-                print("Training Augmentation...")
-                prepObj = PreprocessingClass()
-                X_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.X, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
-                )
-                Xv_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.Xv, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
-                )
-
-            self.dataobj.X.extend(X_augmented)
-            self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y)
-            self.dataobj.yv.extend(self.dataobj.yv)
-            del X_augmented
-            del Xv_augmented
-            del prepObj
-
-    def prepare_test(
-        self,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-        adversary=0,
-        culture=None,
-        eps=0.3,
-        nt=None,
-    ):
-        """
-        This function prepares the data for testing
-        
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        :param adversary: if enabled, we augment the dataset using adversary samples
-        :param culture: if adversary is enabled, we need the output information for implementing
-        fast gradient method
-        :param eps: is adversary is enabled, it is the gain of fast gradient method
-        :param nt: is the number of images to use for testing
-        
-        """
-        self.Xt_totaug = []
-        self.Xt_adv = []
-        self.Xt_aug = []
-        if nt != None and nt < len(self.dataobj.Xt):
-            self.dataobj.Xt = self.dataobj.Xt[0:nt]
-        for culture in range(3):
-            if augment:
-                if adversary:
-                    if self.model != None and culture != None:
-                        with tf.device("/gpu:0"):
-                            print("Preparing Tot Aug for Testing...")
-                            prepObj = PreprocessingClass()
-                            Xt_aug = prepObj.classical_augmentation(
-                                X=self.dataobj.Xt[culture],
-                                g_rot=g_rot,
-                                g_noise=g_noise,
-                                g_bright=g_bright,
-                            )
-                            self.Xt_totaug.append(
-                                prepObj.adversarial_augmentation(
-                                    X=Xt_aug,
-                                    y=self.dataobj.yt[culture],
-                                    model=self.model,
-                                    culture=culture,
-                                    eps=eps,
-                                )
-                            )
-                            del prepObj
-                    else:
-                        raise Exception(
-                            "Incorrect call for prepare_test, missing model or culture"
-                        )
-                else:
-                    with tf.device("/gpu:0"):
-                        print("Preparing Aug for Testing...")
-                        prepObj = PreprocessingClass()
-                        self.Xt_aug.append(
-                            prepObj.classical_augmentation(
-                                X=self.dataobj.Xt[culture],
-                                g_rot=g_rot,
-                                g_noise=g_noise,
-                                g_bright=g_bright,
-                            )
-                        )
-                        del prepObj
-            else:
-                if adversary:
-                    if self.model != None and culture != None:
-                        print("Preparing Adv for Testing...")
-                        with tf.device("/gpu:0"):
-                            prepObj = PreprocessingClass()
-                            self.Xt_adv.append(
-                                prepObj.adversarial_augmentation(
-                                    X=self.dataobj.Xt[culture],
-                                    y=self.dataobj.yt[culture],
-                                    model=self.model,
-                                    culture=culture,
-                                    eps=eps,
-                                )
-                            )
-                            del prepObj
-                    else:
-                        raise Exception(
-                            "Incorrect call for prepare_test, missing model or culture"
-                        )
-
+    
     def process(
         self,
         standard,
@@ -283,14 +114,14 @@ class ProcessingClass:
         :param nt: is the number of images to use for testing
         :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
         """
-        self.prepare_data(
+        self.dataobj.prepare(
             standard=standard,
             culture=culture,
             percent=percent,
+            shallow=self.shallow,
             val_split=val_split,
             test_split=test_split,
             n=n,
-            augment=0
         )
         self.model = None
         if standard:
@@ -399,70 +230,23 @@ class ProcessingClass:
 
         :return -1 is the model is not trained, 0 if end the testing phase
         """
-        if self.model:
-            self.prepare_test(
-                augment=augment,
-                g_rot=gaug,
-                g_noise=gaug,
-                g_bright=gaug,
-                adversary=adversary,
-                culture=culture,
-                eps=eps,
-            )
-        else:
-            print("Pay attention: no model information given for tests")
-            return -1
+        
         for culture in range(3):
             if standard:
-                if augment:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_totaug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.Xt_aug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TSTDAUG/G_AUG={gaug}/"
-                else:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_adv[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TAVD/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.dataobj.Xt[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TNOAUG/"
+                cm = self.model.get_model_stats(
+                    self.dataobj.Xt[culture], self.dataobj.yt[culture]
+                )
+                testaug = f"TNOAUG/"
                 testaug = testaug + f"CULTURE{culture}/"
                 path = self.basePath + testaug + "res.csv"
                 self.save_results(cm, path)
             else:
                 for i in range(3):
-                    if augment:
-                        if adversary:
-                            cm = self.model.get_model_stats(
-                                self.Xt_totaug[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
-                        else:
-                            cm = self.model.get_model_stats(
-                                self.Xt_aug[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TSTDAUG/G_AUG={gaug}/"
-                    else:
-                        if adversary:
-                            cm = self.model.get_model_stats(
-                                self.Xt_adv[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TAVD/EPS={eps}/"
-                        else:
-                            cm = self.model.get_model_stats(
-                                self.dataobj.Xt[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TNOAUG/"
+                    
+                    cm = self.model.get_model_stats(
+                        self.dataobj.Xt[culture], self.dataobj.yt[culture], i
+                    )
+                    testaug = f"TNOAUG/"
                     testaug = testaug + f"CULTURE{culture}/"
                     path = self.basePath + testaug + "out " + str(i) + ".csv"
                     self.save_results(cm, path)

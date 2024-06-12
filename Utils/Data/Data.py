@@ -5,10 +5,7 @@ import pathlib
 import cv2
 import random
 import time
-import tensorflow as tf
 import numpy as np
-from cleverhans.tf2.utils import optimize_linear
-from matplotlib import pyplot as plt
 
 
 ## DataClass should:
@@ -81,7 +78,7 @@ class DataClass:
                 dir_list.append(d)
         return dir_list
 
-    def get_images(self, path, n=1000, rescale=False):
+    def get_images(self, path, n=1000, rescale=True):
         """
         get_images returns min(n, #images contained in a directory)
 
@@ -98,9 +95,11 @@ class DataClass:
         paths = paths[0 : min(len(paths), n)]
         for i in paths:
             im = cv2.imread(str(i)) 
+            im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
             if rescale:
                 im = im  /255
-            im = im[..., ::-1]
+            im = np.moveaxis(im, -1, 0)
+            #im = np.transpose(im)
             images.append(im)
         return images
 
@@ -202,177 +201,4 @@ class DataClass:
         del self.yt
 
 
-## Preprocessing Class should:
-# given a dataset it should perform standard data augmentation
-# given a dataset and a model it should perform adversarial data augm
-class PreprocessingClass:
-    def classical_augmentation(self, X, g_rot=0.1, g_noise=0.1, g_bright=0.1, n=-1):
-        """
-        this function gets a set of images and return them augmented
-        param: X: the set of images
-        param: g_rot: is the gain of random rotation
-        param: g_noise: is the gain of random noise
-        param_ g_bright: is the gain of random brightness
-        param_ n: number of images to perform the augmentation
-        """
-        if n <= 0 or n == None:
-            n = len(X)
-        X = X[0:n]
-
-        X = tf.keras.layers.RandomFlip("horizontal_and_vertical")(X, training=True)
-        X = tf.keras.layers.RandomRotation(g_rot)(X, training=True)
-        X = tf.keras.layers.GaussianNoise(g_noise)(X, training=True)
-        X_augmented = tf.keras.layers.RandomBrightness(g_bright / 5)(X, training=True)
-
-        return np.asarray(X_augmented)
-
-    def adversarial_augmentation(self, X, y, model, culture, eps=0.3):
-        """
-        adversarial_augmentation creates adversarial samples, i.e.
-        samples that are created using samples in the dataset and the
-        gradient for testing/enforce the robustness of a ML model
-
-        :param X: samples to be used as starting point
-        :param y: labels of the respective samples
-        :param model: model used for computing the gradient
-        :param culture: used because in our mitigation strategy we select the output using
-        the culture from which the image derives
-        :param eps: gain of the fast gradient method
-
-        return: a set X_augmented of adversarial samples of the same size of X
-
-        """
-        bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-        X_augmented = []
-        for i in range(len(X)):
-            x = X[i]
-            y_i = y[i]
-            if len(np.shape(y_i)) > 0:
-                if np.shape(y_i)[0] > 1:
-                    y_i = y_i[1]
-            y_i = y_i * 2 - 1
-            y_i = np.asarray([y_i], dtype=float)
-            y_i = y_i[None, ...]
-            X_augmented.append(
-                self.my_fast_gradient_method(
-                    model,
-                    np.asarray(x[None, ...]),
-                    eps,
-                    np.inf,
-                    y=y_i,
-                    culture=culture,
-                    loss_fn=bce,
-                )
-            )
-        return X_augmented
-
-    @tf.function
-    def my_compute_gradient(self, model_fn, loss_fn, x, y, targeted, culture=0):
-        """
-        my_compute_gradient computes the gradient of a model
-
-        :param model_fn: model with respect to compute the gradient
-        :param loss_fn: loss function used for computing the gradient
-        :param x: samples
-        :param y: label of samples
-        :param targeted: if targeted, minimize loss of target label rather than maximize loss of correct label
-        :param culture: culture that selects the corresponding output
-
-        :return gradient
-        """
-        with tf.GradientTape() as g:
-            g.watch(x)
-            # Compute loss
-            yP = model_fn(x)
-            if tf.size(yP) > 1:
-                yP = yP[culture]
-            else:
-                yP = yP[None, ...]
-
-            loss = loss_fn(y, yP)
-            if (
-                targeted
-            ):  # attack is targeted, minimize loss of target label rather than maximize loss of correct label
-                loss = -loss
-
-        # Define gradient of loss wrt input
-        grad = g.gradient(loss, x)
-        return grad
-
-    def my_fast_gradient_method(
-        self,
-        model_fn,
-        x,
-        eps,
-        norm,
-        loss_fn=None,
-        clip_min=None,
-        clip_max=None,
-        y=None,
-        targeted=False,
-        sanity_checks=False,
-        culture=0,
-        plot=None,
-    ):
-        """
-        Implementation of fast gradient method: the samples are moved against the
-        gradient using an eps step
-
-        :param model_fn: model w.r.t compute the gradient
-        :param x: samples
-        :param eps: gain of the step
-        :param norm: type of norm to be applied to optimize perturbation
-        :param loss_fn: loss function
-        :param clip_min: minimum threshold for saturation
-        :param clip_max: maximum threshold for saturation
-        :param y: label of samples
-        :param target:  if targeted, minimize loss of target label rather than maximize loss of correct label
-        :param sanity_checks: if enable, checks for asserts
-        :param culture: select the correct output in our Mitigation Strategy
-        :param plot: if enabled, plot the adversarial sample
-
-        """
-        if norm not in [np.inf, 1, 2]:
-            raise ValueError("Norm order must be either np.inf, 1, or 2.")
-
-        if loss_fn is None:
-            loss_fn = tf.nn.sparse_softmax_cross_entropy_with_logits
-
-        asserts = []
-
-        # If a data range was specified, check that the input was in that range
-        if clip_min is not None:
-            asserts.append(tf.math.greater_equal(x, clip_min))
-
-        if clip_max is not None:
-            asserts.append(tf.math.less_equal(x, clip_max))
-
-        # cast to tensor if provided as numpy array
-        x = tf.cast(x, tf.float32)
-
-        if y is None:
-            # Using model predictions as ground truth to avoid label leaking
-            yf = model_fn(x)[:, culture]
-            y = tf.argmax(yf, 1)
-        grad = self.my_compute_gradient(
-            model_fn, loss_fn, x, y, targeted, culture=culture
-        )
-
-        optimal_perturbation = optimize_linear(grad, eps, norm)
-
-        if plot is not None:
-            plt.imshow(optimal_perturbation[0])
-            plt.show()
-
-        # Add perturbation to original example to obtain adversarial example
-        adv_x = x + optimal_perturbation
-
-        # If clipping is needed, reset all values outside of [clip_min, clip_max]
-        if (clip_min is not None) or (clip_max is not None):
-            # We don't currently support one-sided clipping
-            assert clip_min is not None and clip_max is not None
-            adv_x = tf.clip_by_value(adv_x, clip_min, clip_max)
-
-        if sanity_checks:
-            assert np.all(asserts)
-        return np.asarray(adv_x[0])
+    

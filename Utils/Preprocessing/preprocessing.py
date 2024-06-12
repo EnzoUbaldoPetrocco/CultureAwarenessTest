@@ -3,15 +3,8 @@ import sys
 sys.path.insert(1, "../../")
 
 
-import os
 import pathlib
 import cv2
-import random
-import time
-import tensorflow as tf
-import numpy as np
-from cleverhans.tf2.utils import optimize_linear
-from matplotlib import pyplot as plt
 from Utils.FileManager.FileManager import FileManagerClass
 
 class Preprocessing:
