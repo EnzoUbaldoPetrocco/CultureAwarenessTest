@@ -3,27 +3,15 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 from matplotlib import pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
 
 sys.path.insert(1, "../")
 import numpy as np
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
 import tensorflow as tf
 from tensorflow import keras
-from keras.layers import Dense, Flatten, Input
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.models import Model
-from keras.applications.resnet import ResNet50
-from keras.applications.resnet_v2 import ResNet50V2
-from keras.applications.efficientnet import EfficientNetB3
-from keras.applications.efficientnet_v2 import EfficientNetV2S
-from keras import layers, optimizers
+from keras import layers
 from Model.GeneralModel import GeneralModelClass
-import neural_structured_learning as nsl
 import gc
-import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 
