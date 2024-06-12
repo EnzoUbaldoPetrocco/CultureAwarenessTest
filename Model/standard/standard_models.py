@@ -4,7 +4,6 @@ import sys
 
 from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
 
 sys.path.insert(1, "../")
 import numpy as np
@@ -12,16 +11,9 @@ from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 import tensorflow as tf
 from tensorflow import keras
-from keras.layers import Dense, Flatten, Input
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.models import Model
-from keras.applications.resnet import ResNet50
-from keras.applications.resnet_v2 import ResNet50V2
-from keras.applications.efficientnet import EfficientNetB3
-from keras.applications.efficientnet_v2 import EfficientNetV2S
-from keras import layers, optimizers
+from keras import layers
 from Model.GeneralModel import GeneralModelClass
-import neural_structured_learning as nsl
 import gc
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -128,7 +120,7 @@ class StandardModels(GeneralModelClass):
         self.model = H
 
 
-    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=25, fine_epochs=10, nDropouts=[0.4], g=0.1):
+    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=25, fine_epochs=10, nDropouts=[0.4], g=0.1, save=False, path='./'):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
@@ -155,7 +147,8 @@ class StandardModels(GeneralModelClass):
             TS = TS + VS
             self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False, g=g)
 
-        
+        if save:
+            self.save(path)
 
     def DL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
         shape = np.shape(TS[0][0])
@@ -177,6 +170,7 @@ class StandardModels(GeneralModelClass):
                 layers.Resizing(shape[0], shape[1])
             ]
         )
+        
         train_datagen = ImageDataGenerator(
             preprocessing_function=lambda img: data_augmentation(img, training=aug)
         )
@@ -335,5 +329,6 @@ class StandardModels(GeneralModelClass):
 
 
 
-    def get_model_from_weights(self, size, adversary=0, eps=0.05, mult=0.2, path="./"):
-        self.model = tf.keras.models.load_model(path)
+    
+
+    

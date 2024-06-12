@@ -99,6 +99,12 @@ class GeneralModelClass:
             cm = confusion_matrix(y_true=yT, y_pred=yFq)
             return cm
         
+    def get_model_from_weights(self, path="./"):
+        self.model = tf.keras.models.load_model(path)
+
+    def save(self, path="./"):
+        self.model.save(path)
+        
 
 
 
