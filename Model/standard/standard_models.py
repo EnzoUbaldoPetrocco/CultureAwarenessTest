@@ -123,7 +123,7 @@ class StandardModels(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=True,
+        show_imgs=False,
         batches=[32],
         lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5, 1e-6],
@@ -315,8 +315,8 @@ class StandardModels(GeneralModelClass):
 
         lr_reduce = ReduceLROnPlateau(
             monitor=monitor_val,
-            factor=0.1,
-            patience=3,
+            factor=0.2,
+            patience=5,
             verbose=self.verbose_param,
             mode="max",
             min_lr=1e-9,
