@@ -52,7 +52,6 @@ class StandardModels(GeneralModelClass):
         self.epochs = epochs
         self.batch_size = batch_size
 
-
     def SVC(self, TS):
         """
         This function performs the model selection on SVM for Classification
@@ -119,17 +118,45 @@ class StandardModels(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-
-    def ModelSelection(self, TS, VS, aug, show_imgs=False, batches=[32], lrs=[1e-2, 1e-3, 1e-4], fine_lrs=[1e-5, 1e-6], epochs=25, fine_epochs=10, nDropouts=[0.4], g=0.1, save=False, path='./'):
+    def ModelSelection(
+        self,
+        TS,
+        VS,
+        aug,
+        show_imgs=False,
+        batches=[32],
+        lrs=[1e-2, 1e-3, 1e-4],
+        fine_lrs=[1e-5, 1e-6],
+        epochs=25,
+        fine_epochs=10,
+        nDropouts=[0.4],
+        g=0.1,
+        save=False,
+        path="./",
+    ):
         best_loss = np.inf
         for b in batches:
             for lr in lrs:
                 for fine_lr in fine_lrs:
                     for nDropout in nDropouts:
                         with tf.device("/gpu:0"):
-                            self.model=None
-                            print(f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}")
-                            history = self.DL(TS, VS, aug, show_imgs, b, lr, fine_lr, epochs, fine_epochs, nDropout, g=g)
+                            self.model = None
+                            print(
+                                f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
+                            )
+                            history = self.DL(
+                                TS,
+                                VS,
+                                aug,
+                                show_imgs,
+                                b,
+                                lr,
+                                fine_lr,
+                                epochs,
+                                fine_epochs,
+                                nDropout,
+                                g=g,
+                            )
                             loss = history.history["val_loss"][-1]
                             if loss < best_loss:
                                 best_loss = loss
@@ -141,36 +168,64 @@ class StandardModels(GeneralModelClass):
                             self.model = None
                             gc.collect()
 
-                            
         with tf.device("/gpu:0"):
-            print(f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}")
+            print(
+                f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
+            )
             TS = TS + VS
-            self.DL(TS, None, aug, show_imgs, best_bs, best_lr, best_fine_lr, epochs, fine_epochs, best_nDropout, val=False, g=g)
+            self.DL(
+                TS,
+                None,
+                aug,
+                show_imgs,
+                best_bs,
+                best_lr,
+                best_fine_lr,
+                epochs,
+                fine_epochs,
+                best_nDropout,
+                val=False,
+                g=g,
+            )
 
         if save:
             self.save(path)
 
-    def DL(self, TS, VS, aug=False, show_imgs=False, batch_size=32, lr = 1e-3, fine_lr = 1e-5, epochs=1, fine_epochs=1, nDropout = 0.2, g=0.1, val=True):
+    def DL(
+        self,
+        TS,
+        VS,
+        aug=False,
+        show_imgs=False,
+        batch_size=32,
+        lr=1e-3,
+        fine_lr=1e-5,
+        epochs=1,
+        fine_epochs=1,
+        nDropout=0.2,
+        g=0.1,
+        val=True,
+    ):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
 
         if val:
-            monitor_val="val_loss"
+            monitor_val = "val_loss"
         else:
-            monitor_val="loss"
-        
+            monitor_val = "loss"
+
         data_augmentation = keras.Sequential(
             [
                 layers.RandomFlip("horizontal"),
-                layers.RandomRotation(g/10),
+                layers.RandomRotation(g / 10),
                 layers.GaussianNoise(g),
-                tf.keras.layers.RandomBrightness(g/10),
-                layers.RandomCrop(int(shape[0]*(1-g)),int(shape[1]*(1-g))),
-                layers.RandomZoom(g/5, g/5),
-                layers.Resizing(shape[0], shape[1])
+                tf.keras.layers.RandomBrightness(g / 10),
+                layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
+                layers.RandomZoom(g / 5, g / 5),
+                layers.Resizing(shape[0], shape[1]),
             ]
         )
-        
+
         train_datagen = ImageDataGenerator(
             preprocessing_function=lambda img: data_augmentation(img, training=aug)
         )
@@ -187,11 +242,11 @@ class StandardModels(GeneralModelClass):
             validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
 
         if show_imgs:
-            #DISPLAY IMAGES
-            #NOAUGMENTATION
+            # DISPLAY IMAGES
+            # NOAUGMENTATION
             images = []
             for i in range(9):
-                idx = np.random.randint(0, len(TS[0])-1)
+                idx = np.random.randint(0, len(TS[0]) - 1)
                 images.append((TS[0][idx], TS[1][idx]))
             plt.figure(figsize=(10, 10))
             for i, (image, label) in enumerate(images):
@@ -201,15 +256,15 @@ class StandardModels(GeneralModelClass):
                 plt.axis("off")
             plt.show()
 
-        #DIVIDE IN BATCHES
-        #TS = TS.batch(batch_size).prefetch(buffer_size=10)
-        #if val:
+        # DIVIDE IN BATCHES
+        # TS = TS.batch(batch_size).prefetch(buffer_size=10)
+        # if val:
         #    VS = VS.batch(batch_size).prefetch(buffer_size=10)
         if aug:
             if show_imgs:
-                #DISPLAY IMAGES
-                #AUGMENTATION
-                idx = np.random.randint(0, len(TS)-1)
+                # DISPLAY IMAGES
+                # AUGMENTATION
+                idx = np.random.randint(0, len(TS) - 1)
                 images = []
                 images.append((TS[0][idx], TS[1][idx]))
                 for ims, labels in images:
@@ -225,7 +280,7 @@ class StandardModels(GeneralModelClass):
                         plt.axis("off")
                     plt.show()
 
-        #MODEL IMPLEMENTATION
+        # MODEL IMPLEMENTATION
         base_model = keras.applications.ResNet50V2(
             weights="imagenet",  # Load weights pre-trained on ImageNet.
             input_shape=shape,
@@ -240,7 +295,7 @@ class StandardModels(GeneralModelClass):
         # Pre-trained Xception weights requires that input be scaled
         # from (0, 255) to a range of (-1., +1.), the rescaling layer
         # outputs: `(inputs * scale) + offset`
-        #scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
+        # scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
         scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
         if aug:
             x = data_augmentation(inputs)  # Apply random data augmentation
@@ -254,17 +309,17 @@ class StandardModels(GeneralModelClass):
         x = base_model(x, training=False)
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-        outputs = keras.layers.Dense(1, activation='relu')(x)
+        outputs = keras.layers.Dense(1, activation="relu")(x)
         self.model = keras.Model(inputs, outputs)
 
         lr_reduce = ReduceLROnPlateau(
-                        monitor=monitor_val,
-                        factor=0.1,
-                        patience=3,
-                        verbose=self.verbose_param,
-                        mode="max",
-                        min_lr=1e-9,
-                    )
+            monitor=monitor_val,
+            factor=0.1,
+            patience=3,
+            verbose=self.verbose_param,
+            mode="max",
+            min_lr=1e-9,
+        )
         early = EarlyStopping(
             monitor=monitor_val,
             min_delta=0.001,
@@ -274,20 +329,25 @@ class StandardModels(GeneralModelClass):
         )
         callbacks = [early]
 
-        #self.model.summary()
-        #MODEL TRAINING
+        # self.model.summary()
+        # MODEL TRAINING
         self.model.compile(
             optimizer=keras.optimizers.Adam(lr),
             loss=keras.losses.BinaryCrossentropy(from_logits=True),
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        
-        self.model.fit(train_generator, epochs=epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
+        self.model.fit(
+            train_generator,
+            epochs=epochs,
+            validation_data=validation_generator,
+            verbose=self.verbose_param,
+            callbacks=callbacks,
+        )
 
-        #FINE TUNING
+        # FINE TUNING
         base_model.trainable = True
-        #self.model.summary()
+        # self.model.summary()
 
         self.model.compile(
             optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
@@ -295,14 +355,28 @@ class StandardModels(GeneralModelClass):
             metrics=[keras.metrics.BinaryAccuracy()],
         )
 
-        history = self.model.fit(train_generator, epochs=fine_epochs, validation_data=validation_generator, verbose=self.verbose_param, callbacks=callbacks)
- 
-        return history     
+        history = self.model.fit(
+            train_generator,
+            epochs=fine_epochs,
+            validation_data=validation_generator,
+            verbose=self.verbose_param,
+            callbacks=callbacks,
+        )
 
-
+        return history
 
     def fit(
-        self, TS, VS=None, adversary=0, eps=0.05, mult=0.2, gradcam=False, out_dir="./", complete = 0, aug=0, g=0.1
+        self,
+        TS,
+        VS=None,
+        adversary=0,
+        eps=0.05,
+        mult=0.2,
+        gradcam=False,
+        out_dir="./",
+        complete=0,
+        aug=0,
+        g=0.1,
     ):
         """
         General function for implementing model selection
@@ -326,9 +400,3 @@ class StandardModels(GeneralModelClass):
             )"""
         else:
             self.ModelSelection(TS, VS, aug=aug, g=g)
-
-
-
-    
-
-    
