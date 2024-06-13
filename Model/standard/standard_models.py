@@ -123,11 +123,11 @@ class StandardModels(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=False,
+        show_imgs=True,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5, 1e-6],
-        epochs=25,
+        epochs=30,
         fine_epochs=10,
         nDropouts=[0.4],
         g=0.1,
@@ -141,6 +141,7 @@ class StandardModels(GeneralModelClass):
                     for nDropout in nDropouts:
                         with tf.device("/gpu:0"):
                             self.model = None
+                            gc.collect()
                             print(
                                 f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
                             )
@@ -327,7 +328,7 @@ class StandardModels(GeneralModelClass):
             verbose=self.verbose_param,
             mode="auto",
         )
-        callbacks = [early]
+        callbacks = [early, lr_reduce]
 
         # self.model.summary()
         # MODEL TRAINING
