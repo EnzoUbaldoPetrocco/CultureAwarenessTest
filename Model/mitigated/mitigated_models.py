@@ -350,8 +350,8 @@ class MitigatedModels(GeneralModelClass):
 
         lr_reduce = ReduceLROnPlateau(
             monitor=monitor_val,
-            factor=0.1,
-            patience=3,
+            factor=0.2,
+            patience=5,
             verbose=self.verbose_param,
             mode="max",
             min_lr=1e-9,
@@ -359,7 +359,7 @@ class MitigatedModels(GeneralModelClass):
         early = EarlyStopping(
             monitor=monitor_val,
             min_delta=0.001,
-            patience=8,
+            patience=10,
             verbose=self.verbose_param,
             mode="auto",
         )

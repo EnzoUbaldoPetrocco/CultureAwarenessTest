@@ -324,7 +324,7 @@ class StandardModels(GeneralModelClass):
         early = EarlyStopping(
             monitor=monitor_val,
             min_delta=0.001,
-            patience=8,
+            patience=10,
             verbose=self.verbose_param,
             mode="auto",
         )
