@@ -343,7 +343,7 @@ class MitigatedModels(GeneralModelClass):
             self.n_cultures,
             # kernel_initializer="ones",
             kernel_regularizer=self.regularizer,
-            activation='relu',
+            activation='sigmoid',
         )(x)
         # outputs = keras.layers.Dense(n_cultures)(x)
         self.model = keras.Model(inputs, outputs)

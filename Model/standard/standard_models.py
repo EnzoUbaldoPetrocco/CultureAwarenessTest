@@ -310,7 +310,7 @@ class StandardModels(GeneralModelClass):
         x = base_model(x, training=False)
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-        outputs = keras.layers.Dense(1, activation="relu")(x)
+        outputs = keras.layers.Dense(1, activation="sigmoid")(x)
         self.model = keras.Model(inputs, outputs)
 
         lr_reduce = ReduceLROnPlateau(
