@@ -118,6 +118,31 @@ class StandardModels(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
+    def create_adversarial_pattern(self, model, input_image, input_label):
+        with tf.GradientTape() as tape:
+            tape.watch(input_image)
+            prediction = model(input_image)
+            loss = tf.keras.losses.categorical_crossentropy(input_label, prediction)
+        
+        gradient = tape.gradient(loss, input_image)
+        signed_grad = tf.sign(gradient)
+        return signed_grad
+
+    # Create adversarial samples
+    def generate_adversarial_samples(self, model, images, labels, shape, epsilon=0.1):
+        adversarial_images = []
+        for img, lbl in zip(images, labels):
+            img = tf.convert_to_tensor(img.reshape((1, shape[0], shape[1], 3)))
+            lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+            perturbations = self.create_adversarial_pattern(model, img, lbl)
+            adversarial_img = img + epsilon * perturbations
+            adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+            adversarial_images.append(adversarial_img.numpy())
+        return tf.convert_to_tensor(adversarial_images)
+
+
+
+    
     def ModelSelection(
         self,
         TS,
@@ -126,7 +151,7 @@ class StandardModels(GeneralModelClass):
         show_imgs=False,
         batches=[32],
         lrs=[1e-2, 1e-3, 1e-4, 1e-5],
-        fine_lrs=[1e-5, 1e-6],
+        fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
         nDropouts=[0.4],
