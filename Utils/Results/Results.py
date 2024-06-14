@@ -39,7 +39,7 @@ class ResultsClass:
             self.CIC = self.get_CIC(self.pcms_list)
             self.CIC_std = self.get_CIC_std(self.pcms_list, len(self.pcms_list))
 
-    def to_df(self):
+    def to_df(self, w=None):
         """
         This function converts the analysis to Pandas DataFrame
         """
@@ -54,11 +54,17 @@ class ResultsClass:
             for i in range(3):
                 ls.append(convert_to_percentage(self.meanErrors[i]))
                 ls.append(convert_to_percentage(self.meanError_stds[i]))
+                
 
             ERR = convert_to_percentage(np.mean(self.meanErrors))
             ls.append(ERR)
             ERRstd = convert_to_percentage(np.sum(self.meanError_stds))
             ls.append(ERRstd)
+
+            wERR = convert_to_percentage(np.average(self.meanErrors, weights=w))
+            ls.append(wERR)
+            ls.append(ERRstd)
+
             ls.append(convert_to_percentage(self.CIC))
             ls.append(convert_to_percentage(self.CIC_std))
             columns = []
@@ -67,6 +73,8 @@ class ResultsClass:
                 columns.append(f"ERR^CULTURE {i} std")
             columns.append("ERR")
             columns.append("ERR std")
+            columns.append("W_ERR")
+            columns.append("W_ERR std")
             columns.append("CIC")
             columns.append("CIC std")
             ls = np.expand_dims(np.asarray(ls, dtype=object), 0)
@@ -191,7 +199,7 @@ class ResultsClass:
         if len(pcm) <= 0:
             return -1
         return 1 - self.get_accuracy(pcm)
-
+    
     # FP
     def get_meanFP(self, pcms):
         """
@@ -295,6 +303,7 @@ class ResultsClass:
             return -1
         mean_pcms = self.get_statistics_pcm(pcms)[0]
         return self.get_error(mean_pcms)
+    
 
     def get_error_std(self, std_pcm):
         """
@@ -575,7 +584,9 @@ class ResAcquisitionClass:
                                                                     rc = ResultsClass(
                                                                         np.asarray(tcultsl)
                                                                     )
-                                                                    data = rc.to_df()
+                                                                    weights = [percent]*len(cultures)
+                                                                    weights[culture]= weights[culture]/percent
+                                                                    data = rc.to_df(weights)
                                                                     data.to_csv(st + "res.csv")
                                             else:
                                                 for taugment in taugments:
@@ -615,7 +626,9 @@ class ResAcquisitionClass:
                                                                 rc = ResultsClass(
                                                                     np.asarray(tcultsl)
                                                                 )
-                                                                data = rc.to_df()
+                                                                weights = [percent]*len(cultures)
+                                                                weights[culture]= weights[culture]/percent
+                                                                data = rc.to_df(weights)
                                                                 data.to_csv(st + "res.csv")
                             else:
                                 for adv in adversary:
@@ -661,7 +674,9 @@ class ResAcquisitionClass:
                                                             rc = ResultsClass(
                                                                 np.asarray(tcultsl)
                                                             )
-                                                            data = rc.to_df()
+                                                            weights = [percent]*len(cultures)
+                                                            weights[culture]= weights[culture]/percent
+                                                            data = rc.to_df(weights)
                                                             data.to_csv(st + "res.csv")
                                     else:
                                         for taugment in taugments:
@@ -700,7 +715,9 @@ class ResAcquisitionClass:
                                                         rc = ResultsClass(
                                                             np.asarray(tcultsl)
                                                         )
-                                                        data = rc.to_df()
+                                                        weights = [percent]*len(cultures)
+                                                        weights[culture]= weights[culture]/percent
+                                                        data = rc.to_df(weights)
                                                         data.to_csv(st + "res.csv")
                                                         
 

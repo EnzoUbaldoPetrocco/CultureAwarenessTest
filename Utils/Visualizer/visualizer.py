@@ -233,7 +233,7 @@ def perstr2float(val):
     return val
 
 
-def plotandsave(stddf, mitdfs, plot=True, title="", save=False, path="./"):
+def plotandsave(stddf, mitdfs, plot=True, title="", save=False, path="./", weighted=True):
     """
     This function plots in CIC-ERR plane the CIC(ERR) value of standard model
     and the CIC(ERR, gamma) values of mitigated model
@@ -242,20 +242,22 @@ def plotandsave(stddf, mitdfs, plot=True, title="", save=False, path="./"):
     :param save: if enable, saves the image in path
     :param path: path in which the image is saved
     """
-
+    ERRString = "ERR"
+    if weighted:
+        ERRString = "W_ERR"
     X = []
     y = []
     X_err = []
     y_err = []
     for i in range(len(mitdfs)):
-        X.append(perstr2float(mitdfs[i]["ERR"][0]))
+        X.append(perstr2float(mitdfs[i][f"{ERRString}"][0]))
         y.append(perstr2float(mitdfs[i]["CIC"][0]))
-        X_err.append(perstr2float(mitdfs[i]["ERR std"][0]))
+        X_err.append(perstr2float(mitdfs[i][f"{ERRString} std"][0]))
         y_err.append(perstr2float(mitdfs[i]["CIC std"][0]))
 
     # Plotting both the curves simultaneously
     plt.scatter(
-        perstr2float(stddf["ERR"][0]),
+        perstr2float(stddf[f"{ERRString}"][0]),
         perstr2float(stddf["CIC"][0]),
         color="r",
         label="Standard Model",
@@ -264,16 +266,16 @@ def plotandsave(stddf, mitdfs, plot=True, title="", save=False, path="./"):
 
     # Plot errors
     plt.errorbar(
-        perstr2float(stddf["ERR"][0]),
+        perstr2float(stddf[f"{ERRString}"][0]),
         perstr2float(stddf["CIC"][0]),
-        xerr=perstr2float(stddf["ERR std"][0]),
+        xerr=perstr2float(stddf[f"{ERRString} std"][0]),
         yerr=perstr2float(stddf["CIC std"][0]),
         fmt="ro",
     )
     plt.errorbar(X, y, xerr=X_err, yerr=y_err, fmt="ko")
 
     # Naming the x-axis, y-axis and the whole graph
-    plt.xlabel("ERR")
+    plt.xlabel(f"{ERRString}")
     plt.ylabel("CIC")
     plt.title(title)
 
@@ -682,14 +684,17 @@ def sort_errs(errs):
     return res
 
 
-def get_best_df_gamma(mitdfs, tau=0.3):
+def get_best_df_gamma(mitdfs, tau=0.3, weighted=True):
+    ERRString = "ERR"
+    if weighted:
+        ERRString="W_ERR"
     errs = []
     cics = []
     n = int(len(mitdfs) * tau)
     #print(f"\n\n\n\n")
     #print(f"n is {n}")
     for i, mitdf in enumerate(mitdfs):
-        err = perstr2float(mitdf["ERR"][0])
+        err = perstr2float(mitdf[f"{ERRString}"][0])
         if err >0:
             errs.append([err, i])
             cic = perstr2float(mitdf["CIC"][0])
@@ -699,19 +704,11 @@ def get_best_df_gamma(mitdfs, tau=0.3):
             cics.append(100)
 
     errs = np.asarray(errs, dtype=object)
-    #print(f"Errs are {errs}")
-    errs = sort_errs(errs)[:n]
-    #print(f"Errs sorted are {errs}")
-    #errs = errs[:n]
-    #print(f"Selected errs are {errs}")
     
     tempcics = [cics[int(i)] for i in errs[:, 1]]
-    #print(f"tempcics are {tempcics}")
 
     cicstar = min(tempcics)
-    #print(f"cicstar is {cicstar}")
     idx = cics.index(cicstar)
-    #print(f"Best index is {idx}")
     return mitdfs[idx], idx
 
 
@@ -750,6 +747,8 @@ class Res2TabClass:
             perstr2float(df["ERR^CULTURE 2 std"][0]),
             perstr2float(df["ERR"][0]),
             perstr2float(df["ERR std"][0]),
+            perstr2float(df["W_ERR"][0]),
+            perstr2float(df["W_ERR std"][0]),
             perstr2float(df["CIC"][0]),
             perstr2float(df["CIC std"][0]),
         ]
@@ -791,6 +790,8 @@ class Res2TabClass:
                     "ERR^LT std": [],
                     "ERR": [],
                     "ERR std": [],
+                    "W_ERR": [],
+                    "W_ERR std": [],
                     "CIC": [],
                     "CIC std": [],
                 }
@@ -811,6 +812,8 @@ class Res2TabClass:
                     "ERR^CS std": [],
                     "ERR": [],
                     "ERR std": [],
+                    "W_ERR": [],
+                    "W_ERR std": [],
                     "CIC": [],
                     "CIC std": [],
                 }
@@ -831,7 +834,7 @@ class Res2TabClass:
         # Per each Culture
         # Per each Percentage
         # Per each Data Augmentation in Training
-        #   TestSet Mitigation  ERR^CULTURE 0 ERR^CULTURE 0 std,ERR^CULTURE 1,ERR^CULTURE 1 std,ERR^CULTURE 2,ERR^CULTURE 2 std,ERR,ERR std,CIC,CIC std
+        #   TestSet Mitigation  ERR^CULTURE 0 ERR^CULTURE 0 std,ERR^CULTURE 1,ERR^CULTURE 1 std,ERR^CULTURE 2,ERR^CULTURE 2 std,ERR,ERR std,W_ERR,W_ERR std,CIC,CIC std
         #   NOAUG   STD         value   value   value   value   value ..
         #   NOAUG   MIT         value   value   value   value   value ...
         #   AUG=..
