@@ -50,7 +50,7 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-g_gaugs = [ 0.05, 0.1, 0.5, 0.75]
+g_gaugs = [ 0.05, 0.1, 0.2]
 test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
@@ -63,7 +63,7 @@ basePath = './Prova/'
 
 
 with tf.device("/CPU:0"):
-    for lamp in [1]:
+    for lamp in [0,1]:
         procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit, basePath=basePath)
         for percent in percents:
             for c in cs:
@@ -71,7 +71,7 @@ with tf.device("/CPU:0"):
                         for g_aug in g_gaugs:
                             model = None
                             for i in range(2):
-                                for standard in [0,1]:
+                                for standard in [0]:
                                     print(f"Training->aug={k%2};adv={floor(k/2)}")
                                     procObj.process(
                                         standard=standard,
