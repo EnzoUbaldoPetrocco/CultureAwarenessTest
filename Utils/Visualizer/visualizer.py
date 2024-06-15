@@ -851,7 +851,7 @@ class Res2TabClass:
         percents = [0.05]
         augments = [0, 1]
         adversary = [0]
-        g_augments = [ 0.05, 0.1, 0.5, 0.75]
+        g_augments = [ 0.05, 0.1, 0.2]
 
         taugments = [0, 1]
         tadversaries = [0, 1]
