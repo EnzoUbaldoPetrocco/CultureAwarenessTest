@@ -19,6 +19,7 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
+
 class StandardModels(GeneralModelClass):
     def __init__(
         self,
@@ -161,7 +162,7 @@ class StandardModels(GeneralModelClass):
         save=False,
         path="./",
     ):
-        with tf.device("/CPU"):
+        
             best_loss = np.inf
             for b in batches:
                 for lr in lrs:
