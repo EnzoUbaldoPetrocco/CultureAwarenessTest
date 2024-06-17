@@ -15,11 +15,11 @@ import gc
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
+#os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 tf.config.set_soft_device_placement(True)
 
-memory_limit = 4500
+memory_limit = 5000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
