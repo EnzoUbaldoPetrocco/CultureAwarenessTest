@@ -266,6 +266,21 @@ class MitigatedModels(GeneralModelClass):
         shape = np.shape(TS[0][0])
         n = np.shape(TS[0])
 
+        if show_imgs:
+            # DISPLAY IMAGES
+            # NOAUGMENTATION
+            images = []
+            for i in range(9):
+                idx = np.random.randint(0, len(TS[0]) - 1)
+                images.append((TS[0][idx], TS[1][idx]))
+            plt.figure(figsize=(10, 10))
+            for i, (image, label) in enumerate(images):
+                ax = plt.subplot(3, 3, i + 1)
+                plt.imshow(image)
+                plt.title(label)
+                plt.axis("off")
+            plt.show()
+
         if val:
             monitor_val = "val_loss"
         else:
@@ -297,20 +312,7 @@ class MitigatedModels(GeneralModelClass):
             yv = tf.constant(VS[1], dtype="float32")
             validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
 
-        if show_imgs:
-            # DISPLAY IMAGES
-            # NOAUGMENTATION
-            images = []
-            for i in range(9):
-                idx = np.random.randint(0, len(TS[0]) - 1)
-                images.append((TS[0][idx], TS[1][idx]))
-            plt.figure(figsize=(10, 10))
-            for i, (image, label) in enumerate(images):
-                ax = plt.subplot(3, 3, i + 1)
-                plt.imshow(image)
-                plt.title(int(label))
-                plt.axis("off")
-            plt.show()
+        
 
         # DIVIDE IN BATCHES
         if aug:
