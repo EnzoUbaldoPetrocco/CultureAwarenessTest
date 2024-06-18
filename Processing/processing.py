@@ -489,6 +489,7 @@ class ProcessingClass:
         """
         Partially clear the space for avoiding memory issues
         """
+        tf.keras.backend.clear_session()
         self.model = None
         del self.model
         self.dataobj.clear()
