@@ -19,7 +19,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 #tf.config.set_soft_device_placement(True)
 
-memory_limit = 5000
+memory_limit = 4000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -56,7 +56,7 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-g_gaugs = [ 0.05, 0.1, 0.2]
+g_gaugs = [  0.1, 0.2]
 test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
