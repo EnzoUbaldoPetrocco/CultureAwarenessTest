@@ -18,6 +18,46 @@ import gc
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
+class CustomCallback(keras.callbacks.Callback):
+
+    def __init__(self, epsilon):
+        super(CustomCallback, self).__init__()
+        self.epsilon = epsilon
+    
+    def on_train_batch_begin(self, batch, logs=None):
+        adversarial_images = []
+        for img, lbl in batch:
+            img = tf.convert_to_tensor(img.reshape((1, self.input_shape[0], self.input_shape[1], 3)))
+            lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+            with tf.GradientTape() as tape:
+                tape.watch(img)
+                prediction = self.model(img)
+                loss = tf.keras.losses.binary_crossentropy(lbl, prediction)
+            gradient = tape.gradient(loss, img)
+            signed_grad = tf.sign(gradient)
+            adversarial_img = img + self.epsilon * signed_grad
+            adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+            adversarial_images.append(adversarial_img)
+        return tf.convert_to_tensor(adversarial_images)
+        
+
+    # Create adversarial samples
+    def generate_adversarial_samples(self, images, labels, epsilon=0.1):
+        with tf.device("/gpu:0"):
+            adversarial_images = []
+            for img, lbl in zip(images, labels):
+                img = tf.convert_to_tensor(img.reshape((1, self.input_shape[0], self.input_shape[1], 3)))
+                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+                with tf.GradientTape() as tape:
+                    tape.watch(img)
+                    prediction = self.model(img)
+                    loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+                gradient = tape.gradient(loss, img)
+                signed_grad = tf.sign(gradient)
+                adversarial_img = img + epsilon * signed_grad
+                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+                adversarial_images.append(adversarial_img)
+            return tf.convert_to_tensor(adversarial_images)
 
 
 class StandardModels(GeneralModelClass):
@@ -119,6 +159,8 @@ class StandardModels(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
+
+
     def create_adversarial_pattern(self, model, input_image, input_label):
         with tf.device("/gpu:0"):
             with tf.GradientTape() as tape:
@@ -142,7 +184,6 @@ class StandardModels(GeneralModelClass):
                 adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
                 adversarial_images.append(adversarial_img.numpy())
             return tf.convert_to_tensor(adversarial_images)
-
 
 
     
