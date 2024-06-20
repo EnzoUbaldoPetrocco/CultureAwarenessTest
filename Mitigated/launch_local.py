@@ -75,7 +75,7 @@ for lamp in [0,1]:
             for k in ks:
                 if k:
                     for g_aug in g_gaugs:
-                        for i in range(2):
+                        for i in range(5):
                             model = None
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
