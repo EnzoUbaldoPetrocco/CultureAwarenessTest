@@ -179,7 +179,7 @@ class MitigatedModels(GeneralModelClass):
                 for lr in lrs:
                     for fine_lr in fine_lrs:
                         for nDropout in nDropouts:
-                            with tf.device("/gpu:0"):
+                            
                                 self.model = None
                                 print(
                                     f"Training with: lamb={lmb}, batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
@@ -263,171 +263,172 @@ class MitigatedModels(GeneralModelClass):
         g=0.1,
         val=True,
     ):
-        shape = np.shape(TS[0][0])
-        n = np.shape(TS[0])
+        with tf.device("/gpu:0"):
+            shape = np.shape(TS[0][0])
+            n = np.shape(TS[0])
 
-        if show_imgs:
-            # DISPLAY IMAGES
-            # NOAUGMENTATION
-            images = []
-            for i in range(9):
-                idx = np.random.randint(0, len(TS[0]) - 1)
-                images.append((TS[0][idx], TS[1][idx]))
-            plt.figure(figsize=(10, 10))
-            for i, (image, label) in enumerate(images):
-                ax = plt.subplot(3, 3, i + 1)
-                plt.imshow(image)
-                plt.title(label)
-                plt.axis("off")
-            plt.show()
-
-        if val:
-            monitor_val = "val_loss"
-        else:
-            monitor_val = "loss"
-
-        data_augmentation = keras.Sequential(
-            [
-                layers.RandomFlip("horizontal"),
-                layers.RandomRotation(g / 10),
-                layers.GaussianNoise(g),
-                tf.keras.layers.RandomBrightness(g / 10),
-                layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
-                layers.RandomZoom(g / 5, g / 5),
-                layers.Resizing(shape[0], shape[1]),
-            ]
-        )
-
-        # Apply data augmentation to the training dataset
-        train_datagen = ImageDataGenerator(
-            preprocessing_function=lambda img: data_augmentation(img, training=aug)
-        )
-        X = tf.constant(TS[0], dtype="float32")
-        y = tf.constant(TS[1], dtype="float32")
-        train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
-        validation_generator = None
-        if val:
-            val_datagen = ImageDataGenerator()
-            Xv = tf.constant(VS[0], dtype="float32")
-            yv = tf.constant(VS[1], dtype="float32")
-            validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
-
-        
-
-        # DIVIDE IN BATCHES
-        if aug:
             if show_imgs:
                 # DISPLAY IMAGES
-                # AUGMENTATION
-                idx = np.random.randint(0, len(TS) - 1)
+                # NOAUGMENTATION
                 images = []
-                images.append((TS[0][idx], TS[1][idx]))
-                for ims, labels in images:
-                    plt.figure(figsize=(10, 10))
-                    for i in range(9):
-                        ax = plt.subplot(3, 3, i + 1)
+                for i in range(9):
+                    idx = np.random.randint(0, len(TS[0]) - 1)
+                    images.append((TS[0][idx], TS[1][idx]))
+                plt.figure(figsize=(10, 10))
+                for i, (image, label) in enumerate(images):
+                    ax = plt.subplot(3, 3, i + 1)
+                    plt.imshow(image)
+                    plt.title(label)
+                    plt.axis("off")
+                plt.show()
 
-                        augmented_image = data_augmentation(
-                            tf.expand_dims(ims, 0), training=True
-                        )
-                        plt.imshow(augmented_image[0].numpy().astype("int32"))
-                        plt.title(int(labels))
-                        plt.axis("off")
-                    plt.show()
+            if val:
+                monitor_val = "val_loss"
+            else:
+                monitor_val = "loss"
 
-        # MODEL IMPLEMENTATION
-        base_model = keras.applications.ResNet50V2(
-            weights="imagenet",  # Load weights pre-trained on ImageNet.
-            input_shape=shape,
-            include_top=False,
-        )  # Do not include the ImageNet classifier at the top.
+            data_augmentation = keras.Sequential(
+                [
+                    layers.RandomFlip("horizontal"),
+                    layers.RandomRotation(g / 10),
+                    layers.GaussianNoise(g),
+                    tf.keras.layers.RandomBrightness(g / 10),
+                    layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
+                    layers.RandomZoom(g / 5, g / 5),
+                    layers.Resizing(shape[0], shape[1]),
+                ]
+            )
 
-        # Freeze the base_model
-        base_model.trainable = False
+            # Apply data augmentation to the training dataset
+            train_datagen = ImageDataGenerator(
+                preprocessing_function=lambda img: data_augmentation(img, training=aug)
+            )
+            X = tf.constant(TS[0], dtype="float32")
+            y = tf.constant(TS[1], dtype="float32")
+            train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
+            validation_generator = None
+            if val:
+                val_datagen = ImageDataGenerator()
+                Xv = tf.constant(VS[0], dtype="float32")
+                yv = tf.constant(VS[1], dtype="float32")
+                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
 
-        # Create  model on top
-        inputs = keras.Input(shape=shape)
-        # Pre-trained Xception weights requires that input be scaled
-        # from (0, 255) to a range of (-1., +1.), the rescaling layer
-        # outputs: `(inputs * scale) + offset`
-        scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
-        if aug:
-            x = data_augmentation(inputs)  # Apply random data augmentation
-            x = scale_layer(x)
-        else:
-            x = scale_layer(inputs)
+            
 
-        # The base model contains batchnorm layers. We want to keep them in inference mode
-        # when we unfreeze the base model for fine-tuning, so we make sure that the
-        # base_model is running in inference mode here.
-        x = base_model(x, training=False)
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-        outputs = keras.layers.Dense(
-            self.n_cultures,
-            # kernel_initializer="ones",
-            kernel_regularizer=self.regularizer,
-            activation='sigmoid',
-        )(x)
-        # outputs = keras.layers.Dense(n_cultures)(x)
-        self.model = keras.Model(inputs, outputs)
+            # DIVIDE IN BATCHES
+            if aug:
+                if show_imgs:
+                    # DISPLAY IMAGES
+                    # AUGMENTATION
+                    idx = np.random.randint(0, len(TS) - 1)
+                    images = []
+                    images.append((TS[0][idx], TS[1][idx]))
+                    for ims, labels in images:
+                        plt.figure(figsize=(10, 10))
+                        for i in range(9):
+                            ax = plt.subplot(3, 3, i + 1)
 
-        lr_reduce = ReduceLROnPlateau(
-            monitor=monitor_val,
-            factor=0.2,
-            patience=5,
-            verbose=self.verbose_param,
-            mode="max",
-            min_lr=1e-9,
-        )
-        early = EarlyStopping(
-            monitor=monitor_val,
-            min_delta=0.001,
-            patience=10,
-            verbose=self.verbose_param,
-            mode="auto",
-        )
-        callbacks = [early, lr_reduce]
+                            augmented_image = data_augmentation(
+                                tf.expand_dims(ims, 0), training=True
+                            )
+                            plt.imshow(augmented_image[0].numpy().astype("int32"))
+                            plt.title(int(labels))
+                            plt.axis("off")
+                        plt.show()
 
-        # self.model.summary()
-        # MODEL TRAINING
-        self.model.compile(
-            optimizer=keras.optimizers.Adam(lr),
-            loss=self.custom_loss(),
-            metrics=[self.custom_accuracy()],
-            run_eagerly=True,
-        )
+            # MODEL IMPLEMENTATION
+            base_model = keras.applications.ResNet50V2(
+                weights="imagenet",  # Load weights pre-trained on ImageNet.
+                input_shape=shape,
+                include_top=False,
+            )  # Do not include the ImageNet classifier at the top.
 
-        # ws = np.linalg.norm(self.model.layers[-1].weights)
-        self.model.fit(
-            train_generator,
-            epochs=epochs,
-            validation_data=validation_generator,
-            verbose=self.verbose_param,
-            callbacks=callbacks,
-        )
-        # ws2 = np.linalg.norm(self.model.layers[-1].weights)
-        # print(f"Same = {ws2==ws}")
+            # Freeze the base_model
+            base_model.trainable = False
 
-        # FINE TUNING
-        base_model.trainable = True
-        # self.model.summary()
+            # Create  model on top
+            inputs = keras.Input(shape=shape)
+            # Pre-trained Xception weights requires that input be scaled
+            # from (0, 255) to a range of (-1., +1.), the rescaling layer
+            # outputs: `(inputs * scale) + offset`
+            scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
+            if aug:
+                x = data_augmentation(inputs)  # Apply random data augmentation
+                x = scale_layer(x)
+            else:
+                x = scale_layer(inputs)
 
-        self.model.compile(
-            optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-            loss=self.custom_loss(),
-            metrics=[self.custom_accuracy()],
-        )
+            # The base model contains batchnorm layers. We want to keep them in inference mode
+            # when we unfreeze the base model for fine-tuning, so we make sure that the
+            # base_model is running in inference mode here.
+            x = base_model(x, training=False)
+            x = keras.layers.GlobalAveragePooling2D()(x)
+            x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
+            outputs = keras.layers.Dense(
+                self.n_cultures,
+                # kernel_initializer="ones",
+                kernel_regularizer=self.regularizer,
+                activation='sigmoid',
+            )(x)
+            # outputs = keras.layers.Dense(n_cultures)(x)
+            self.model = keras.Model(inputs, outputs)
 
-        history = self.model.fit(
-            train_generator,
-            epochs=fine_epochs,
-            validation_data=validation_generator,
-            verbose=self.verbose_param,
-            callbacks=callbacks,
-        )
+            lr_reduce = ReduceLROnPlateau(
+                monitor=monitor_val,
+                factor=0.2,
+                patience=5,
+                verbose=self.verbose_param,
+                mode="max",
+                min_lr=1e-9,
+            )
+            early = EarlyStopping(
+                monitor=monitor_val,
+                min_delta=0.001,
+                patience=10,
+                verbose=self.verbose_param,
+                mode="auto",
+            )
+            callbacks = [early, lr_reduce]
 
-        return history
+            # self.model.summary()
+            # MODEL TRAINING
+            self.model.compile(
+                optimizer=keras.optimizers.Adam(lr),
+                loss=self.custom_loss(),
+                metrics=[self.custom_accuracy()],
+                run_eagerly=True,
+            )
+
+            # ws = np.linalg.norm(self.model.layers[-1].weights)
+            self.model.fit(
+                train_generator,
+                epochs=epochs,
+                validation_data=validation_generator,
+                verbose=self.verbose_param,
+                callbacks=callbacks,
+            )
+            # ws2 = np.linalg.norm(self.model.layers[-1].weights)
+            # print(f"Same = {ws2==ws}")
+
+            # FINE TUNING
+            base_model.trainable = True
+            # self.model.summary()
+
+            self.model.compile(
+                optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
+                loss=self.custom_loss(),
+                metrics=[self.custom_accuracy()],
+            )
+
+            history = self.model.fit(
+                train_generator,
+                epochs=fine_epochs,
+                validation_data=validation_generator,
+                verbose=self.verbose_param,
+                callbacks=callbacks,
+            )
+            tf.keras.backend.clear_session()
+            return history
 
     def fit(
         self,

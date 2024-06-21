@@ -435,8 +435,9 @@ class StandardModels(GeneralModelClass):
                 verbose=self.verbose_param,
                 callbacks=callbacks,
             )
-
+            tf.keras.backend.clear_session()
             return history
+
 
     def fit(
         self,
