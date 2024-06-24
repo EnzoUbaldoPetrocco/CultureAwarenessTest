@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
+import time
 
 from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
@@ -19,8 +20,73 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
+class AdversarialProcessing(keras.models.Model):
 
-class StandardModels(GeneralModelClass):
+    def __init__(self, epsilon):
+        super(AdversarialProcessing, self).__init__()
+        self.epsilon = epsilon
+
+    def __call__(self, batch, logs=None):
+        adversarial_images = []
+        for img, lbl in batch:
+            img = tf.convert_to_tensor(
+                img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
+            )
+            lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+            with tf.GradientTape() as tape:
+                tape.watch(img)
+                prediction = self.model(img)
+                loss = tf.keras.losses.binary_crossentropy(lbl, prediction)
+            gradient = tape.gradient(loss, img)
+            signed_grad = tf.sign(gradient)
+            adversarial_img = img + self.epsilon * signed_grad
+            adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+            adversarial_images.append(adversarial_img)
+        return tf.convert_to_tensor(adversarial_images)
+
+    # Create adversarial samples
+    def generate_adversarial_samples(self, images, labels, epsilon=0.1):
+        with tf.device("/gpu:0"):
+            adversarial_images = []
+            for img, lbl in zip(images, labels):
+                img = tf.convert_to_tensor(
+                    img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
+                )
+                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+                with tf.GradientTape() as tape:
+                    tape.watch(img)
+                    prediction = self.model(img)
+                    loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+                gradient = tape.gradient(loss, img)
+                signed_grad = tf.sign(gradient)
+                adversarial_img = img + epsilon * signed_grad
+                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+                adversarial_images.append(adversarial_img)
+            return tf.convert_to_tensor(adversarial_images)
+
+
+#!/usr/bin/env python
+__author__ = "Enzo Ubaldo Petrocco"
+import sys
+
+from matplotlib import pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+
+sys.path.insert(1, "../")
+import numpy as np
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
+import tensorflow as tf
+from tensorflow import keras
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras import layers
+from Model.GeneralModel import GeneralModelClass
+import gc
+import os
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+
+class AdversarialStandard(GeneralModelClass):
     def __init__(
         self,
         type="SVC",
@@ -125,7 +191,7 @@ class StandardModels(GeneralModelClass):
                 tape.watch(input_image)
                 prediction = model(input_image)
                 loss = tf.keras.losses.categorical_crossentropy(input_label, prediction)
-            
+
             gradient = tape.gradient(loss, input_image)
             signed_grad = tf.sign(gradient)
             return signed_grad
@@ -143,8 +209,6 @@ class StandardModels(GeneralModelClass):
                 adversarial_images.append(adversarial_img.numpy())
             return tf.convert_to_tensor(adversarial_images)
 
-
-    
     def ModelSelection(
         self,
         TS,
@@ -161,65 +225,65 @@ class StandardModels(GeneralModelClass):
         save=False,
         path="./",
     ):
-        
-            best_loss = np.inf
-            for b in batches:
-                for lr in lrs:
-                    for fine_lr in fine_lrs:
-                        for nDropout in nDropouts:
-                                
-                                self.model = None
-                                gc.collect()
-                                print(
-                                    f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
-                                )
-                                history = self.DL(
-                                    TS,
-                                    VS,
-                                    aug,
-                                    show_imgs,
-                                    b,
-                                    lr,
-                                    fine_lr,
-                                    epochs,
-                                    fine_epochs,
-                                    nDropout,
-                                    g=g,
-                                )
-                                
-                                loss = history.history["val_loss"][-1]
-                                if loss < best_loss:
-                                    best_loss = loss
-                                    best_bs = b
-                                    best_lr = lr
-                                    best_fine_lr = fine_lr
-                                    best_nDropout = nDropout
-                                
-                                self.model = None
-                                gc.collect()
+        if self.verbose_param:
+            tf.get_logger().setLevel(0)
+        best_loss = np.inf
+        for b in batches:
+            for lr in lrs:
+                for fine_lr in fine_lrs:
+                    for nDropout in nDropouts:
 
-        
-            print(
-                f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
-            )
-            TS = TS + VS
-            self.DL(
-                TS,
-                None,
-                aug,
-                show_imgs,
-                best_bs,
-                best_lr,
-                best_fine_lr,
-                epochs,
-                fine_epochs,
-                best_nDropout,
-                val=False,
-                g=g,
-            )
+                        self.model = None
+                        gc.collect()
+                        print(
+                            f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
+                        )
+                        history = self.DL(
+                            TS,
+                            VS,
+                            aug,
+                            show_imgs,
+                            b,
+                            lr,
+                            fine_lr,
+                            epochs,
+                            fine_epochs,
+                            nDropout,
+                            g=g,
+                        )
 
-            if save:
-                self.save(path)
+                        loss = history.history["val_loss"][-1]
+                        if loss < best_loss:
+                            best_loss = loss
+                            best_bs = b
+                            best_lr = lr
+                            best_fine_lr = fine_lr
+                            best_nDropout = nDropout
+
+                        self.model = None
+                        gc.collect()
+
+        print(
+            f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
+        )
+        TS = TS + VS
+        self.DL(
+            TS,
+            None,
+            aug,
+            show_imgs,
+            best_bs,
+            best_lr,
+            best_fine_lr,
+            epochs,
+            fine_epochs,
+            best_nDropout,
+            val=False,
+            g=g,
+        )
+
+        if save:
+            self.save(path)
 
     def DL(
         self,
@@ -257,20 +321,36 @@ class StandardModels(GeneralModelClass):
                 ]
             )
 
-            train_datagen = ImageDataGenerator(
+
+            """train_datagen = ImageDataGenerator(
                 preprocessing_function=lambda img: data_augmentation(img, training=aug)
             )
             # Apply data augmentation to the training dataset
             X = tf.constant(TS[0], dtype="float32")
             y = tf.constant(TS[1], dtype="float32")
-            train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
+            train_generator = train_datagen.flow(x=X, y=y, batch_size=batch_size)
             # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
+            
+            """
             validation_generator = None
+            """
             if val:
                 val_datagen = ImageDataGenerator()
                 Xv = tf.constant(VS[0], dtype="float32")
                 yv = tf.constant(VS[1], dtype="float32")
-                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
+                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)"""
+            
+
+            train_generator = tf.data.Dataset.from_tensor_slices(TS)
+            if aug:
+                train_ds = train_ds.map(lambda img, y: (data_augmentation(img, training=aug), y))
+
+            train_generator = train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
+            if val:
+                validation_generator = tf.data.Dataset.from_tensor_slices(VS)
+                if aug:
+                    validation_ds = validation_ds.map(lambda img, y: (data_augmentation(img, training=aug), y))
+                validation_generator = validation_generator.cache().batch(batch_size).prefetch(buffer_size=10)    
 
             if show_imgs:
                 # DISPLAY IMAGES
@@ -368,12 +448,22 @@ class StandardModels(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            self.model.fit(
-                train_generator,
+            #self.model.fit(
+            #    train_generator,
+            #    epochs=epochs,
+            #    validation_data=validation_generator,
+            #    verbose=self.verbose_param,
+            #    callbacks=callbacks,
+            #)
+            loss = self.train_loop(
                 epochs=epochs,
-                validation_data=validation_generator,
-                verbose=self.verbose_param,
-                callbacks=callbacks,
+                train_dataset=train_generator,
+                val_dataset=validation_generator,
+                loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
+                optimizer=keras.optimizers.Adam(lr),
+                batch_size=batch_size,
+                train_acc_metric=keras.metrics.BinaryAccuracy(),
+                val_acc_metric=keras.metrics.BinaryAccuracy(),
             )
 
             # FINE TUNING
@@ -386,16 +476,88 @@ class StandardModels(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            history = self.model.fit(
-                train_generator,
-                epochs=fine_epochs,
-                validation_data=validation_generator,
-                verbose=self.verbose_param,
-                callbacks=callbacks,
-            )
-            tf.keras.backend.clear_session()
-            return history
+            # history = self.model.fit(
+            #    train_generator,
+            #    epochs=fine_epochs,
+            #    validation_data=validation_generator,
+            #    verbose=self.verbose_param,
+            #    callbacks=callbacks,
+            # )
 
+            loss = self.train_loop(
+                epochs=epochs,
+                train_dataset=train_generator,
+                val_dataset=validation_generator,
+                loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
+                optimizer=keras.optimizers.Adam(fine_lr),
+                batch_size=batch_size,
+                train_acc_metric=keras.metrics.BinaryAccuracy(),
+                val_acc_metric=keras.metrics.BinaryAccuracy(),
+            )
+
+            tf.keras.backend.clear_session()
+            
+            return loss
+
+    @tf.function
+    def train_loop(
+        self,
+        epochs,
+        train_dataset,
+        val_dataset,
+        loss_fn,
+        optimizer,
+        batch_size,
+        train_acc_metric,
+        val_acc_metric,
+    ):
+        @tf.function
+        def train_step(x, y):
+            with tf.GradientTape() as tape:
+                logits = self.model(x, training=True)
+                loss_value = loss_fn(y, logits)
+            grads = tape.gradient(loss_value, self.model.trainable_weights)
+            optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
+            train_acc_metric.update_state(y, logits)
+            return loss_value
+
+        @tf.function
+        def test_step(x, y):
+            val_logits = self.model(x, training=False)
+            val_acc_metric.update_state(y, val_logits)
+        
+        for epoch in range(epochs):
+            start_time = time.time()
+
+            # Iterate over the batches of the dataset.
+            step = 0
+            for (x_batch_train, y_batch_train) in train_dataset:
+                loss_value = train_step(x_batch_train, y_batch_train)
+                # Log every 10 batches.
+                if step % 10 == 0:
+                    tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
+                         (step, float(loss_value)))
+                   
+                    tf.get_logger().info("Seen so far: %d samples" , ((step + 1) * batch_size))
+
+                step+=1
+            # Display metrics at the end of each epoch.
+            train_acc = train_acc_metric.result()
+            tf.get_logger().info("Training acc over epoch: %.4f" , (float(train_acc),))
+
+            # Reset training metrics at the end of each epoch
+            train_acc_metric.reset_states()
+
+            # Run a validation loop at the end of each epoch.
+            for x_batch_val, y_batch_val in val_dataset:
+                test_step(x_batch_val, y_batch_val)
+
+            val_acc = val_acc_metric.result()
+            val_acc_metric.reset_states()
+            tf.get_logger().info("Validation acc: %.4f"  ,(float(val_acc),))
+            tf.get_logger().info("Time taken: %.2fs" , (time.time() - start_time))
+
+        return 1-val_acc
 
     def fit(
         self,
