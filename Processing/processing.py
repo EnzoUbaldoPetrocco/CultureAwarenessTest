@@ -5,7 +5,7 @@ import sys
 sys.path.insert(1, "../")
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
-#from Model.adversarial.adversarial import AdversarialStandard as StandardModels
+from Model.adversarial.adversarial import AdversarialStandard 
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
 from Utils.Results.Results import ResultsClass
@@ -298,15 +298,26 @@ class ProcessingClass:
         )
         self.model = None
         if standard:
-            self.model = StandardModels(
-                type=type,
-                points=points,
-                kernel=kernel,
-                verbose_param=verbose_param,
-                learning_rate=learning_rate,
-                epochs=epochs,
-                batch_size=batch_size,
-            )
+            if adversary:
+                self.model = AdversarialStandard(
+                    type=type,
+                    points=points,
+                    kernel=kernel,
+                    verbose_param=verbose_param,
+                    learning_rate=learning_rate,
+                    epochs=epochs,
+                    batch_size=batch_size,
+                )
+            else:
+                self.model = StandardModels(
+                    type=type,
+                    points=points,
+                    kernel=kernel,
+                    verbose_param=verbose_param,
+                    learning_rate=learning_rate,
+                    epochs=epochs,
+                    batch_size=batch_size,
+                )
 
         else:
             self.model = MitigatedModels(
