@@ -56,13 +56,13 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-g_gaugs = [0.01, 0.02, 0.05,  0.1, 0.2]
+g_gaugs = [0.0001, 0.005, 0.01, 0.02]
 test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0,1,2]
-ks = [0,1]
+cs = [2,1,0]
+ks = [1]
 
 basePath = './'
 
