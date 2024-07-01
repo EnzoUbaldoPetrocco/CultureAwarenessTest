@@ -299,6 +299,7 @@ class ProcessingClass:
         self.model = None
         if standard:
             if adversary:
+                print(f"Adversary bit")
                 self.model = AdversarialStandard(
                     type=type,
                     points=points,
@@ -309,6 +310,7 @@ class ProcessingClass:
                     batch_size=batch_size,
                 )
             else:
+                print(f"NON adversary bit")
                 self.model = StandardModels(
                     type=type,
                     points=points,
@@ -382,7 +384,6 @@ class ProcessingClass:
         self.model.fit(
             (self.dataobj.X, self.dataobj.y),
             (self.dataobj.Xv, self.dataobj.yv),
-            adversary=adversary,
             eps=eps,
             mult=mult,
             gradcam=gradcam,

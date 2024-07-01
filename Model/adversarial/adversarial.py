@@ -238,7 +238,7 @@ class AdversarialStandard(GeneralModelClass):
                         print(
                             f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
                         )
-                        history = self.DL(
+                        loss = self.DL(
                             TS,
                             VS,
                             aug,
@@ -252,7 +252,6 @@ class AdversarialStandard(GeneralModelClass):
                             g=g,
                         )
 
-                        loss = history.history["val_loss"][-1]
                         if loss < best_loss:
                             best_loss = loss
                             best_bs = b
@@ -321,26 +320,7 @@ class AdversarialStandard(GeneralModelClass):
                 ]
             )
 
-
-            """train_datagen = ImageDataGenerator(
-                preprocessing_function=lambda img: data_augmentation(img, training=aug)
-            )
-            # Apply data augmentation to the training dataset
-            X = tf.constant(TS[0], dtype="float32")
-            y = tf.constant(TS[1], dtype="float32")
-            train_generator = train_datagen.flow(x=X, y=y, batch_size=batch_size)
-            # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
-            
-            """
             validation_generator = None
-            """
-            if val:
-                val_datagen = ImageDataGenerator()
-                Xv = tf.constant(VS[0], dtype="float32")
-                yv = tf.constant(VS[1], dtype="float32")
-                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)"""
-            
-
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             if aug:
                 train_ds = train_ds.map(lambda img, y: (data_augmentation(img, training=aug), y))
@@ -368,9 +348,6 @@ class AdversarialStandard(GeneralModelClass):
                 plt.show()
 
             # DIVIDE IN BATCHES
-            # TS = TS.batch(batch_size).prefetch(buffer_size=10)
-            # if val:
-            #    VS = VS.batch(batch_size).prefetch(buffer_size=10)
             if aug:
                 if show_imgs:
                     # DISPLAY IMAGES
@@ -403,10 +380,6 @@ class AdversarialStandard(GeneralModelClass):
 
             # Create  model on top
             inputs = keras.Input(shape=shape)
-            # Pre-trained Xception weights requires that input be scaled
-            # from (0, 255) to a range of (-1., +1.), the rescaling layer
-            # outputs: `(inputs * scale) + offset`
-            # scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
             scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
             if aug:
                 x = data_augmentation(inputs)  # Apply random data augmentation
@@ -414,9 +387,6 @@ class AdversarialStandard(GeneralModelClass):
             else:
                 x = scale_layer(inputs)
 
-            # The base model contains batchnorm layers. We want to keep them in inference mode
-            # when we unfreeze the base model for fine-tuning, so we make sure that the
-            # base_model is running in inference mode here.
             x = base_model(x, training=False)
             x = keras.layers.GlobalAveragePooling2D()(x)
             x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
@@ -448,14 +418,9 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            #self.model.fit(
-            #    train_generator,
-            #    epochs=epochs,
-            #    validation_data=validation_generator,
-            #    verbose=self.verbose_param,
-            #    callbacks=callbacks,
-            #)
-            loss = self.train_loop(
+            print(f"Zio perotto biscotto tardotto")
+
+            loss, val_loss = self.train_loop(
                 epochs=epochs,
                 train_dataset=train_generator,
                 val_dataset=validation_generator,
@@ -464,6 +429,7 @@ class AdversarialStandard(GeneralModelClass):
                 batch_size=batch_size,
                 train_acc_metric=keras.metrics.BinaryAccuracy(),
                 val_acc_metric=keras.metrics.BinaryAccuracy(),
+                monitor_val=monitor_val,
             )
 
             # FINE TUNING
@@ -476,15 +442,7 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            # history = self.model.fit(
-            #    train_generator,
-            #    epochs=fine_epochs,
-            #    validation_data=validation_generator,
-            #    verbose=self.verbose_param,
-            #    callbacks=callbacks,
-            # )
-
-            loss = self.train_loop(
+            loss, val_loss = self.train_loop(
                 epochs=epochs,
                 train_dataset=train_generator,
                 val_dataset=validation_generator,
@@ -493,11 +451,15 @@ class AdversarialStandard(GeneralModelClass):
                 batch_size=batch_size,
                 train_acc_metric=keras.metrics.BinaryAccuracy(),
                 val_acc_metric=keras.metrics.BinaryAccuracy(),
+                monitor_val=monitor_val,
             )
-
-            tf.keras.backend.clear_session()
             
-            return loss
+            tf.keras.backend.clear_session()
+            if val:
+                return val_loss
+            else:
+                return loss
+            
 
     @tf.function
     def train_loop(
@@ -510,6 +472,7 @@ class AdversarialStandard(GeneralModelClass):
         batch_size,
         train_acc_metric,
         val_acc_metric,
+        monitor_val,
     ):
         @tf.function
         def train_step(x, y):
@@ -525,6 +488,27 @@ class AdversarialStandard(GeneralModelClass):
         def test_step(x, y):
             val_logits = self.model(x, training=False)
             val_acc_metric.update_state(y, val_logits)
+
+        #implement reduce learning rate on pleateu
+        rlrop = {
+            "monitor":monitor_val,
+            "factor":0.2,
+            "patience":5,
+            "verbose":self.verbose_param,
+            "min_lr":1e-9,
+            "max_val":None,
+            "prec_step":None,
+        }
+
+        #implemet early_stopping
+        es = {
+            "monitor":monitor_val,
+            "min_delta":0.001,
+            "patience":10,
+            "verbose":self.verbose_param,
+            "max_val":None,
+            "prec_step":None,
+        }
         
         for epoch in range(epochs):
             start_time = time.time()
@@ -541,36 +525,43 @@ class AdversarialStandard(GeneralModelClass):
                     tf.get_logger().info("Seen so far: %d samples" , ((step + 1) * batch_size))
 
                 step+=1
+            
             # Display metrics at the end of each epoch.
             train_acc = train_acc_metric.result()
             tf.get_logger().info("Training acc over epoch: %.4f" , (float(train_acc),))
+            
 
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
 
             # Run a validation loop at the end of each epoch.
-            for x_batch_val, y_batch_val in val_dataset:
-                test_step(x_batch_val, y_batch_val)
-
-            val_acc = val_acc_metric.result()
-            val_acc_metric.reset_states()
-            tf.get_logger().info("Validation acc: %.4f"  ,(float(val_acc),))
+            if val_dataset!=None:
+                for x_batch_val, y_batch_val in val_dataset:
+                    test_step(x_batch_val, y_batch_val)
+                
+                val_acc = val_acc_metric.result()
+                val_acc_metric.reset_states()
+                tf.get_logger().info("Validation acc: %.4f"  ,(float(val_acc),))
             tf.get_logger().info("Time taken: %.2fs" , (time.time() - start_time))
 
-        return 1-val_acc
+        
+        loss = loss_fn(train_dataset[0], train_dataset[1])
+        val_loss=None
+        if val_dataset:
+            val_loss = loss_fn(val_dataset[0], val_dataset[1])
+        return loss, val_loss
 
     def fit(
         self,
         TS,
         VS=None,
-        adversary=0,
-        eps=0.05,
-        mult=0.2,
-        gradcam=False,
-        out_dir="./",
-        complete=0,
         aug=0,
         g=0.1,
+        eps=0.3,
+        mult=0.2,
+        gradcam=0,
+        out_dir='./',
+        complete=0
     ):
         """
         General function for implementing model selection
