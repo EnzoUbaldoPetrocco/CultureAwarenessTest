@@ -293,7 +293,7 @@ class MitigatedModels(GeneralModelClass):
                     layers.RandomRotation(g / 10),
                     layers.GaussianNoise(g),
                     tf.keras.layers.RandomBrightness(g / 10),
-                    layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
+                    #layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
                     layers.RandomZoom(g / 5, g / 5),
                     layers.Resizing(shape[0], shape[1]),
                 ]
