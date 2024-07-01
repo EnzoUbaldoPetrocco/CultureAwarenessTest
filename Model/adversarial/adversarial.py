@@ -418,7 +418,6 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            print(f"Zio perotto biscotto tardotto")
 
             loss, val_loss = self.train_loop(
                 epochs=epochs,
@@ -461,7 +460,6 @@ class AdversarialStandard(GeneralModelClass):
                 return loss
             
 
-    @tf.function
     def train_loop(
         self,
         epochs,
@@ -509,21 +507,22 @@ class AdversarialStandard(GeneralModelClass):
             "max_val":None,
             "prec_step":None,
         }
-        
         for epoch in range(epochs):
             start_time = time.time()
-
+            #loss=0
             # Iterate over the batches of the dataset.
             step = 0
+            loss=0.0
             for (x_batch_train, y_batch_train) in train_dataset:
                 loss_value = train_step(x_batch_train, y_batch_train)
+                loss +=loss_value
                 # Log every 10 batches.
                 if step % 10 == 0:
+
                     tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
                          (step, float(loss_value)))
                    
                     tf.get_logger().info("Seen so far: %d samples" , ((step + 1) * batch_size))
-
                 step+=1
             
             # Display metrics at the end of each epoch.
@@ -533,23 +532,24 @@ class AdversarialStandard(GeneralModelClass):
 
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
-
+            val_loss = tf.constant(0.0, dtype=np.float32)
             # Run a validation loop at the end of each epoch.
             if val_dataset!=None:
                 for x_batch_val, y_batch_val in val_dataset:
                     test_step(x_batch_val, y_batch_val)
-                
+                    loss_fn(x_batch_val, y_batch_val)
+                    #val_loss=loss_fn(x_batch_val, y_batch_val)
+                    
+
                 val_acc = val_acc_metric.result()
                 val_acc_metric.reset_states()
+
+                
                 tf.get_logger().info("Validation acc: %.4f"  ,(float(val_acc),))
+
             tf.get_logger().info("Time taken: %.2fs" , (time.time() - start_time))
 
-        
-        loss = loss_fn(train_dataset[0], train_dataset[1])
-        val_loss=None
-        if val_dataset:
-            val_loss = loss_fn(val_dataset[0], val_dataset[1])
-        return loss, val_loss
+        return loss_value, val_loss
 
     def fit(
         self,
