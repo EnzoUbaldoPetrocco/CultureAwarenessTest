@@ -56,7 +56,7 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-g_gaugs = [ 0.001, 0.002]
+g_gaugs = [ 0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005]
 test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
@@ -68,14 +68,14 @@ basePath = './'
 
 
 #with tf.device("/CPU:0"):
-for lamp in [0,1]:
+
+for i in range(5):
+ for lamp in [0,1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=False, memory_limit=memory_limit, basePath=basePath)
     for percent in percents:
         for c in cs:
             for k in ks:
-                if k:
                     for g_aug in g_gaugs:
-                        for i in range(5):
                             model = None
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
@@ -108,39 +108,4 @@ for lamp in [0,1]:
                                 eps=test_eps,
                             )
                             procObj.partial_clear(basePath)
-                else:
-                    model = None
-                    for i in range(2):
-                        model = None
-                        print(f"Training->aug={k%2};adv={floor(k/2)}")
-                        procObj.process(
-                            standard=standard,
-                            type="DL",
-                            verbose_param=verbose_param,
-                            learning_rate=learning_rate,
-                            epochs=epochs,
-                            batch_size=bs,
-                            lambda_index=0,
-                            culture=c,
-                            percent=percent,
-                            val_split=val_split,
-                            test_split=test_split,
-                            n=n,
-                            augment=k % 2,
-                            gaug=0,
-                            adversary=floor(k / 2),
-                            eps=eps,
-                            mult=mult,
-                        )
-                        # NoAUg
-                        print(f"Testing->aug={0};adv={0}")
-                        procObj.test(
-                            standard=standard,
-                            culture=c,
-                            augment=0,
-                            gaug=0,
-                            adversary=0,
-                            eps=test_eps,
-                        )
-                        procObj.partial_clear(basePath)
-
+                
