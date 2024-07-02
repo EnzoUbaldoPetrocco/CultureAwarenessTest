@@ -61,14 +61,14 @@ test_g_augs = [0.01, 0.05, 0.1]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0]
+cs = [0,1,2]
 ks = [1]
 
 basePath = './'
 
 
 #with tf.device("/CPU:0"):
-for lamp in [1]:
+for lamp in [0,1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=False, memory_limit=memory_limit, basePath=basePath)
     for percent in percents:
         for c in cs:
