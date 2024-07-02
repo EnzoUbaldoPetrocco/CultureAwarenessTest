@@ -45,10 +45,10 @@ else:
 
 
 percents = [0.05]
-standard = 0
+standard = 1
 #lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -93,7 +93,7 @@ for g_aug in g_gaugs:
                                     n=n,
                                     augment=k % 2,
                                     gaug=g_aug,
-                                    adversary=floor(k / 2),
+                                    adversary=1,
                                     eps=eps,
                                     mult=mult,
                                 )
@@ -128,7 +128,7 @@ for g_aug in g_gaugs:
                                 n=n,
                                 augment=k % 2,
                                 gaug=0,
-                                adversary=floor(k / 2),
+                                adversary=1,
                                 eps=eps,
                                 mult=mult,
                             )
