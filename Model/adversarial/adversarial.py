@@ -250,6 +250,7 @@ class AdversarialStandard(GeneralModelClass):
                             fine_epochs,
                             nDropout,
                             g=g,
+                            adversarial_model=1
                         )
 
                         if loss < best_loss:
@@ -279,6 +280,7 @@ class AdversarialStandard(GeneralModelClass):
             best_nDropout,
             val=False,
             g=g,
+            adversarial_model=1
         )
 
         if save:
@@ -298,29 +300,9 @@ class AdversarialStandard(GeneralModelClass):
         nDropout=0.2,
         g=0.1,
         val=True,
+        adversarial_model=0
     ):
         with tf.device("/gpu:0"):
-            # TEMP 
-            TS=np.asarray(TS)
-            VS=np.asarray(VS)
-
-            TS[1]=np.asarray(TS[1])
-            VS[1]=np.asarray(VS[1])
-
-            print(f"Shape of TS[1]: {np.shape(TS[1])}")
-            print(f"Shape of TS[1][]:,0]: {np.shape(TS[1][:,0])}")
-            print(f"Shape of VS[1]: {np.shape(VS[1])}")
-
-            TS[1]=np.asarray(TS[1])[:,0]
-            VS[1]=np.asarray(VS[1])[:,0]
-
-            print(f"Shape of TS[1]: {np.shape(TS[1])}")
-            print(f"Shape of VS[1]: {np.shape(VS[1])}")
-
-            TS = tuple(TS)
-            VS=tuple(VS)
-            #MANNAGGHIA
-
 
             shape = np.shape(TS[0][0])
             n = np.shape(TS[0])
@@ -345,13 +327,19 @@ class AdversarialStandard(GeneralModelClass):
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             if aug:
-                train_ds = train_ds.map(lambda img, y: (data_augmentation(img, training=aug), y))
+                if adversarial_model:
+                    train_ds = train_ds.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures]))
+                else: #actual model
+                    train_ds = train_ds.map(lambda img, y: (data_augmentation(img, training=aug), y[0]))
 
             train_generator = train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
                 if aug:
-                    validation_ds = validation_ds.map(lambda img, y: (data_augmentation(img, training=aug), y))
+                    if adversarial_model:
+                        validation_ds = validation_ds.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures]))
+                    else:
+                        validation_ds = validation_ds.map(lambda img, y: (data_augmentation(img, training=aug), y[0]))
                 validation_generator = validation_generator.cache().batch(batch_size).prefetch(buffer_size=10)    
 
             if show_imgs:
@@ -532,10 +520,9 @@ class AdversarialStandard(GeneralModelClass):
         values = {"loss":0.0, "val_loss":0.0}
         for epoch in range(epochs):
             start_time = time.time()
-            #loss=0
+            values["loss"]=0.0
             # Iterate over the batches of the dataset.
             step = 0
-            values["loss"]=0.0
             for (x_batch_train, y_batch_train) in train_dataset:
                 loss_value = train_step(x_batch_train, y_batch_train)
                 values["loss"] +=loss_value
