@@ -95,6 +95,7 @@ class ProcessingClass:
         g_rot: float = 0.1,
         g_noise: float = 0.1,
         g_bright: float = 0.1,
+        adversarial=0
     ):
         """
         This function prepares the data for training
@@ -120,6 +121,7 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
+            adversarial=adversarial
         )
         if augment:
             with tf.device("/gpu:0"):
@@ -294,7 +296,8 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
-            augment=0
+            augment=0,
+            adversarial=adversary
         )
         self.model = None
         if standard:
