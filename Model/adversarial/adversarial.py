@@ -300,6 +300,28 @@ class AdversarialStandard(GeneralModelClass):
         val=True,
     ):
         with tf.device("/gpu:0"):
+            # TEMP 
+            TS=np.asarray(TS)
+            VS=np.asarray(VS)
+
+            TS[1]=np.asarray(TS[1])
+            VS[1]=np.asarray(VS[1])
+
+            print(f"Shape of TS[1]: {np.shape(TS[1])}")
+            print(f"Shape of TS[1][]:,0]: {np.shape(TS[1][:,0])}")
+            print(f"Shape of VS[1]: {np.shape(VS[1])}")
+
+            TS[1]=np.asarray(TS[1])[:,0]
+            VS[1]=np.asarray(VS[1])[:,0]
+
+            print(f"Shape of TS[1]: {np.shape(TS[1])}")
+            print(f"Shape of VS[1]: {np.shape(VS[1])}")
+
+            TS = tuple(TS)
+            VS=tuple(VS)
+            #MANNAGGHIA
+
+
             shape = np.shape(TS[0][0])
             n = np.shape(TS[0])
 
@@ -429,6 +451,7 @@ class AdversarialStandard(GeneralModelClass):
                 train_acc_metric=keras.metrics.BinaryAccuracy(),
                 val_acc_metric=keras.metrics.BinaryAccuracy(),
                 monitor_val=monitor_val,
+                val=val
             )
 
             # FINE TUNING
@@ -451,6 +474,7 @@ class AdversarialStandard(GeneralModelClass):
                 train_acc_metric=keras.metrics.BinaryAccuracy(),
                 val_acc_metric=keras.metrics.BinaryAccuracy(),
                 monitor_val=monitor_val,
+                val=val
             )
             
             tf.keras.backend.clear_session()
@@ -471,6 +495,7 @@ class AdversarialStandard(GeneralModelClass):
         train_acc_metric,
         val_acc_metric,
         monitor_val,
+        val
     ):
         @tf.function
         def train_step(x, y):
@@ -486,42 +511,38 @@ class AdversarialStandard(GeneralModelClass):
         def test_step(x, y):
             val_logits = self.model(x, training=False)
             val_acc_metric.update_state(y, val_logits)
+            return loss_fn(y, val_logits)
 
         #implement reduce learning rate on pleateu
         rlrop = {
-            "monitor":monitor_val,
             "factor":0.2,
             "patience":5,
-            "verbose":self.verbose_param,
             "min_lr":1e-9,
-            "max_val":None,
+            "max_val":np.inf,
             "prec_step":None,
         }
 
         #implemet early_stopping
         es = {
-            "monitor":monitor_val,
             "min_delta":0.001,
             "patience":10,
-            "verbose":self.verbose_param,
-            "max_val":None,
+            "max_val":np.inf,
             "prec_step":None,
         }
+        values = {"loss":0.0, "val_loss":0.0}
         for epoch in range(epochs):
             start_time = time.time()
             #loss=0
             # Iterate over the batches of the dataset.
             step = 0
-            loss=0.0
+            values["loss"]=0.0
             for (x_batch_train, y_batch_train) in train_dataset:
                 loss_value = train_step(x_batch_train, y_batch_train)
-                loss +=loss_value
+                values["loss"] +=loss_value
                 # Log every 10 batches.
                 if step % 10 == 0:
-
                     tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
                          (step, float(loss_value)))
-                   
                     tf.get_logger().info("Seen so far: %d samples" , ((step + 1) * batch_size))
                 step+=1
             
@@ -532,24 +553,39 @@ class AdversarialStandard(GeneralModelClass):
 
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
-            val_loss = tf.constant(0.0, dtype=np.float32)
+            values["val_loss"] = 0.0
             # Run a validation loop at the end of each epoch.
-            if val_dataset!=None:
+            if val:
                 for x_batch_val, y_batch_val in val_dataset:
-                    test_step(x_batch_val, y_batch_val)
-                    loss_fn(x_batch_val, y_batch_val)
-                    #val_loss=loss_fn(x_batch_val, y_batch_val)
-                    
+                    values["val_loss"] += test_step(x_batch_val, y_batch_val)
 
                 val_acc = val_acc_metric.result()
                 val_acc_metric.reset_states()
 
-                
                 tf.get_logger().info("Validation acc: %.4f"  ,(float(val_acc),))
-
             tf.get_logger().info("Time taken: %.2fs" , (time.time() - start_time))
 
-        return loss_value, val_loss
+            # At the end of the epoch I have to call my callbacks
+            if rlrop["max_val"]<values[monitor_val]:
+                rlrop["prec_step"]+=1
+            else:
+                rlrop["prec_step"]=0
+                rlrop["max_val"]=values[monitor_val]
+
+            if es["max_val"]<values[monitor_val]:
+                es["prec_step"]+=1
+            else:
+                es["prec_step"]=0
+                es["max_val"]=values[monitor_val]
+
+            if rlrop["prec_step"]>rlrop["patience"]:
+                newlr = max(rlrop["factor"]*self.model.optimizer.lr, rlrop["min_lr"])
+                tf.keras.backend.set_value(self.model.optimizer.lr, newlr)
+
+            if es["prec_step"]>es["patience"]:
+                step=np.inf
+
+        return values["loss"], values["val_loss"]
 
     def fit(
         self,
