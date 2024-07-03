@@ -409,6 +409,7 @@ class StandardModels(GeneralModelClass):
         complete=0,
         aug=0,
         g=0.1,
+        save=False,
     ):
         """
         General function for implementing model selection
@@ -426,9 +427,6 @@ class StandardModels(GeneralModelClass):
         elif self.type == "RFC":
             self.RFC(TS)
         elif self.type == "DL" or "RESNET":
-            self.ModelSelection(TS, VS, aug=aug, g=g)
-            """self.DL_model_selection(
-                TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
-            )"""
+            self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)
         else:
-            self.ModelSelection(TS, VS, aug=aug, g=g)
+            self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)

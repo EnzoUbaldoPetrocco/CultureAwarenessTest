@@ -167,12 +167,14 @@ class MitigatedModels(GeneralModelClass):
         fine_epochs=10,
         nDropouts=[0.4],
         g=0.1,
+        save=False,
+        path="./"
     ):
         best_loss = np.inf
         losses = []
         cics = []
 
-        lambdas = np.logspace(-3, 1, 5)
+        lambdas = np.logspace(-4, 2, 15)
         for lmb in lambdas:
             self.lamb = lmb
             for b in batches:
@@ -247,6 +249,9 @@ class MitigatedModels(GeneralModelClass):
                 val=False,
                 g=g,
             )
+
+        if save:
+                self.save(path)
 
     def DL(
         self,
@@ -440,6 +445,7 @@ class MitigatedModels(GeneralModelClass):
         gradcam=False,
         out_dir="./",
         complete=0,
+        save=False,
         aug=0,
         g=0.1,
     ):
@@ -459,12 +465,9 @@ class MitigatedModels(GeneralModelClass):
         elif self.type == "RFC":
             self.RFC(TS)
         elif self.type == "DL" or "RESNET":
-            self.ModelSelection(TS, VS, aug=aug, g=g)
-            """self.DL_model_selection(
-                TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
-            )"""
+            self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)
         else:
-            self.ModelSelection(TS, VS, aug=aug, g=g)
+            self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)
 
     def get_model_from_weights(self, size, adversary=0, eps=0.05, mult=0.2, path="./"):
         self.model = tf.keras.models.load_model(path)
