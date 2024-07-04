@@ -68,14 +68,15 @@ basePath = './'
 
 
 #with tf.device("/CPU:0"):
-for lamp in [1,0]:
+for i in range(3):
+ for lamp in [1,0]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=False, memory_limit=memory_limit, basePath=basePath)
     for percent in percents:
         for c in cs:
             for k in ks:
                 if k:
                     for g_aug in g_gaugs:
-                        for i in range(3):
+                        
                             model = None
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
                             procObj.process(
