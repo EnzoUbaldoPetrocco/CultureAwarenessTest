@@ -158,7 +158,7 @@ class DataClass:
                         a = np.zeros(n_cultures)
                         a[c] = 1
                         a = np.append(a, label[1])
-                        label=list(a) #label is {original_label, 0,..0,1,0...0}  with 0,..,0,1,0..,0 is one hot encoding
+                        label=list(a) #label is {0,..0,1,0...0, original_label}  with 0,..,0,1,0..,0 is one hot encoding
                     if shallow:
                         img = img[0::]
                         img = img.flatten()
