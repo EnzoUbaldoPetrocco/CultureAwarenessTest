@@ -453,6 +453,7 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
+
             loss, val_loss = self.train_loop(
                 epochs=epochs,
                 train_dataset=train_generator,
@@ -486,12 +487,14 @@ class AdversarialStandard(GeneralModelClass):
         monitor_val,
         val
     ):
-        @tf.function
+        #@tf.function
         def train_step(x, y):
             with tf.GradientTape() as tape:
                 logits = self.model(x, training=True)
                 loss_value = loss_fn(y, logits)
             grads = tape.gradient(loss_value, self.model.trainable_weights)
+            print(f"loss values = {loss_value}")
+            print(f"norm of grads = {np.linalg.norm(np.linalg.norm(grads))}")
             optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
             train_acc_metric.update_state(y, logits)
             return loss_value
@@ -555,6 +558,9 @@ class AdversarialStandard(GeneralModelClass):
 
                 tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
             tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
+
+            train_dataset.shuffle(batch_size)
+            val_dataset.shuffle(batch_size)
 
             """
             # At the end of the epoch I have to call my callbacks
