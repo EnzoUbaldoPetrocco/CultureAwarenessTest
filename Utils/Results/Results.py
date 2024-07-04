@@ -172,10 +172,8 @@ class ResultsClass:
                 stdtp_i += (tp - mean_tp) ** 2
                 stdfp_i += (fp - mean_fp) ** 2
             std_matrix = np.array([[stdtn_i, stdfp_i], [stdfn_i, stdtp_i]])
-            std_matrix = np.sqrt(std_matrix / len(pcms))
-            std_matrix = np.power(std_matrix, 2)
-            #print(mean_matrix)
-            #print(std_matrix)
+            std_matrix = np.sqrt(std_matrix) / len(pcms)
+            #std_matrix = np.power(std_matrix, 2)
             return mean_matrix, std_matrix
         else:
             return [], []

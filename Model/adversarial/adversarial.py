@@ -472,7 +472,7 @@ class AdversarialStandard(GeneralModelClass):
             else:
                 return loss
             
-    @tf.function
+    #@tf.function
     def train_loop(
         self,
         epochs,
@@ -518,15 +518,18 @@ class AdversarialStandard(GeneralModelClass):
             "max_val":np.inf,
             "prec_step":None,
         }
-        values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
+        
+        #print(f"self.model.trainable_weights are {self.model.trainable_weights}")
+        #values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
         for epoch in range(epochs):
             start_time = time.time()
-            values["loss"]=tf.constant(0.0, dtype=float)
+            #values["loss"]=tf.constant(0.0, dtype=float)
             # Iterate over the batches of the dataset.
             step = 0
             for (x_batch_train, y_batch_train) in train_dataset:
                 loss_value = train_step(x_batch_train, y_batch_train)
-                values["loss"] +=loss_value
+                print(f"loss value is {loss_value}")
+                #values["loss"] +=loss_value
                 # Log every 10 batches.
                 if step % 10 == 0:
                     tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
@@ -540,11 +543,12 @@ class AdversarialStandard(GeneralModelClass):
             
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
-            values["val_loss"] = tf.constant(0.0, dtype=float)
+           # values["val_loss"] = tf.constant(0.0, dtype=float)
             # Run a validation loop at the end of each epoch.
             if val:
                 for x_batch_val, y_batch_val in val_dataset:
-                    values["val_loss"] += test_step(x_batch_val, y_batch_val)
+                    #values["val_loss"] += test_step(x_batch_val, y_batch_val)
+                    test_step(x_batch_val, y_batch_val)
 
                 val_acc = val_acc_metric.result()
                 val_acc_metric.reset_states()
