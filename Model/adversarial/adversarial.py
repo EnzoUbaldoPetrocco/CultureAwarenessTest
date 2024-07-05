@@ -304,7 +304,10 @@ class AdversarialStandard(GeneralModelClass):
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
-            n = np.shape(TS[0])
+            n = np.shape(TS[0])[0]
+            nv=0
+            if val:
+                nv = np.shape(VS[0])[0]
 
             if val:
                 monitor_val = "val_loss"
@@ -442,7 +445,8 @@ class AdversarialStandard(GeneralModelClass):
                 train_acc_metric=keras.metrics.BinaryAccuracy(),
                 val_acc_metric=keras.metrics.BinaryAccuracy(),
                 monitor_val=monitor_val,
-                val=val
+                val=val,
+                n = n+nv
             )
 
             # FINE TUNING
@@ -466,7 +470,8 @@ class AdversarialStandard(GeneralModelClass):
                 train_acc_metric=keras.metrics.BinaryAccuracy(),
                 val_acc_metric=keras.metrics.BinaryAccuracy(),
                 monitor_val=monitor_val,
-                val=val
+                val=val,
+                n = n+nv
             )
             
             tf.keras.backend.clear_session()
@@ -487,7 +492,8 @@ class AdversarialStandard(GeneralModelClass):
         train_acc_metric:keras.metrics.BinaryAccuracy,
         val_acc_metric:keras.metrics.BinaryAccuracy,
         monitor_val,
-        val
+        val,
+        n = 0
     ):
         
         @tf.function
@@ -526,6 +532,8 @@ class AdversarialStandard(GeneralModelClass):
         #print(f"self.model.trainable_weights are {self.model.trainable_weights}")
         values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
         for epoch in range(epochs):
+            tf.get_logger().info(f"\r\nEpoch: {epoch}")
+            pbt = tf.keras.utils.Progbar(n)
             start_time = time.time()
             values["loss"]=tf.constant(0.0, dtype=float)
             # Iterate over the batches of the dataset.
@@ -534,17 +542,12 @@ class AdversarialStandard(GeneralModelClass):
                 loss_value = train_step(x_batch_train, y_batch_train)
                 #print(f"loss value is {loss_value}")
                 values["loss"] +=loss_value
-                # Log every 10 batches.
-                #if step % 10 == 0:
-                #    tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
-                #         step, float(loss_value))
-                    #tf.get_logger().info("Seen so far: %d samples" , (step + 1) * batch_size)
+                
+                pbt.add(x_batch_train.shape[0], values=[("loss",loss_value), ("acc",train_acc_metric.result())])
                 step+=1
             
             # Display metrics at the end of each epoch.
             train_acc = train_acc_metric.result()
-            tf.get_logger().info("Training acc over epoch %i: %.4f" ,epoch ,float(train_acc))
-            
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
             values["val_loss"] = tf.constant(0.0, dtype=float)
@@ -556,8 +559,10 @@ class AdversarialStandard(GeneralModelClass):
                 val_acc = val_acc_metric.result()
                 val_acc_metric.reset_states()
 
-                tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
-            tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
+                #tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
+                pbt.add(n-x_batch_train.shape[0]*step, values=[("loss",loss_value), ("acc",train_acc),("val_loss", values["val_loss"]), ("val_acc",val_acc)])
+            #tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
+            sys.stdout.write("\r")
 
             train_dataset = train_dataset.shuffle(batch_size)
             
@@ -577,11 +582,13 @@ class AdversarialStandard(GeneralModelClass):
             if rlrop["prec_step"]>rlrop["patience"]:
                 newlr = max(rlrop["factor"]*self.model.optimizer.lr, rlrop["min_lr"])
                 tf.keras.backend.set_value(self.model.optimizer.lr, newlr)
-                tf.get_logger().info(f"Learning rate reduced to {self.model.optimizer.lr:4f}")
+                tf.get_logger().info(f"\r\nLearning rate reduced to {newlr:.9f}")
 
 
             if es["prec_step"]>es["patience"]:
-                epoch=np.inf
+                #epoch=np.inf
+                break
+                tf.get_logger().info(f"\r\nEarly stopping")
 
             
         return values["loss"], values["val_loss"]
