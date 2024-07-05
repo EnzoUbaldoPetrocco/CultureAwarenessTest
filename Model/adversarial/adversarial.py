@@ -110,7 +110,7 @@ class AdversarialStandard(GeneralModelClass):
         :param epochs: hyperparameter for DL
         :param batch_size: hyperparameter for DL
         """
-        GeneralModelClass.__init__(self, standard=1)
+        GeneralModelClass.__init__(self, standard=1, adversarial=1)
         self.type = type
         self.points = points
         self.kernel = kernel
@@ -185,29 +185,40 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-    def create_adversarial_pattern(self, model, input_image, input_label):
-        with tf.device("/gpu:0"):
-            with tf.GradientTape() as tape:
-                tape.watch(input_image)
-                prediction = model(input_image)
-                loss = tf.keras.losses.categorical_crossentropy(input_label, prediction)
+    
 
-            gradient = tape.gradient(loss, input_image)
-            signed_grad = tf.sign(gradient)
-            return signed_grad
+    def LearningAdversarially(
+        self,
+        TS,
+        VS,
+        aug,
+        show_imgs=False,
+        batches=[32],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        fine_lrs=[1e-5],
+        epochs=30,
+        fine_epochs=10,
+        nDropouts=[0.4],
+        g=0.1,
+        save=False,
+        path="./",
+    ):
+        self.ModelSelection(
+            TS=TS,
+            VS=VS,
+            aug=aug,
+            show_imgs=show_imgs,
+            batches=batches,
+            lrs=lrs,
+            fine_lrs=fine_lrs,
+            epochs=epochs,
+            fine_epochs=fine_epochs,
+            nDropouts=nDropouts,
+            g=g,
+            save=save,
+            path=path,
+        )
 
-    # Create adversarial samples
-    def generate_adversarial_samples(self, model, images, labels, shape, epsilon=0.1):
-        with tf.device("/gpu:0"):
-            adversarial_images = []
-            for img, lbl in zip(images, labels):
-                img = tf.convert_to_tensor(img.reshape((1, shape[0], shape[1], 3)))
-                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
-                perturbations = self.create_adversarial_pattern(model, img, lbl)
-                adversarial_img = img + epsilon * perturbations
-                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
-                adversarial_images.append(adversarial_img.numpy())
-            return tf.convert_to_tensor(adversarial_images)
 
     def ModelSelection(
         self,
@@ -224,6 +235,8 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         save=False,
         path="./",
+        adv=0,
+        adversarial_model=None,
     ):
 
         if self.verbose_param:
@@ -236,9 +249,10 @@ class AdversarialStandard(GeneralModelClass):
 
                         self.model = None
                         gc.collect()
-                        print(
+                        tf.get_logger().info(
                             f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
                         )
+                        sys.stdout.write("\r")
                         loss = self.DL(
                             TS,
                             VS,
@@ -251,7 +265,8 @@ class AdversarialStandard(GeneralModelClass):
                             fine_epochs,
                             nDropout,
                             g=g,
-                            adversarial_model=0
+                            adv=adv,
+                            adversarial_model=adversarial_model
                         )
 
                         if loss < best_loss:
@@ -282,7 +297,8 @@ class AdversarialStandard(GeneralModelClass):
             best_nDropout,
             val=False,
             g=g,
-            adversarial_model=0
+            adv=adv,
+            adversarial_model=adversarial_model
         )
 
         if save:
@@ -302,12 +318,14 @@ class AdversarialStandard(GeneralModelClass):
         nDropout=0.2,
         g=0.1,
         val=True,
-        adversarial_model=0
+        adv=0,
+        adversarial_model=None
+
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
             n = np.shape(TS[0])[0]
-            nv=0
+            nv = 0
             if val:
                 nv = np.shape(VS[0])[0]
 
@@ -328,26 +346,52 @@ class AdversarialStandard(GeneralModelClass):
                 ]
             )
 
+
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
-            #train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
+            # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
 
-        
-            if adversarial_model:
-                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[:self.n_cultures])).shuffle(len(train_generator)*10)
-            else: #actual model
-                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[self.n_cultures])).shuffle(len(train_generator)*10)
-            
-            train_generator = train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
+            if adv:
+                train_generator = train_generator.map(
+                    lambda img, y: (
+                        data_augmentation(img, training=aug),
+                        y[: self.n_cultures],
+                    )
+                ).shuffle(len(train_generator) * 10)
+            else:  # actual model
+                train_generator = train_generator.map(
+                    lambda img, y: (
+                        data_augmentation(img, training=aug),
+                        y[self.n_cultures],
+                    )
+                ).shuffle(len(train_generator) * 10)
+
+            train_generator = (
+                train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
+            )
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
-                #validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
-            
-                if adversarial_model:
-                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[:self.n_cultures])).shuffle(len(train_generator)*10)
+                # validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
+
+                if adv:
+                    validation_generator = validation_generator.map(
+                        lambda img, y: (
+                            data_augmentation(img, training=aug),
+                            y[: self.n_cultures],
+                        )
+                    ).shuffle(len(train_generator) * 10)
                 else:
-                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[self.n_cultures]))
-                validation_generator = validation_generator.cache().batch(batch_size).prefetch(buffer_size=10)    
+                    validation_generator = validation_generator.map(
+                        lambda img, y: (
+                            data_augmentation(img, training=aug),
+                            y[self.n_cultures],
+                        )
+                    )
+                validation_generator = (
+                    validation_generator.cache()
+                    .batch(batch_size)
+                    .prefetch(buffer_size=10)
+                )
 
             if show_imgs:
                 # DISPLAY IMAGES
@@ -410,39 +454,22 @@ class AdversarialStandard(GeneralModelClass):
             outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
 
-            lr_reduce = ReduceLROnPlateau(
-                monitor=monitor_val,
-                factor=0.2,
-                patience=5,
-                verbose=self.verbose_param,
-                mode="max",
-                min_lr=1e-9,
-            )
-            early = EarlyStopping(
-                monitor=monitor_val,
-                min_delta=0.001,
-                patience=10,
-                verbose=self.verbose_param,
-                mode="auto",
-            )
-            callbacks = [early, lr_reduce]
-
             # self.model.summary()
             # MODEL TRAINING
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
                 loss=keras.losses.BinaryCrossentropy(from_logits=True),
                 metrics=[keras.metrics.BinaryAccuracy()],
-                #run_eagerly=True
+                # run_eagerly=True
             )
 
             bcemetric = keras.metrics.BinaryCrossentropy()
             val_bcemetric = keras.metrics.BinaryCrossentropy()
             train_acc_metric = keras.metrics.BinaryAccuracy()
             val_acc_metric = keras.metrics.BinaryAccuracy()
-            
 
             loss, val_loss = self.train_loop(
+                model=self.model,
                 epochs=epochs,
                 train_dataset=train_generator,
                 val_dataset=validation_generator,
@@ -455,7 +482,9 @@ class AdversarialStandard(GeneralModelClass):
                 val_bcemetric=val_bcemetric,
                 monitor_val=monitor_val,
                 val=val,
-                n = n+nv
+                n=n + nv,
+                adv=adv,
+                adversarial_model=adversarial_model
             )
 
             # FINE TUNING
@@ -468,8 +497,8 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-
             loss, val_loss = self.train_loop(
+                model=self.model,
                 epochs=epochs,
                 train_dataset=train_generator,
                 val_dataset=validation_generator,
@@ -482,91 +511,135 @@ class AdversarialStandard(GeneralModelClass):
                 val_bcemetric=val_bcemetric,
                 monitor_val=monitor_val,
                 val=val,
-                n = n+nv
+                n=n + nv,
+                adv=adv,
+                adversarial_model=adversarial_model
             )
-            
+
             tf.keras.backend.clear_session()
             if val:
                 return val_loss
             else:
                 return loss
-            
-    #@tf.function
+
+    # @tf.function
     def train_loop(
         self,
+        model,
         epochs,
         train_dataset,
         val_dataset,
         loss_fn,
         optimizer: keras.optimizers.Adam,
         batch_size,
-        train_acc_metric:keras.metrics.BinaryAccuracy,
-        val_acc_metric:keras.metrics.BinaryAccuracy,
-        bcemetric:keras.metrics.BinaryCrossentropy,
+        train_acc_metric: keras.metrics.BinaryAccuracy,
+        val_acc_metric: keras.metrics.BinaryAccuracy,
+        bcemetric: keras.metrics.BinaryCrossentropy,
         monitor_val,
         val,
-        val_bcemetric:keras.metrics.BinaryCrossentropy=None,
-        n = 0
+        val_bcemetric: keras.metrics.BinaryCrossentropy = None,
+        n=0,
+        adv=0,
+        adversarial_model=None,
+        eps=0
     ):
         
         @tf.function
+        def create_adversarial_pattern(model, input_image, input_label):
+            with tf.device("/gpu:0"):
+                with tf.GradientTape() as tape:
+                    tape.watch(input_image)
+                    prediction = model(input_image)
+                    loss = tf.keras.losses.categorical_crossentropy(input_label, prediction)
+
+                gradient = tape.gradient(loss, input_image)
+                signed_grad = tf.sign(gradient)
+                return signed_grad
+
+        # Create adversarial samples
+        @tf.function
+        def generate_adversarial_samples(model, images, labels, shape, epsilon=0.1):
+            with tf.device("/gpu:0"):
+                adversarial_images = []
+                for img, lbl in zip(images, labels):
+                    img = tf.convert_to_tensor(img.reshape((1, shape[0], shape[1], 3)))
+                    lbl = tf.convert_to_tensor(lbl.reshape((1, self.n_cultures)))
+                    perturbations = create_adversarial_pattern(model, img, lbl)
+                    adversarial_img = img + epsilon * perturbations
+                    adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+                    adversarial_images.append(adversarial_img.numpy())
+                return tf.convert_to_tensor(adversarial_images)
+
+        @tf.function
         def train_step(x, y):
             with tf.GradientTape() as tape:
-                logits = self.model(x, training=True)
+                logits = model(x, training=True)
                 loss_value = loss_fn(y, logits)
-            grads = tape.gradient(loss_value, self.model.trainable_weights)
-            optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
+            grads = tape.gradient(loss_value, model.trainable_weights)
+            optimizer.apply_gradients(zip(grads, model.trainable_weights))
             train_acc_metric.update_state(y, logits)
             bcemetric.update_state(y, logits)
 
         @tf.function
         def test_step(x, y):
-            val_logits = self.model(x, training=False)
+            val_logits = model(x, training=False)
             val_acc_metric.update_state(y, val_logits)
             val_bcemetric.update_state(y, val_logits)
 
-        #implement reduce learning rate on pleateu
+        # implement reduce learning rate on pleateu
         rlrop = {
-            "factor":0.2,
-            "patience":5,
-            "min_lr":1e-9,
-            "max_val":np.inf,
-            "prec_step":None,
+            "factor": 0.2,
+            "patience": 5,
+            "min_lr": 1e-9,
+            "max_val": np.inf,
+            "prec_step": None,
         }
 
-        #implemet early_stopping
+        # implemet early_stopping
         es = {
-            "min_delta":0.001,
-            "patience":10,
-            "max_val":np.inf,
-            "prec_step":None,
+            "min_delta": 0.001,
+            "patience": 10,
+            "max_val": np.inf,
+            "prec_step": None,
         }
-        
-        #print(f"self.model.trainable_weights are {self.model.trainable_weights}")
-        values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
+
+        # print(f"model.trainable_weights are {model.trainable_weights}")
+        values = {
+            "loss": tf.constant(0.0, dtype=float),
+            "val_loss": tf.constant(0.0, dtype=float),
+        }
         for epoch in range(epochs):
+            
             sys.stdout.write("\r")
             tf.get_logger().info(f"Epoch: {epoch}")
-            sys.stdout.write("\r")
             pbt = tf.keras.utils.Progbar(n)
             start_time = time.time()
-            values["loss"]=tf.constant(0.0, dtype=float)
+            values["loss"] = tf.constant(0.0, dtype=float)
             # Iterate over the batches of the dataset.
             step = 0
-            for (x_batch_train, y_batch_train) in train_dataset:
-                train_step(x_batch_train, y_batch_train)
-                #print(f"loss value is {loss_value}")    
+            for x_batch_train, y_batch_train in train_dataset:
+                if adv:
+                    x_batch_train= generate_adversarial_samples(adversarial_model, x_batch_train, y_batch_train, x_batch_train.shape, epsilon=eps)
                 
-                pbt.add(x_batch_train.shape[0], values=[("loss",bcemetric.result()), ("acc",train_acc_metric.result())])
-                step+=1
-            
+                train_step(x_batch_train, y_batch_train)
+                # print(f"loss value is {loss_value}")
+
+                pbt.add(
+                    x_batch_train.shape[0],
+                    values=[
+                        ("loss", bcemetric.result()),
+                        ("acc", train_acc_metric.result()),
+                    ],
+                )
+                step += 1
+
             # Display metrics at the end of each epoch.
             train_acc = train_acc_metric.result()
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
 
             loss = bcemetric.result()
-            values["loss"] =loss
+            values["loss"] = loss
             bcemetric.reset_states()
 
             values["val_loss"] = tf.constant(0.0, dtype=float)
@@ -579,43 +652,64 @@ class AdversarialStandard(GeneralModelClass):
                 val_acc_metric.reset_states()
 
                 val_loss = val_bcemetric.result()
-                values["val_loss"]=val_loss
+                values["val_loss"] = val_loss
                 val_bcemetric.reset_states()
 
-                #tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
-                pbt.add(n-x_batch_train.shape[0]*step+1, values=[("loss",val_bcemetric.result()), ("acc",train_acc),("val_loss", values["val_loss"]), ("val_acc",val_acc), ("lr",self.model.optimizer.lr)])
-            #tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
+                # tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
+                pbt.add(
+                    n - x_batch_train.shape[0] * step + 1,
+                    values=[
+                        ("Time", time.time() - start_time),
+                        ("loss", val_bcemetric.result()),
+                        ("acc", train_acc),
+                        ("val_loss", values["val_loss"]),
+                        ("val_acc", val_acc),
+                        ("lr", model.optimizer.lr),
+                    ],
+                )
+            # tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
+            else:
+                pbt.add(
+                    n - x_batch_train.shape[0] * step + 1,
+                    values=[
+                        ("Time", time.time() - start_time),
+                        ("loss", val_bcemetric.result()),
+                        ("acc", train_acc),
+                        ("lr", model.optimizer.lr),
+                    ],
+                )
             sys.stdout.write("\r")
-            
+
             train_dataset = train_dataset.shuffle(batch_size)
             if val:
                 val_dataset = val_dataset.shuffle(batch_size)
 
             # At the end of the epoch I have to call my callbacks
-            if rlrop["max_val"]<values[monitor_val]:
-                rlrop["prec_step"]+=1
+            if rlrop["max_val"] < values[monitor_val]:
+                rlrop["prec_step"] += 1
             else:
-                rlrop["prec_step"]=0
-                rlrop["max_val"]=values[monitor_val]
+                rlrop["prec_step"] = 0
+                rlrop["max_val"] = values[monitor_val]
 
-            if es["max_val"]<values[monitor_val]:
-                es["prec_step"]+=1
+            if es["max_val"] < values[monitor_val]:
+                es["prec_step"] += 1
             else:
-                es["prec_step"]=0
-                es["max_val"]=values[monitor_val]
+                es["prec_step"] = 0
+                es["max_val"] = values[monitor_val]
 
-            if rlrop["prec_step"]>rlrop["patience"]:
-                newlr = max(rlrop["factor"]*self.model.optimizer.lr, rlrop["min_lr"])
-                tf.keras.backend.set_value(self.model.optimizer.lr, newlr)
+            if rlrop["prec_step"] > rlrop["patience"]:
+                newlr = max(rlrop["factor"] * model.optimizer.lr, rlrop["min_lr"])
+                tf.keras.backend.set_value(model.optimizer.lr, newlr)
                 sys.stdout.write("\r")
                 tf.get_logger().info(f"Reducing Learning rate to: {newlr:.9f}")
+                sys.stdout.write("\r")
 
-            if es["prec_step"]>es["patience"]:
+            if es["prec_step"] > es["patience"]:
                 sys.stdout.write("\r")
                 tf.get_logger().info(f"Early stopping")
+                sys.stdout.write("\r")
                 break
 
-            
         return values["loss"], values["val_loss"]
 
     def fit(
@@ -627,8 +721,8 @@ class AdversarialStandard(GeneralModelClass):
         eps=0.3,
         mult=0.2,
         gradcam=0,
-        out_dir='./',
-        complete=0
+        out_dir="./",
+        complete=0,
     ):
         """
         General function for implementing model selection
