@@ -64,7 +64,7 @@ mult = 0.25
 cs = [0,1,2]
 ks = [0,1]
 
-basePath = './'
+basePath = './PRUEVAS/'
 
 
 #with tf.device("/CPU:0"):
