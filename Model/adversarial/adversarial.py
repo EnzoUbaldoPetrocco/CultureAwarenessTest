@@ -266,7 +266,7 @@ class AdversarialStandard(GeneralModelClass):
         print(
             f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
         )
-        TS = TS + VS
+        TS = list(np.concatenate((TS, VS), axis=1))
         print(f"Shape of TS is {np.shape(TS)}")
         self.DL(
             TS,
@@ -434,6 +434,11 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
                 #run_eagerly=True
             )
+
+            bcemetric = keras.metrics.BinaryCrossentropy()
+            val_bcemetric = keras.metrics.BinaryCrossentropy()
+            train_acc_metric = keras.metrics.BinaryAccuracy()
+            val_acc_metric = keras.metrics.BinaryAccuracy()
             
 
             loss, val_loss = self.train_loop(
@@ -443,8 +448,10 @@ class AdversarialStandard(GeneralModelClass):
                 loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
                 optimizer=keras.optimizers.Adam(lr),
                 batch_size=batch_size,
-                train_acc_metric=keras.metrics.BinaryAccuracy(),
-                val_acc_metric=keras.metrics.BinaryAccuracy(),
+                train_acc_metric=train_acc_metric,
+                val_acc_metric=val_acc_metric,
+                bcemetric=bcemetric,
+                val_bcemetric=val_bcemetric,
                 monitor_val=monitor_val,
                 val=val,
                 n = n+nv
@@ -468,8 +475,10 @@ class AdversarialStandard(GeneralModelClass):
                 loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
                 optimizer=keras.optimizers.Adam(fine_lr),
                 batch_size=batch_size,
-                train_acc_metric=keras.metrics.BinaryAccuracy(),
-                val_acc_metric=keras.metrics.BinaryAccuracy(),
+                train_acc_metric=train_acc_metric,
+                val_acc_metric=val_acc_metric,
+                bcemetric=bcemetric,
+                val_bcemetric=val_bcemetric,
                 monitor_val=monitor_val,
                 val=val,
                 n = n+nv
@@ -492,8 +501,10 @@ class AdversarialStandard(GeneralModelClass):
         batch_size,
         train_acc_metric:keras.metrics.BinaryAccuracy,
         val_acc_metric:keras.metrics.BinaryAccuracy,
+        bcemetric:keras.metrics.BinaryCrossentropy,
         monitor_val,
         val,
+        val_bcemetric:keras.metrics.BinaryCrossentropy=None,
         n = 0
     ):
         
@@ -505,12 +516,14 @@ class AdversarialStandard(GeneralModelClass):
             grads = tape.gradient(loss_value, self.model.trainable_weights)
             optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
             train_acc_metric.update_state(y, logits)
+            bcemetric.update_state(y, logits)
             return loss_value
 
         @tf.function
         def test_step(x, y):
             val_logits = self.model(x, training=False)
             val_acc_metric.update_state(y, val_logits)
+            val_bcemetric.update_state(y, val_logits)
             return loss_fn(y, val_logits)
 
         #implement reduce learning rate on pleateu
@@ -540,11 +553,12 @@ class AdversarialStandard(GeneralModelClass):
             # Iterate over the batches of the dataset.
             step = 0
             for (x_batch_train, y_batch_train) in train_dataset:
-                loss_value = train_step(x_batch_train, y_batch_train)
+                loss_value= train_step(x_batch_train, y_batch_train)
                 #print(f"loss value is {loss_value}")
                 values["loss"] +=loss_value
                 
-                pbt.add(x_batch_train.shape[0], values=[("loss",loss_value), ("acc",train_acc_metric.result())])
+                
+                pbt.add(x_batch_train.shape[0], values=[("loss",bcemetric.result()), ("acc",train_acc_metric.result())])
                 step+=1
             
             # Display metrics at the end of each epoch.
@@ -561,7 +575,7 @@ class AdversarialStandard(GeneralModelClass):
                 val_acc_metric.reset_states()
 
                 #tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
-                pbt.add(n-x_batch_train.shape[0]*step, values=[("loss",loss_value), ("acc",train_acc),("val_loss", values["val_loss"]), ("val_acc",val_acc)])
+                pbt.add(n-x_batch_train.shape[0]*step, values=[("loss",val_bcemetric.result()), ("acc",train_acc),("val_loss", values["val_loss"]), ("val_acc",val_acc)])
             #tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
             sys.stdout.write("\r")
 
