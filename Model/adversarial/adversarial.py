@@ -303,7 +303,6 @@ class AdversarialStandard(GeneralModelClass):
         adversarial_model=0
     ):
         with tf.device("/gpu:0"):
-
             shape = np.shape(TS[0][0])
             n = np.shape(TS[0])
 
@@ -326,15 +325,18 @@ class AdversarialStandard(GeneralModelClass):
 
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
+            train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
+
         
             if adversarial_model:
-                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures+1]))
+                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[:self.n_cultures]))
             else: #actual model
-                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[0]))
-
+                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[self.n_cultures]))
+            
             train_generator = train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
+                validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
             
                 if adversarial_model:
                     validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures+1]))
@@ -487,13 +489,17 @@ class AdversarialStandard(GeneralModelClass):
         monitor_val,
         val
     ):
+        
         #@tf.function
         def train_step(x, y):
             with tf.GradientTape() as tape:
                 logits = self.model(x, training=True)
                 loss_value = loss_fn(y, logits)
             grads = tape.gradient(loss_value, self.model.trainable_weights)
-            print(f"loss values = {loss_value}")
+            print(f"logits are {logits}")
+            print(f"true values are {y}")
+            print(f"loss value computed in print is {loss_fn(y, logits)}")
+            print(f"loss values in train step = {loss_value}")
             print(f"norm of grads = {np.linalg.norm(np.linalg.norm(grads))}")
             optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
             train_acc_metric.update_state(y, logits)
@@ -531,7 +537,7 @@ class AdversarialStandard(GeneralModelClass):
             step = 0
             for (x_batch_train, y_batch_train) in train_dataset:
                 loss_value = train_step(x_batch_train, y_batch_train)
-                print(f"loss value is {loss_value}")
+                #print(f"loss value is {loss_value}")
                 #values["loss"] +=loss_value
                 # Log every 10 batches.
                 if step % 10 == 0:
@@ -559,8 +565,8 @@ class AdversarialStandard(GeneralModelClass):
                 tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
             tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
 
-            train_dataset.shuffle(batch_size)
-            val_dataset.shuffle(batch_size)
+            train_dataset = train_dataset.random.shuffle(batch_size)
+            val_dataset = val_dataset.random.shuffle(batch_size)
 
             """
             # At the end of the epoch I have to call my callbacks
