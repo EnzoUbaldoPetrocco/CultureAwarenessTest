@@ -267,6 +267,7 @@ class AdversarialStandard(GeneralModelClass):
             f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
         )
         TS = TS + VS
+        print(f"Shape of TS is {np.shape(TS)}")
         self.DL(
             TS,
             None,
