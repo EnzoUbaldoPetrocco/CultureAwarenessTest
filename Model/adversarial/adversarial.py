@@ -325,21 +325,21 @@ class AdversarialStandard(GeneralModelClass):
 
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
-            train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
+            #train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
 
         
             if adversarial_model:
-                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[:self.n_cultures]))
+                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[:self.n_cultures])).shuffle(len(train_generator)*10)
             else: #actual model
-                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[self.n_cultures]))
+                train_generator = train_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[self.n_cultures])).shuffle(len(train_generator)*10)
             
             train_generator = train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
-                validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
+                #validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
             
                 if adversarial_model:
-                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures+1]))
+                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures+1])).shuffle(len(train_generator)*10)
                 else:
                     validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[0]))
                 validation_generator = validation_generator.cache().batch(batch_size).prefetch(buffer_size=10)    
@@ -490,17 +490,12 @@ class AdversarialStandard(GeneralModelClass):
         val
     ):
         
-        #@tf.function
+        @tf.function
         def train_step(x, y):
             with tf.GradientTape() as tape:
                 logits = self.model(x, training=True)
                 loss_value = loss_fn(y, logits)
             grads = tape.gradient(loss_value, self.model.trainable_weights)
-            print(f"logits are {logits}")
-            print(f"true values are {y}")
-            print(f"loss value computed in print is {loss_fn(y, logits)}")
-            print(f"loss values in train step = {loss_value}")
-            print(f"norm of grads = {np.linalg.norm(np.linalg.norm(grads))}")
             optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
             train_acc_metric.update_state(y, logits)
             return loss_value
@@ -529,35 +524,34 @@ class AdversarialStandard(GeneralModelClass):
         }
         
         #print(f"self.model.trainable_weights are {self.model.trainable_weights}")
-        #values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
+        values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
         for epoch in range(epochs):
             start_time = time.time()
-            #values["loss"]=tf.constant(0.0, dtype=float)
+            values["loss"]=tf.constant(0.0, dtype=float)
             # Iterate over the batches of the dataset.
             step = 0
             for (x_batch_train, y_batch_train) in train_dataset:
                 loss_value = train_step(x_batch_train, y_batch_train)
                 #print(f"loss value is {loss_value}")
-                #values["loss"] +=loss_value
+                values["loss"] +=loss_value
                 # Log every 10 batches.
-                if step % 10 == 0:
-                    tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
-                         step, float(loss_value))
+                #if step % 10 == 0:
+                #    tf.get_logger().info("Training loss (for one batch) at step %d: %.4f",
+                #         step, float(loss_value))
                     #tf.get_logger().info("Seen so far: %d samples" , (step + 1) * batch_size)
                 step+=1
             
             # Display metrics at the end of each epoch.
             train_acc = train_acc_metric.result()
-            tf.get_logger().info("Training acc over epoch: %.4f" , float(train_acc))
+            tf.get_logger().info("Training acc over epoch %i: %.4f" ,epoch ,float(train_acc))
             
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
-           # values["val_loss"] = tf.constant(0.0, dtype=float)
+            values["val_loss"] = tf.constant(0.0, dtype=float)
             # Run a validation loop at the end of each epoch.
             if val:
                 for x_batch_val, y_batch_val in val_dataset:
-                    #values["val_loss"] += test_step(x_batch_val, y_batch_val)
-                    test_step(x_batch_val, y_batch_val)
+                    values["val_loss"] += test_step(x_batch_val, y_batch_val)
 
                 val_acc = val_acc_metric.result()
                 val_acc_metric.reset_states()
@@ -565,10 +559,8 @@ class AdversarialStandard(GeneralModelClass):
                 tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
             tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
 
-            train_dataset = train_dataset.random.shuffle(batch_size)
-            val_dataset = val_dataset.random.shuffle(batch_size)
-
-            """
+            train_dataset = train_dataset.shuffle(batch_size)
+            
             # At the end of the epoch I have to call my callbacks
             if rlrop["max_val"]<values[monitor_val]:
                 rlrop["prec_step"]+=1
@@ -585,12 +577,13 @@ class AdversarialStandard(GeneralModelClass):
             if rlrop["prec_step"]>rlrop["patience"]:
                 newlr = max(rlrop["factor"]*self.model.optimizer.lr, rlrop["min_lr"])
                 tf.keras.backend.set_value(self.model.optimizer.lr, newlr)
+                tf.get_logger().info(f"Learning rate reduced to {self.model.optimizer.lr:4f}")
+
 
             if es["prec_step"]>es["patience"]:
-                step=np.inf
+                epoch=np.inf
 
-            """
-
+            
         return values["loss"], values["val_loss"]
 
     def fit(
