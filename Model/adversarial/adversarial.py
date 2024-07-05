@@ -18,6 +18,10 @@ from Model.GeneralModel import GeneralModelClass
 import gc
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
 
 
 class AdversarialProcessing(keras.models.Model):
@@ -65,25 +69,6 @@ class AdversarialProcessing(keras.models.Model):
             return tf.convert_to_tensor(adversarial_images)
 
 
-#!/usr/bin/env python
-__author__ = "Enzo Ubaldo Petrocco"
-import sys
-
-from matplotlib import pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
-
-sys.path.insert(1, "../")
-import numpy as np
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
-import tensorflow as tf
-from tensorflow import keras
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras import layers
-from Model.GeneralModel import GeneralModelClass
-import gc
-import os
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
 class AdversarialStandard(GeneralModelClass):

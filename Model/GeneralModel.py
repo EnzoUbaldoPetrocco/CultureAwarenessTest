@@ -10,6 +10,10 @@ from tf_explain.utils.display import grid_display, heatmap_display
 from tf_explain.utils.saver import save_rgb
 import gc
 from keras.models import Model
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
 
 
 class GeneralModelClass:
