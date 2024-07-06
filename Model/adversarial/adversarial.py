@@ -225,6 +225,7 @@ class AdversarialStandard(GeneralModelClass):
         save=False,
         path="./",
     ):
+
         if self.verbose_param:
             tf.get_logger().setLevel(4)
         best_loss = np.inf
@@ -266,7 +267,7 @@ class AdversarialStandard(GeneralModelClass):
         print(
             f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
         )
-        TS = list(np.concatenate((TS, VS), axis=1))
+        list(TS).append(VS)
         print(f"Shape of TS is {np.shape(TS)}")
         self.DL(
             TS,
@@ -343,9 +344,9 @@ class AdversarialStandard(GeneralModelClass):
                 #validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
             
                 if adversarial_model:
-                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[1:self.n_cultures+1])).shuffle(len(train_generator)*10)
+                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[:self.n_cultures])).shuffle(len(train_generator)*10)
                 else:
-                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[0]))
+                    validation_generator = validation_generator.map(lambda img, y: (data_augmentation(img, training=aug), y[self.n_cultures]))
                 validation_generator = validation_generator.cache().batch(batch_size).prefetch(buffer_size=10)    
 
             if show_imgs:
@@ -517,14 +518,12 @@ class AdversarialStandard(GeneralModelClass):
             optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
             train_acc_metric.update_state(y, logits)
             bcemetric.update_state(y, logits)
-            return loss_value
 
         @tf.function
         def test_step(x, y):
             val_logits = self.model(x, training=False)
             val_acc_metric.update_state(y, val_logits)
             val_bcemetric.update_state(y, val_logits)
-            return loss_fn(y, val_logits)
 
         #implement reduce learning rate on pleateu
         rlrop = {
@@ -546,17 +545,17 @@ class AdversarialStandard(GeneralModelClass):
         #print(f"self.model.trainable_weights are {self.model.trainable_weights}")
         values = {"loss":tf.constant(0.0, dtype=float), "val_loss":tf.constant(0.0, dtype=float)}
         for epoch in range(epochs):
-            tf.get_logger().info(f"\r\nEpoch: {epoch}")
+            sys.stdout.write("\r")
+            tf.get_logger().info(f"Epoch: {epoch}")
+            sys.stdout.write("\r")
             pbt = tf.keras.utils.Progbar(n)
             start_time = time.time()
             values["loss"]=tf.constant(0.0, dtype=float)
             # Iterate over the batches of the dataset.
             step = 0
             for (x_batch_train, y_batch_train) in train_dataset:
-                loss_value= train_step(x_batch_train, y_batch_train)
-                #print(f"loss value is {loss_value}")
-                values["loss"] +=loss_value
-                
+                train_step(x_batch_train, y_batch_train)
+                #print(f"loss value is {loss_value}")    
                 
                 pbt.add(x_batch_train.shape[0], values=[("loss",bcemetric.result()), ("acc",train_acc_metric.result())])
                 step+=1
@@ -565,22 +564,33 @@ class AdversarialStandard(GeneralModelClass):
             train_acc = train_acc_metric.result()
             # Reset training metrics at the end of each epoch
             train_acc_metric.reset_states()
+
+            loss = bcemetric.result()
+            values["loss"] =loss
+            bcemetric.reset_states()
+
             values["val_loss"] = tf.constant(0.0, dtype=float)
             # Run a validation loop at the end of each epoch.
             if val:
                 for x_batch_val, y_batch_val in val_dataset:
-                    values["val_loss"] += test_step(x_batch_val, y_batch_val)
+                    test_step(x_batch_val, y_batch_val)
 
                 val_acc = val_acc_metric.result()
                 val_acc_metric.reset_states()
 
+                val_loss = val_bcemetric.result()
+                values["val_loss"]=val_loss
+                val_bcemetric.reset_states()
+
                 #tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
-                pbt.add(n-x_batch_train.shape[0]*step, values=[("loss",val_bcemetric.result()), ("acc",train_acc),("val_loss", values["val_loss"]), ("val_acc",val_acc)])
+                pbt.add(n-x_batch_train.shape[0]*step+1, values=[("loss",val_bcemetric.result()), ("acc",train_acc),("val_loss", values["val_loss"]), ("val_acc",val_acc), ("lr",self.model.optimizer.lr)])
             #tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
             sys.stdout.write("\r")
-
-            train_dataset = train_dataset.shuffle(batch_size)
             
+            train_dataset = train_dataset.shuffle(batch_size)
+            if val:
+                val_dataset = val_dataset.shuffle(batch_size)
+
             # At the end of the epoch I have to call my callbacks
             if rlrop["max_val"]<values[monitor_val]:
                 rlrop["prec_step"]+=1
@@ -597,13 +607,13 @@ class AdversarialStandard(GeneralModelClass):
             if rlrop["prec_step"]>rlrop["patience"]:
                 newlr = max(rlrop["factor"]*self.model.optimizer.lr, rlrop["min_lr"])
                 tf.keras.backend.set_value(self.model.optimizer.lr, newlr)
-                tf.get_logger().info(f"\r\nLearning rate reduced to {newlr:.9f}")
-
+                sys.stdout.write("\r")
+                tf.get_logger().info(f"Reducing Learning rate to: {newlr:.9f}")
 
             if es["prec_step"]>es["patience"]:
-                #epoch=np.inf
+                sys.stdout.write("\r")
+                tf.get_logger().info(f"Early stopping")
                 break
-                tf.get_logger().info(f"\r\nEarly stopping")
 
             
         return values["loss"], values["val_loss"]
