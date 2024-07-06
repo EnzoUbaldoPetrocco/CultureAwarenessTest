@@ -17,6 +17,10 @@ from Model.GeneralModel import GeneralModelClass
 import gc
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
 
 
 

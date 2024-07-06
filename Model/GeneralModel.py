@@ -10,19 +10,24 @@ from tf_explain.utils.display import grid_display, heatmap_display
 from tf_explain.utils.saver import save_rgb
 import gc
 from keras.models import Model
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
 
 
 class GeneralModelClass:
     """
     This Class is the middleware for collecting common actions of the models
     """
-    def __init__(self, standard=0, n_cultures=3) -> None:
+    def __init__(self, standard=0, n_cultures=3, adversarial=0) -> None:
         """
         Init function links self.model attribute
         """
         self.model = Model()
         self.standard = standard
         self.n_cultures = n_cultures
+        self.adversarial=adversarial
 
     def __call__(self, X, out=-1):
         """
@@ -90,7 +95,10 @@ class GeneralModelClass:
             if type(yT) == list:
                 yT = np.asarray(yT)
             if self.standard:
-                yT = yT[:, 1]
+                if not self.adversarial:
+                    yT = yT[:, 1]
+                else:
+                    yT = yT[:, self.n_cultures]
             else:
                 yT = yT[:, self.n_cultures]
             gc.collect()

@@ -9,6 +9,8 @@ import tensorflow as tf
 import numpy as np
 from cleverhans.tf2.utils import optimize_linear
 from matplotlib import pyplot as plt
+from datetime import datetime
+random.seed(datetime.now().timestamp())
 
 
 ## DataClass should:

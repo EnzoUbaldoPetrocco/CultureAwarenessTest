@@ -14,6 +14,10 @@ from Model.GeneralModel import GeneralModelClass
 import gc
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
 
 
 class MitigatedModels(GeneralModelClass):

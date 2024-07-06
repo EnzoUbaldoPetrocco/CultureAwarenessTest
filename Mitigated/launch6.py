@@ -12,6 +12,10 @@ from math import floor
 import tensorflow as tf
 import os
 import gc
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
