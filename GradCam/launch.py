@@ -29,7 +29,6 @@ def mkdirs(path, nt):
 
 def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1, standard=0):
     if not standard:
-        print(f"Shape of yt is {np.shape(yt)}")
         yt = list(np.asarray(yt, dtype=object)[:,1])
     yP = procObj.model.test(Xt, out)  # Prediction
     cm = confusion_matrix(yt, yP)
@@ -74,7 +73,7 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
             out = -1
         else:
             out = culture
-        cms = get_cm_samples(procObj, Xt[culture], yt[culture], out, n=nt)
+        cms = get_cm_samples(procObj, Xt[culture], yt[culture], out, n=nt, standard=standard)
         
         heatmap = grdC.compute_heatmap(
             cms[0][0],
