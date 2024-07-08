@@ -114,7 +114,7 @@ eps = 0.03
 test_eps = [0.0005, 0.005]
 mult = 0.25
 
-nt = 5
+nt = 10
 
 memory_limit = 5000
 
@@ -122,9 +122,8 @@ memory_limit = 5000
 for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
     with tf.device("/CPU:0"):
-            for gaug in g_augs:
                 for c in range(3):
-                    for k in range(2):
+                    for k in range(1):
                         print(f"Training->aug={k%2};adv={floor(k/2)}")
                         procObj.process(
                             standard=standard,
