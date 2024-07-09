@@ -206,7 +206,7 @@ class GeneralModelClass:
             Tuple[tf.Tensor, tf.Tensor]: (Target layer outputs, Guided gradients)
         """
         grad_model = tf.keras.models.Model(
-            [self.model.inputs], [self.model.get_layer(layer_name).output, self.model.output]
+            [self.model.inputs], [self.model.get_layer(" resnet50v2").get_layer(layer_name).output, self.model.output]
         )
         print(f"layer name is {layer_name}")
         print(f"Created grad model with:\n inputs:{self.model.inputs};\n output:{[self.model.get_layer(layer_name).output, self.model.output]}")
