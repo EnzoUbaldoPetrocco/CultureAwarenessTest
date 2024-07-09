@@ -34,6 +34,8 @@ class StandardModels(GeneralModelClass):
         learning_rate=1e-3,
         epochs=15,
         batch_size=1,
+        weights=None,
+        imbalanced=0
     ):
         """
         Initialization function for modeling standard ML models.
@@ -48,7 +50,7 @@ class StandardModels(GeneralModelClass):
         :param epochs: hyperparameter for DL
         :param batch_size: hyperparameter for DL
         """
-        GeneralModelClass.__init__(self, standard=1)
+        GeneralModelClass.__init__(self, standard=1, imbalanced=imbalanced)
         self.type = type
         self.points = points
         self.kernel = kernel
@@ -56,6 +58,9 @@ class StandardModels(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
+        self.weights=np.ones(self.n_cultures)
+        if weights is not None:
+            self.weights=weights
 
     def SVC(self, TS):
         """
@@ -225,6 +230,21 @@ class StandardModels(GeneralModelClass):
             if save:
                 self.save(path)
 
+    def ImbalancedTransformation(self, TS, data_augmentation):
+        newX = []
+        newY = []
+        X = TS[0]
+        Y = TS[1]
+        for i in range(len(X)):
+            img = X[i]
+            label = Y[i]
+            for i in range(int(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
+                im = np.asarray(data_augmentation(img, training=True), dtype=object)
+                newX.append(im) # I do not need culture for training 
+                newY.append(label[1])
+        del TS
+        return (newX, newY)
+
     def DL(
         self,
         TS,
@@ -252,29 +272,34 @@ class StandardModels(GeneralModelClass):
             data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
-                    layers.RandomRotation(g / 10),
+                    layers.RandomRotation(0.1),
                     layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(g / 10),
-                    layers.RandomCrop(int(shape[0] * (1 - g)), int(shape[1] * (1 - g))),
+                    tf.keras.layers.RandomBrightness(0.1),
                     layers.RandomZoom(g / 5, g / 5),
                     layers.Resizing(shape[0], shape[1]),
                 ]
             )
 
-            train_datagen = ImageDataGenerator(
-                preprocessing_function=lambda img: data_augmentation(img, training=aug)
-            )
+            if self.imbalanced:
+                print(f"Len of TS before: {len(TS[0])}")
+                TS = self.ImbalancedTransformation(TS, data_augmentation)
+                print(f"Len of TS after: {len(TS[0])}")
+                train_datagen = ImageDataGenerator()
+            else:
+                train_datagen = ImageDataGenerator(
+                    preprocessing_function=lambda img: data_augmentation(img, training=aug)
+                )
             # Apply data augmentation to the training dataset
             X = tf.constant(TS[0], dtype="float32")
             y = tf.constant(TS[1], dtype="float32")
-            train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
+            train_generator = train_datagen.flow(x=X, y=y, batch_size=batch_size)
             # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
             validation_generator = None
             if val:
                 val_datagen = ImageDataGenerator()
                 Xv = tf.constant(VS[0], dtype="float32")
                 yv = tf.constant(VS[1], dtype="float32")
-                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
+                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
 
             if show_imgs:
                 # DISPLAY IMAGES

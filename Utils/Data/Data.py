@@ -119,7 +119,8 @@ class DataClass:
         test_split=0.2,
         n=1000,
         n_cultures=3,
-        adversarial=0
+        adversarial=0,
+        imbalanced=0
     ):
         """
         this function prepares time by time the sets for training
@@ -154,13 +155,17 @@ class DataClass:
                 yds = []
 
                 for img, label in lDS:
-                    if standard and not adversarial:
+                    if standard and not adversarial and not imbalanced:
                         label = int(label[1])
                     else:
-                        a = np.zeros(n_cultures)
-                        a[c] = 1
-                        a = np.append(a, label[1])
-                        label=list(a) #label is {0,..0,1,0...0, original_label}  with 0,..,0,1,0..,0 is one hot encoding
+                        if not standard or adversarial:
+                            a = np.zeros(n_cultures)
+                            a[c] = 1
+                            a = np.append(a, label[1])
+                            label=list(a) #label is {0,..0,1,0...0, original_label}  with 0,..,0,1,0..,0 is one hot encoding
+                        
+                            
+
                     if shallow:
                         img = img[0::]
                         img = img.flatten()

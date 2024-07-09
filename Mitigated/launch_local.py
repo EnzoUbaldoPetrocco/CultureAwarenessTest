@@ -14,6 +14,7 @@ import os
 import gc
 import random
 from datetime import datetime
+import numpy as np
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
@@ -102,9 +103,10 @@ for g_aug in g_gaugs:
                                 n=n,
                                 augment=k % 2,
                                 gaug=g_aug,
-                                adversary=1,
+                                adversary=0,
                                 eps=eps,
                                 mult=mult,
+                                imbalanced=1
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")
@@ -137,9 +139,10 @@ for g_aug in g_gaugs:
                                 n=n,
                                 augment=k % 2,
                                 gaug=0,
-                                adversary=1,
+                                adversary=0,
                                 eps=eps,
                                 mult=mult,
+                                imbalanced=1
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")

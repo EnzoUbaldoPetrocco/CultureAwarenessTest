@@ -20,7 +20,7 @@ class GeneralModelClass:
     """
     This Class is the middleware for collecting common actions of the models
     """
-    def __init__(self, standard=0, n_cultures=3, adversarial=0) -> None:
+    def __init__(self, standard=0, n_cultures=3, adversarial=0, imbalanced=0) -> None:
         """
         Init function links self.model attribute
         """
@@ -28,6 +28,7 @@ class GeneralModelClass:
         self.standard = standard
         self.n_cultures = n_cultures
         self.adversarial=adversarial
+        self.imbalanced=imbalanced
 
     def __call__(self, X, out=-1):
         """

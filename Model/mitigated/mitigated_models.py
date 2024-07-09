@@ -30,7 +30,9 @@ class MitigatedModels(GeneralModelClass):
         batch_size=1,
         learning_rate=1e-3,
         lambda_index=-1,
-        n_cultures = 3
+        n_cultures = 3,
+        weights=None,
+        imbalanced=0
     ):
         """
         Initialization function for modeling mitigated ML models.
@@ -43,13 +45,16 @@ class MitigatedModels(GeneralModelClass):
         :param batch_size: hyperparameter for DL
         :param lambda_index: select the gain of the regularizer in a logspace(-3, 2, 31)
         """
-        GeneralModelClass.__init__(self, standard=0, n_cultures=n_cultures)
+        GeneralModelClass.__init__(self, standard=0, n_cultures=n_cultures, imbalanced=imbalanced)
         self.type = type
         self.culture = culture
         self.verbose_param = verbose_param
         self.epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+        self.weights=np.ones(self.n_cultures)
+        if weights is not None:
+            self.weights=weights
 
         if lambda_index >= 0:
             lambda_grid = np.logspace(-3, 2, 31)
@@ -271,6 +276,7 @@ class MitigatedModels(GeneralModelClass):
         nDropout=0.2,
         g=0.1,
         val=True,
+        
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])

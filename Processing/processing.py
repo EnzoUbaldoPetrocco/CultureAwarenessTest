@@ -95,7 +95,8 @@ class ProcessingClass:
         g_rot: float = 0.1,
         g_noise: float = 0.1,
         g_bright: float = 0.1,
-        adversarial=0
+        adversarial=0,
+        imbalanced=0
     ):
         """
         This function prepares the data for training
@@ -121,7 +122,8 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
-            adversarial=adversarial
+            adversarial=adversarial,
+            imbalanced=imbalanced
         )
         if augment:
             with tf.device("/gpu:0"):
@@ -256,7 +258,8 @@ class ProcessingClass:
         mult=0.05,
         gradcam=False,
         complete = 0,
-        n_cultures=3
+        n_cultures=3,
+        imbalanced=0
     ):
         """
         process function prepares the data and fit the model
@@ -289,6 +292,9 @@ class ProcessingClass:
         :param nt: is the number of images to use for testing
         :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
         """
+        weights = np.ones(n_cultures)*percent
+        weights[culture]=1 #this are the proportions in the dataset
+
         self.prepare_data(
             standard=standard,
             culture=culture,
@@ -297,7 +303,8 @@ class ProcessingClass:
             test_split=test_split,
             n=n,
             augment=0,
-            adversarial=adversary
+            adversarial=adversary,
+            imbalanced=imbalanced
         )
         self.model = None
         if standard:
@@ -311,6 +318,9 @@ class ProcessingClass:
                     learning_rate=learning_rate,
                     epochs=epochs,
                     batch_size=batch_size,
+                    weights=weights,
+                    imbalanced=imbalanced
+                    
                 )
             else:
                 
@@ -322,6 +332,8 @@ class ProcessingClass:
                     learning_rate=learning_rate,
                     epochs=epochs,
                     batch_size=batch_size,
+                    weights=weights,
+                    imbalanced=imbalanced
                 )
 
         else:
@@ -333,7 +345,8 @@ class ProcessingClass:
                 batch_size=batch_size,
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
-                n_cultures=n_cultures
+                n_cultures=n_cultures,
+                imbalanced=imbalanced
             )
 
         self.model.standard=standard
@@ -345,10 +358,16 @@ class ProcessingClass:
         # - lambda index: -1, 0, 1, ...
         # Complete path:
         # - augment in Test: TNOAUG, TSTDAUG, TADV, TTOTAUG
+        
         if standard:
             self.basePath = self.basePath + "STD/" + type
         else:
             self.basePath = self.basePath + "MIT/" + type
+        
+        if imbalanced:
+            self.basePath= self.basePath + "IMB/"
+        else:
+            self.basePath= self.basePath + "BAL/"
         if self.lamp:
             if culture == 0:
                 c = "/LC/"

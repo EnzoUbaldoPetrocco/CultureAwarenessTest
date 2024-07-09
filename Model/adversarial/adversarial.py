@@ -81,6 +81,8 @@ class AdversarialStandard(GeneralModelClass):
         learning_rate=1e-3,
         epochs=15,
         batch_size=1,
+        weights=None,
+        imbalanced=0
     ):
         """
         Initialization function for modeling standard ML models.
@@ -95,7 +97,7 @@ class AdversarialStandard(GeneralModelClass):
         :param epochs: hyperparameter for DL
         :param batch_size: hyperparameter for DL
         """
-        GeneralModelClass.__init__(self, standard=1, adversarial=1)
+        GeneralModelClass.__init__(self, standard=1, adversarial=1, imbalanced=imbalanced)
         self.type = type
         self.points = points
         self.kernel = kernel
@@ -103,6 +105,9 @@ class AdversarialStandard(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
+        self.weights=np.ones(self.n_cultures)
+        if weights is not None:
+            self.weights=weights
 
     def SVC(self, TS):
         """
