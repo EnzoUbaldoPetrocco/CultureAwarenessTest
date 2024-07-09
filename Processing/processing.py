@@ -365,9 +365,9 @@ class ProcessingClass:
             self.basePath = self.basePath + "MIT/" + type
         
         if imbalanced:
-            self.basePath= self.basePath + "IMB/"
+            self.basePath= self.basePath + "/IMB/"
         else:
-            self.basePath= self.basePath + "BAL/"
+            self.basePath= self.basePath + "/BAL/"
         if self.lamp:
             if culture == 0:
                 c = "/LC/"

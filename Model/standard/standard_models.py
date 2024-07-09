@@ -230,7 +230,7 @@ class StandardModels(GeneralModelClass):
             if save:
                 self.save(path)
 
-    def ImbalancedTransformation(self, TS, data_augmentation):
+    def ImbalancedTransformation(self, TS, data_augmentation, aug):
         newX = []
         newY = []
         X = TS[0]
@@ -239,7 +239,7 @@ class StandardModels(GeneralModelClass):
             img = X[i]
             label = Y[i]
             for i in range(int(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
-                im = np.asarray(data_augmentation(img, training=True), dtype=object)
+                im = np.asarray(data_augmentation(img, training=aug), dtype=object)
                 newX.append(im) # I do not need culture for training 
                 newY.append(label[1])
         del TS
@@ -281,9 +281,7 @@ class StandardModels(GeneralModelClass):
             )
 
             if self.imbalanced:
-                print(f"Len of TS before: {len(TS[0])}")
-                TS = self.ImbalancedTransformation(TS, data_augmentation)
-                print(f"Len of TS after: {len(TS[0])}")
+                TS = self.ImbalancedTransformation(TS, data_augmentation, aug)
                 train_datagen = ImageDataGenerator()
             else:
                 train_datagen = ImageDataGenerator(
