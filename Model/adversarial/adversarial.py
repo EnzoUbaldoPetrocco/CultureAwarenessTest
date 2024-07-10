@@ -26,9 +26,10 @@ tf.random.set_seed(datetime.now().timestamp())
 
 class AdversarialProcessing(keras.models.Model):
 
-    def __init__(self, epsilon):
+    def __init__(self, epsilon, model):
         super(AdversarialProcessing, self).__init__()
         self.epsilon = epsilon
+        self.model = model
 
     def __call__(self, batch, logs=None):
         adversarial_images = []
@@ -40,7 +41,7 @@ class AdversarialProcessing(keras.models.Model):
             with tf.GradientTape() as tape:
                 tape.watch(img)
                 prediction = self.model(img)
-                loss = tf.keras.losses.binary_crossentropy(lbl, prediction)
+                loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
             gradient = tape.gradient(loss, img)
             signed_grad = tf.sign(gradient)
             adversarial_img = img + self.epsilon * signed_grad
@@ -175,7 +176,27 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-    
+
+    # Create adversarial samples
+    def generate_adversarial_samples(self, images, labels, epsilon=0.1):
+        with tf.device("/gpu:0"):
+            adversarial_images = []
+            for img, lbl in zip(images, labels):
+                img = tf.convert_to_tensor(
+                    img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
+                )
+                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+                with tf.GradientTape() as tape:
+                    tape.watch(img)
+                    prediction = self.model(img)
+                    loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+                gradient = tape.gradient(loss, img)
+                signed_grad = tf.sign(gradient)
+                adversarial_img = img + epsilon * signed_grad
+                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+                adversarial_images.append(adversarial_img)
+            return tf.convert_to_tensor(adversarial_images)
+        
 
     def LearningAdversarially(
         self,
@@ -192,6 +213,7 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         save=False,
         path="./",
+        eps=0.1
     ):
         self.ModelSelection(
             TS=TS,
@@ -208,7 +230,8 @@ class AdversarialStandard(GeneralModelClass):
             save=save,
             path=path,
             adv=1,
-            adversarial_model=1
+            adversarial_model=None,
+            eps=eps
         )
         adversarial_model=self.model
         self.model = None
@@ -227,7 +250,8 @@ class AdversarialStandard(GeneralModelClass):
             save=save,
             path=path,
             adv=0,
-            adversarial_model=adversarial_model
+            adversarial_model=adversarial_model,
+            eps=eps
         )
 
 
@@ -248,6 +272,7 @@ class AdversarialStandard(GeneralModelClass):
         path="./",
         adv=0,
         adversarial_model=None,
+        eps=0.1
     ):
 
         if self.verbose_param:
@@ -276,7 +301,8 @@ class AdversarialStandard(GeneralModelClass):
                             nDropout,
                             g=g,
                             adv=adv,
-                            adversarial_model=adversarial_model
+                            adversarial_model=adversarial_model,
+                            eps=eps
                         )
 
                         if loss < best_loss:
@@ -308,7 +334,8 @@ class AdversarialStandard(GeneralModelClass):
             val=False,
             g=g,
             adv=adv,
-            adversarial_model=adversarial_model
+            adversarial_model=adversarial_model,
+            eps=0.1
         )
 
         if save:
@@ -329,20 +356,25 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         val=True,
         adv=0,
-        adversarial_model=None
+        adversarial_model=None,
+        eps=0.1
+
 
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
-            n = np.shape(TS[0])[0]
-            nv = 0
-            if val:
-                nv = np.shape(VS[0])[0]
+
+
 
             if val:
                 monitor_val = "val_loss"
             else:
                 monitor_val = "loss"
+
+            if not adv:
+                
+                adv_samples = self.generate_adversarial_samples(TS[0], TS[1], epsilon=eps)
+
 
             data_augmentation = keras.Sequential(
                 [
@@ -753,9 +785,9 @@ class AdversarialStandard(GeneralModelClass):
         elif self.type == "RFC":
             self.RFC(TS)
         elif self.type == "DL" or "RESNET":
-            self.ModelSelection(TS, VS, aug=aug, g=g)
+            self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )"""
         else:
-            self.ModelSelection(TS, VS, aug=aug, g=g)
+            self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
