@@ -404,6 +404,7 @@ def graphic_lambdas_comparison(
                                                 tadversary=tadversary,
                                                 tgaug=tgaug,
                                                 teps=teps,
+                                                imbalanced=imb
                                             )
 
                                             pt = pt.split("/")
@@ -429,6 +430,7 @@ def graphic_lambdas_comparison(
                                                     tadversary=tadversary,
                                                     tgaug=tgaug,
                                                     teps=teps,
+                                                    imbalanced=imb
                                                 )
                                                 pt = pt.split("/")
                                                 pt = pt[: len(pt) - 2]
@@ -475,6 +477,7 @@ def graphic_lambdas_comparison(
                                             tadversary=tadversary,
                                             tgaug=tgaug,
                                             teps=0,
+                                            imbalanced=imb
                                         )
 
                                         pt = pt.split("/")
@@ -500,6 +503,7 @@ def graphic_lambdas_comparison(
                                                 tadversary=tadversary,
                                                 tgaug=tgaug,
                                                 teps=0,
+                                                imbalanced=imb
                                             )
                                             pt = pt.split("/")
                                             pt = pt[: len(pt) - 2]
@@ -546,6 +550,7 @@ def graphic_lambdas_comparison(
                                             tadversary=tadversary,
                                             tgaug=0,
                                             teps=teps,
+                                            imbalanced=imb
                                         )
                                         pt = pt.split("/")
                                         pt = pt[0 : len(pt) - 2]
@@ -570,6 +575,7 @@ def graphic_lambdas_comparison(
                                                 tadversary=tadversary,
                                                 tgaug=0,
                                                 teps=teps,
+                                                imbalanced=imb
                                             )
                                             pt = pt.split("/")
                                             pt = pt[: len(pt) - 2]
@@ -615,6 +621,7 @@ def graphic_lambdas_comparison(
                                         tadversary=tadversary,
                                         tgaug=0,
                                         teps=0,
+                                        imbalanced=imb
                                     )
                                     pt = pt.split("/")
                                     pt = pt[0 : len(pt) - 2]
@@ -639,6 +646,7 @@ def graphic_lambdas_comparison(
                                             tadversary=tadversary,
                                             tgaug=0,
                                             teps=0,
+                                            imbalanced=imb
                                         )
                                         pt = pt.split("/")
                                         pt = pt[: len(pt) - 2]
@@ -860,7 +868,9 @@ class Res2TabClass:
 
         lambda_indeces = range(0, 13)
         t_cults = [0, 1, 2]
+        imbalanceds = [0, 1]
         for lamp in lamps:
+         for imb in imbalanceds:
             for culture in cultures:
                 for percent in percents:
                         # Here we have to divide the DataFrames
@@ -885,6 +895,7 @@ class Res2TabClass:
                                         tadversary=0,
                                         tgaug=0,
                                         teps=0,
+                                        imbalanced=imb
                                 )
                                 pt = pt.split("/")
                                 pt = pt[0 : len(pt) - 2]
@@ -916,7 +927,8 @@ class Res2TabClass:
                                         tadversary=0,
                                         tgaug=0,
                                         teps=0,
-                                        g_augment=g_augment
+                                        g_augment=g_augment,
+                                        imbalanced=imb
                                     )
                                     pt = pt.split("/")
                                     pt = pt[0 : len(pt) - 2]

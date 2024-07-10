@@ -445,12 +445,17 @@ class ResAcquisitionClass:
         teps,
         t_cult=0,
         out=0,
-        g_augment=0
+        g_augment=0,
+        imbalanced=0
     ):
         if standard:
             basePath = basePath + "STD/" + alg
         else:
             basePath = basePath + "MIT/" + alg
+        if imbalanced:
+            basePath= basePath + "/IMB/"
+        else:
+            basePath= basePath + "/BAL/"
         if lamp:
             if culture == 0:
                 c = "/LC/"
@@ -529,8 +534,10 @@ class ResAcquisitionClass:
         test_g_augs = [0.01, 0.05, 0.1]
         test_eps = [0.0005, 0.001, 0.005]
         t_cults = [0, 1, 2]
+        imbalanceds = [0, 1]
 
         for standard in standards:
+         for imb in imbalanceds:
             for lamp in lamps:
                 for culture in cultures:
                     for percent in percents:
@@ -563,7 +570,8 @@ class ResAcquisitionClass:
                                                                             teps,
                                                                             t_cult,
                                                                             t_cult,
-                                                                            g_augment=g_augment
+                                                                            g_augment=g_augment,
+                                                                            imbalanced=imb
                                                                         )
                                                                         outsl = self.get_cm_list(
                                                                             path
@@ -609,7 +617,8 @@ class ResAcquisitionClass:
                                                                         teps,
                                                                         t_cult,
                                                                         t_cult,
-                                                                        g_augment=g_augment
+                                                                        g_augment=g_augment,
+                                                                        imbalanced=imb
                                                                     )
                                                                     outsl = self.get_cm_list(path)
                                                                     tcultsl.append(outsl)
@@ -654,6 +663,7 @@ class ResAcquisitionClass:
                                                                     teps,
                                                                     t_cult,
                                                                     t_cult,
+                                                                    imbalanced=imb
                                                                 )
                                                                 outsl = self.get_cm_list(
                                                                     path
@@ -699,6 +709,7 @@ class ResAcquisitionClass:
                                                                 teps,
                                                                 t_cult,
                                                                 t_cult,
+                                                                imbalanced=imb
                                                             )
                                                             outsl = self.get_cm_list(path)
                                                             tcultsl.append(outsl)
