@@ -207,6 +207,27 @@ class AdversarialStandard(GeneralModelClass):
             g=g,
             save=save,
             path=path,
+            adv=1,
+            adversarial_model=1
+        )
+        adversarial_model=self.model
+        self.model = None
+        self.ModelSelection(
+            TS=TS,
+            VS=VS,
+            aug=aug,
+            show_imgs=show_imgs,
+            batches=batches,
+            lrs=lrs,
+            fine_lrs=fine_lrs,
+            epochs=epochs,
+            fine_epochs=fine_epochs,
+            nDropouts=nDropouts,
+            g=g,
+            save=save,
+            path=path,
+            adv=0,
+            adversarial_model=adversarial_model
         )
 
 
@@ -236,7 +257,6 @@ class AdversarialStandard(GeneralModelClass):
             for lr in lrs:
                 for fine_lr in fine_lrs:
                     for nDropout in nDropouts:
-
                         self.model = None
                         gc.collect()
                         tf.get_logger().info(
@@ -441,40 +461,57 @@ class AdversarialStandard(GeneralModelClass):
             x = base_model(x, training=False)
             x = keras.layers.GlobalAveragePooling2D()(x)
             x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-            outputs = keras.layers.Dense(1, activation="sigmoid")(x)
+            if adv:
+                outputs = keras.layers.Dense(3, activation="sigmoid")(x)
+            else:
+                outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
+
+            
+            if adv:
+                bcemetric = keras.metrics.CategoricalCrossentropy(from_logits=True)
+                val_bcemetric = keras.metrics.CategoricalCrossentropy(from_logits=True)
+                train_acc_metric = keras.metrics.CategoricalAccuracy()
+                val_acc_metric = keras.metrics.CategoricalAccuracy()
+            else:
+                bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
+                val_bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
+                train_acc_metric = keras.metrics.BinaryAccuracy()
+                val_acc_metric = keras.metrics.BinaryAccuracy()
+
+            lr_reduce = ReduceLROnPlateau(
+                monitor=monitor_val,
+                factor=0.2,
+                patience=5,
+                verbose=self.verbose_param,
+                mode="max",
+                min_lr=1e-9,
+            )
+            early = EarlyStopping(
+                monitor=monitor_val,
+                min_delta=0.001,
+                patience=10,
+                verbose=self.verbose_param,
+                mode="auto",
+            )
+            callbacks = [early, lr_reduce]
+
 
             # self.model.summary()
             # MODEL TRAINING
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
-                loss=keras.losses.BinaryCrossentropy(from_logits=True),
-                metrics=[keras.metrics.BinaryAccuracy()],
+                loss=bcemetric,
+                metrics=[train_acc_metric],
                 # run_eagerly=True
             )
 
-            bcemetric = keras.metrics.BinaryCrossentropy()
-            val_bcemetric = keras.metrics.BinaryCrossentropy()
-            train_acc_metric = keras.metrics.BinaryAccuracy()
-            val_acc_metric = keras.metrics.BinaryAccuracy()
-
-            loss, val_loss = self.train_loop(
-                model=self.model,
+            self.model.fit(
+                train_generator,
                 epochs=epochs,
-                train_dataset=train_generator,
-                val_dataset=validation_generator,
-                loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
-                optimizer=keras.optimizers.Adam(lr),
-                batch_size=batch_size,
-                train_acc_metric=train_acc_metric,
-                val_acc_metric=val_acc_metric,
-                bcemetric=bcemetric,
-                val_bcemetric=val_bcemetric,
-                monitor_val=monitor_val,
-                val=val,
-                n=n + nv,
-                adv=adv,
-                adversarial_model=adversarial_model
+                validation_data=validation_generator,
+                verbose=self.verbose_param,
+                callbacks=callbacks,
             )
 
             # FINE TUNING
@@ -487,30 +524,16 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            loss, val_loss = self.train_loop(
-                model=self.model,
-                epochs=epochs,
-                train_dataset=train_generator,
-                val_dataset=validation_generator,
-                loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
-                optimizer=keras.optimizers.Adam(fine_lr),
-                batch_size=batch_size,
-                train_acc_metric=train_acc_metric,
-                val_acc_metric=val_acc_metric,
-                bcemetric=bcemetric,
-                val_bcemetric=val_bcemetric,
-                monitor_val=monitor_val,
-                val=val,
-                n=n + nv,
-                adv=adv,
-                adversarial_model=adversarial_model
+            history = self.model.fit(
+                train_generator,
+                epochs=fine_epochs,
+                validation_data=validation_generator,
+                verbose=self.verbose_param,
+                callbacks=callbacks,
             )
-
             tf.keras.backend.clear_session()
-            if val:
-                return val_loss
-            else:
-                return loss
+            return  history.history[monitor_val][-1]
+
 
     # @tf.function
     def train_loop(
