@@ -210,6 +210,7 @@ class GeneralModelClass:
             [self.model.inputs], [self.model.layers[2].get_layer(layer_name).output, self.model.output]
         )
         print(f"layer name is {layer_name}")
+        print(f"self.model.layers[2] = {self.model.layers[2]}")
         print(f"Created grad model with:\n inputs:{self.model.inputs};\n output:{[self.model.get_layer(layer_name).output, self.model.output]}")
         with tf.GradientTape() as tape:
             inputs = tf.cast(images, tf.float32)
