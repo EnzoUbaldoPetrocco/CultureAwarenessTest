@@ -118,6 +118,8 @@ nt = 10
 
 memory_limit = 5000
 
+basePath = "./PROVAPROVAMAN"
+
 
 for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
@@ -153,7 +155,7 @@ for lamp in [0, 1]:
                         pt = procObj.basePath + f"TNOAUG/"
                         Xt = procObj.dataobj.Xt
                         yt = procObj.dataobj.yt
-                        procObj.model.layers[2].summary()
+                        procObj.model.model.layers[2].summary()
                         cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
 

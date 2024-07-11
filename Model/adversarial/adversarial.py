@@ -26,9 +26,10 @@ tf.random.set_seed(datetime.now().timestamp())
 
 class AdversarialProcessing(keras.models.Model):
 
-    def __init__(self, epsilon):
+    def __init__(self, epsilon, model):
         super(AdversarialProcessing, self).__init__()
         self.epsilon = epsilon
+        self.model = model
 
     def __call__(self, batch, logs=None):
         adversarial_images = []
@@ -40,7 +41,7 @@ class AdversarialProcessing(keras.models.Model):
             with tf.GradientTape() as tape:
                 tape.watch(img)
                 prediction = self.model(img)
-                loss = tf.keras.losses.binary_crossentropy(lbl, prediction)
+                loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
             gradient = tape.gradient(loss, img)
             signed_grad = tf.sign(gradient)
             adversarial_img = img + self.epsilon * signed_grad
@@ -175,7 +176,27 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-    
+
+    # Create adversarial samples
+    def generate_adversarial_samples(self, images, labels, epsilon=0.1):
+        with tf.device("/gpu:0"):
+            adversarial_images = []
+            for img, lbl in zip(images, labels):
+                img = tf.convert_to_tensor(
+                    img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
+                )
+                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
+                with tf.GradientTape() as tape:
+                    tape.watch(img)
+                    prediction = self.model(img)
+                    loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+                gradient = tape.gradient(loss, img)
+                signed_grad = tf.sign(gradient)
+                adversarial_img = img + epsilon * signed_grad
+                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+                adversarial_images.append(adversarial_img)
+            return tf.convert_to_tensor(adversarial_images)
+        
 
     def LearningAdversarially(
         self,
@@ -192,6 +213,7 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         save=False,
         path="./",
+        eps=0.1
     ):
         self.ModelSelection(
             TS=TS,
@@ -207,6 +229,29 @@ class AdversarialStandard(GeneralModelClass):
             g=g,
             save=save,
             path=path,
+            adv=1,
+            adversarial_model=None,
+            eps=eps
+        )
+        adversarial_model=self.model
+        self.model = None
+        self.ModelSelection(
+            TS=TS,
+            VS=VS,
+            aug=aug,
+            show_imgs=show_imgs,
+            batches=batches,
+            lrs=lrs,
+            fine_lrs=fine_lrs,
+            epochs=epochs,
+            fine_epochs=fine_epochs,
+            nDropouts=nDropouts,
+            g=g,
+            save=save,
+            path=path,
+            adv=0,
+            adversarial_model=adversarial_model,
+            eps=eps
         )
 
 
@@ -227,6 +272,7 @@ class AdversarialStandard(GeneralModelClass):
         path="./",
         adv=0,
         adversarial_model=None,
+        eps=0.1
     ):
 
         if self.verbose_param:
@@ -236,7 +282,6 @@ class AdversarialStandard(GeneralModelClass):
             for lr in lrs:
                 for fine_lr in fine_lrs:
                     for nDropout in nDropouts:
-
                         self.model = None
                         gc.collect()
                         tf.get_logger().info(
@@ -256,7 +301,8 @@ class AdversarialStandard(GeneralModelClass):
                             nDropout,
                             g=g,
                             adv=adv,
-                            adversarial_model=adversarial_model
+                            adversarial_model=adversarial_model,
+                            eps=eps
                         )
 
                         if loss < best_loss:
@@ -288,7 +334,8 @@ class AdversarialStandard(GeneralModelClass):
             val=False,
             g=g,
             adv=adv,
-            adversarial_model=adversarial_model
+            adversarial_model=adversarial_model,
+            eps=0.1
         )
 
         if save:
@@ -309,20 +356,25 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         val=True,
         adv=0,
-        adversarial_model=None
+        adversarial_model=None,
+        eps=0.1
+
 
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
-            n = np.shape(TS[0])[0]
-            nv = 0
-            if val:
-                nv = np.shape(VS[0])[0]
+
+
 
             if val:
                 monitor_val = "val_loss"
             else:
                 monitor_val = "loss"
+
+            if not adv:
+                
+                adv_samples = self.generate_adversarial_samples(TS[0], TS[1], epsilon=eps)
+
 
             data_augmentation = keras.Sequential(
                 [
@@ -441,40 +493,57 @@ class AdversarialStandard(GeneralModelClass):
             x = base_model(x, training=False)
             x = keras.layers.GlobalAveragePooling2D()(x)
             x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-            outputs = keras.layers.Dense(1, activation="sigmoid")(x)
+            if adv:
+                outputs = keras.layers.Dense(3, activation="sigmoid")(x)
+            else:
+                outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
+
+            
+            if adv:
+                bcemetric = keras.metrics.CategoricalCrossentropy(from_logits=True)
+                val_bcemetric = keras.metrics.CategoricalCrossentropy(from_logits=True)
+                train_acc_metric = keras.metrics.CategoricalAccuracy()
+                val_acc_metric = keras.metrics.CategoricalAccuracy()
+            else:
+                bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
+                val_bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
+                train_acc_metric = keras.metrics.BinaryAccuracy()
+                val_acc_metric = keras.metrics.BinaryAccuracy()
+
+            lr_reduce = ReduceLROnPlateau(
+                monitor=monitor_val,
+                factor=0.2,
+                patience=5,
+                verbose=self.verbose_param,
+                mode="max",
+                min_lr=1e-9,
+            )
+            early = EarlyStopping(
+                monitor=monitor_val,
+                min_delta=0.001,
+                patience=10,
+                verbose=self.verbose_param,
+                mode="auto",
+            )
+            callbacks = [early, lr_reduce]
+
 
             # self.model.summary()
             # MODEL TRAINING
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
-                loss=keras.losses.BinaryCrossentropy(from_logits=True),
-                metrics=[keras.metrics.BinaryAccuracy()],
+                loss=bcemetric,
+                metrics=[train_acc_metric],
                 # run_eagerly=True
             )
 
-            bcemetric = keras.metrics.BinaryCrossentropy()
-            val_bcemetric = keras.metrics.BinaryCrossentropy()
-            train_acc_metric = keras.metrics.BinaryAccuracy()
-            val_acc_metric = keras.metrics.BinaryAccuracy()
-
-            loss, val_loss = self.train_loop(
-                model=self.model,
+            self.model.fit(
+                train_generator,
                 epochs=epochs,
-                train_dataset=train_generator,
-                val_dataset=validation_generator,
-                loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
-                optimizer=keras.optimizers.Adam(lr),
-                batch_size=batch_size,
-                train_acc_metric=train_acc_metric,
-                val_acc_metric=val_acc_metric,
-                bcemetric=bcemetric,
-                val_bcemetric=val_bcemetric,
-                monitor_val=monitor_val,
-                val=val,
-                n=n + nv,
-                adv=adv,
-                adversarial_model=adversarial_model
+                validation_data=validation_generator,
+                verbose=self.verbose_param,
+                callbacks=callbacks,
             )
 
             # FINE TUNING
@@ -487,30 +556,16 @@ class AdversarialStandard(GeneralModelClass):
                 metrics=[keras.metrics.BinaryAccuracy()],
             )
 
-            loss, val_loss = self.train_loop(
-                model=self.model,
-                epochs=epochs,
-                train_dataset=train_generator,
-                val_dataset=validation_generator,
-                loss_fn=keras.losses.BinaryCrossentropy(from_logits=True),
-                optimizer=keras.optimizers.Adam(fine_lr),
-                batch_size=batch_size,
-                train_acc_metric=train_acc_metric,
-                val_acc_metric=val_acc_metric,
-                bcemetric=bcemetric,
-                val_bcemetric=val_bcemetric,
-                monitor_val=monitor_val,
-                val=val,
-                n=n + nv,
-                adv=adv,
-                adversarial_model=adversarial_model
+            history = self.model.fit(
+                train_generator,
+                epochs=fine_epochs,
+                validation_data=validation_generator,
+                verbose=self.verbose_param,
+                callbacks=callbacks,
             )
-
             tf.keras.backend.clear_session()
-            if val:
-                return val_loss
-            else:
-                return loss
+            return  history.history[monitor_val][-1]
+
 
     # @tf.function
     def train_loop(
@@ -730,9 +785,9 @@ class AdversarialStandard(GeneralModelClass):
         elif self.type == "RFC":
             self.RFC(TS)
         elif self.type == "DL" or "RESNET":
-            self.ModelSelection(TS, VS, aug=aug, g=g)
+            self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
             )"""
         else:
-            self.ModelSelection(TS, VS, aug=aug, g=g)
+            self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
