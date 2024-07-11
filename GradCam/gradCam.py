@@ -37,7 +37,7 @@ class GradCAM:
 			# to our pre-trained model, (2) the output of the (presumably)
 			# final 4D layer in the network, and (3) the output of the
 			# softmax activations from the 
-			self.model.summary()
+			#self.model.summary()
 			
 			for i, image in enumerate(images):
 				
@@ -97,14 +97,14 @@ class GradCAM:
 				heatmap = numer / denom
 				heatmap = (heatmap * 255).astype("uint8")
 
-				im = np.array(image*255).astype('uint8')
+				#im = np.array(image*255).astype('uint8')
 
-				(heatmap, output) = self.overlay_heatmap(heatmap, im)
+				(heatmap, output) = self.overlay_heatmap(heatmap, image)
 
 
-				cv2.imwrite(path + f"{i}/both.jpg", cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
-				cv2.imwrite(path + f"{i}/heatmap.jpg", cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
-				cv2.imwrite(path + f"{i}/image.jpg",  cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
+				cv2.imwrite(path + f"{i}/both.png", cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
+				cv2.imwrite(path + f"{i}/heatmap.png", cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB))
+				cv2.imwrite(path + f"{i}/image.png",  cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 		return
 	
 	def overlay_heatmap(self, heatmap, image, alpha=0.5,

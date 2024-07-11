@@ -100,7 +100,7 @@ def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: Processin
 percent = 0.05
 standard = 1
 
-verbose_param = 1
+verbose_param = 0
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -108,21 +108,15 @@ val_split = 0.2
 test_split = 0.1
 epochs = 10
 
-g_augs = [0.001, 0.05, 0.1, 0.5]
-test_g_augs = [0.0005, 0.005]
-eps = 0.03
-test_eps = [0.0005, 0.005]
-mult = 0.25
-
-nt = 10
+nt = 5
 
 memory_limit = 5000
 
-basePath = "./PROVAPROVAMAN"
+basePath = "./"
 
 
 for lamp in [0, 1]:
-    procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
+    procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit, basePath=basePath)
     with tf.device("/CPU:0"):
                 for c in range(3):
                     for k in range(1):
@@ -155,7 +149,6 @@ for lamp in [0, 1]:
                         pt = procObj.basePath + f"TNOAUG/"
                         Xt = procObj.dataobj.Xt
                         yt = procObj.dataobj.yt
-                        procObj.model.model.layers[2].summary()
                         cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
 
