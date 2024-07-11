@@ -150,6 +150,7 @@ for lamp in [0, 1]:
                         Xt = procObj.dataobj.Xt
                         yt = procObj.dataobj.yt
                         cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
+                        procObj.partial_clear(basePath)
 
 
                         
