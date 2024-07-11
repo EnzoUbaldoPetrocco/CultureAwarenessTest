@@ -372,7 +372,7 @@ class StandardModels4GradCam(GeneralModelClass):
             outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
 
-            self.model.summary()
+            #self.model.summary()
 
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
@@ -409,7 +409,7 @@ class StandardModels4GradCam(GeneralModelClass):
 
             # FINE TUNING
             base_model.trainable = True
-            self.model.summary()
+            # self.model.summary()
 
             self.model.compile(
                 optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
