@@ -145,7 +145,7 @@ for lamp in [0, 1]:
                             adversary=0,
                             eps=0,
                             mult=0,
-                            gradcam=0,
+                            gradcam=1,
                             complete=1,
                         )
 

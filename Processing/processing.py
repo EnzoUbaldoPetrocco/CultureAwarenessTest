@@ -5,6 +5,7 @@ import sys
 sys.path.insert(1, "../")
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
+from Model.standard.gradcam_standard import StandardModels4GradCam
 from Model.adversarial.adversarial import AdversarialStandard 
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
@@ -309,7 +310,6 @@ class ProcessingClass:
         self.model = None
         if standard:
             if adversary:
-                
                 self.model = AdversarialStandard(
                     type=type,
                     points=points,
@@ -323,18 +323,30 @@ class ProcessingClass:
                     
                 )
             else:
-                
-                self.model = StandardModels(
-                    type=type,
-                    points=points,
-                    kernel=kernel,
-                    verbose_param=verbose_param,
-                    learning_rate=learning_rate,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    weights=weights,
-                    imbalanced=imbalanced
-                )
+                if gradcam:
+                    self.model = StandardModels4GradCam(
+                        type=type,
+                        points=points,
+                        kernel=kernel,
+                        verbose_param=verbose_param,
+                        learning_rate=learning_rate,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        weights=weights,
+                        imbalanced=imbalanced
+                    )
+                else:
+                    self.model = StandardModels(
+                        type=type,
+                        points=points,
+                        kernel=kernel,
+                        verbose_param=verbose_param,
+                        learning_rate=learning_rate,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        weights=weights,
+                        imbalanced=imbalanced
+                    )
 
         else:
             self.model = MitigatedModels(
