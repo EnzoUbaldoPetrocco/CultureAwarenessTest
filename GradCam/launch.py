@@ -153,6 +153,7 @@ for lamp in [0, 1]:
                         pt = procObj.basePath + f"TNOAUG/"
                         Xt = procObj.dataobj.Xt
                         yt = procObj.dataobj.yt
+                        procObj.model.layers[2].summary()
                         cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
 
 
