@@ -38,11 +38,12 @@ class GradCAM:
 			# final 4D layer in the network, and (3) the output of the
 			# softmax activations from the 
 			self.model.summary()
+			
 			for i, image in enumerate(images):
 				
 				gradModel = tf.keras.Model(
 					inputs=[self.model.layers[0].input],
-					outputs=[self.model.layers[2].get_layer('conv5_block3_out').output, self.model.output])
+					outputs=[self.model.get_layer('conv5_block3_out').output, self.model.output])
 				
 				# record operations for automatic differentiation
 				with tf.GradientTape() as tape:
