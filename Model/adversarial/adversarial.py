@@ -379,9 +379,9 @@ class AdversarialStandard(GeneralModelClass):
             data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
-                    layers.RandomRotation(0.05),
+                    layers.RandomRotation(0.01),
                     layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(0.05),
+                    tf.keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
