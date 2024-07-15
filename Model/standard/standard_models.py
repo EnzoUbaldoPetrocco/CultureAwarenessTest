@@ -159,7 +159,7 @@ class StandardModels(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=False,
+        show_imgs=True,
         batches=[32],
         lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
@@ -299,7 +299,7 @@ class StandardModels(GeneralModelClass):
                 yv = tf.constant(VS[1], dtype="float32")
                 validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
 
-            if show_imgs:
+            '''if show_imgs:
                 # DISPLAY IMAGES
                 # NOAUGMENTATION
                 images = []
@@ -312,7 +312,7 @@ class StandardModels(GeneralModelClass):
                     plt.imshow(image)
                     plt.title(int(label))
                     plt.axis("off")
-                plt.show()
+                plt.show()'''
 
             # DIVIDE IN BATCHES
             # TS = TS.batch(batch_size).prefetch(buffer_size=10)
@@ -325,13 +325,18 @@ class StandardModels(GeneralModelClass):
                     idx = np.random.randint(0, len(TS) - 1)
                     images = []
                     images.append((TS[0][idx], TS[1][idx]))
+                    
                     for ims, labels in images:
                         plt.figure(figsize=(10, 10))
                         for i in range(9):
                             ax = plt.subplot(3, 3, i + 1)
-
+                            print(ims)
                             augmented_image = data_augmentation(
-                                tf.expand_dims(ims, 0), training=True
+                                np.expand_dims(ims, -1), training=True
+                            )
+                            for i in range(20):
+                                augmented_image = data_augmentation(
+                                augmented_image, training=True
                             )
                             plt.imshow(augmented_image[0].numpy().astype("int32"))
                             plt.title(int(labels))
