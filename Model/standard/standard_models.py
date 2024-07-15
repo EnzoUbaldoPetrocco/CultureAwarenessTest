@@ -272,10 +272,10 @@ class StandardModels(GeneralModelClass):
             data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
-                    layers.RandomRotation(0.1),
+                    layers.RandomRotation(0.05),
                     layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(0.1),
-                    layers.RandomZoom(g / 5, g / 5),
+                    tf.keras.layers.RandomBrightness(0.05),
+                    layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
             )
@@ -330,9 +330,9 @@ class StandardModels(GeneralModelClass):
                         plt.figure(figsize=(10, 10))
                         for i in range(9):
                             ax = plt.subplot(3, 3, i + 1)
-                            print(ims)
+                            temp_ims = np.expand_dims(np.asarray(ims).astype('float32'), 0)
                             augmented_image = data_augmentation(
-                                np.expand_dims(ims, -1), training=True
+                                tf.constant(temp_ims), training=True
                             )
                             for i in range(20):
                                 augmented_image = data_augmentation(
