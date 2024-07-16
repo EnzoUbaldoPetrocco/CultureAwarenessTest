@@ -66,7 +66,7 @@ eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [0, 1, 2]
-ks = [1]
+ks = [0,1]
 imbalanced = [1,0]
 
 basePath = "./"
