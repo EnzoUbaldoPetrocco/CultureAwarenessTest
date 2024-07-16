@@ -272,10 +272,10 @@ class StandardModels4GradCam(GeneralModelClass):
             data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
-                    layers.RandomRotation(0.1),
+                    layers.RandomRotation(0.01),
                     layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(0.1),
-                    layers.RandomZoom(g / 5, g / 5),
+                    tf.keras.layers.RandomBrightness(0.01),
+                    layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
             )
