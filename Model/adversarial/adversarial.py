@@ -178,17 +178,17 @@ class AdversarialStandard(GeneralModelClass):
 
 
     # Create adversarial samples
-    def generate_adversarial_samples(self, images, labels, epsilon=0.1):
+    def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1):
         with tf.device("/gpu:0"):
             adversarial_images = []
-            for img, lbl in zip(images, labels):
+            for img, lbl in adv_train_generator:
                 img = tf.convert_to_tensor(
                     img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
                 )
                 lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
                 with tf.GradientTape() as tape:
                     tape.watch(img)
-                    prediction = self.model(img)
+                    prediction = model(img)
                     loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
                 gradient = tape.gradient(loss, img)
                 signed_grad = tf.sign(gradient)
@@ -229,7 +229,7 @@ class AdversarialStandard(GeneralModelClass):
             g=g,
             save=save,
             path=path,
-            adv=1,
+            adv=1, 
             adversarial_model=None,
             eps=eps
         )
@@ -270,7 +270,7 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         save=False,
         path="./",
-        adv=0,
+        adv=0, # if 1-> adversarial model is trained, if 0 -> actual model is used
         adversarial_model=None,
         eps=0.1
     ):
@@ -341,6 +341,20 @@ class AdversarialStandard(GeneralModelClass):
         if save:
             self.save(path)
 
+    def ImbalancedTransformation(self, TS):
+        newX = []
+        newY = []
+        X = TS[0]
+        Y = TS[1]
+        for i in range(len(X)):
+            img = X[i]
+            label = Y[i]
+            for i in range(int(1/self.weights[int(label[0])])): # I use the inverse of the total proportion for augmenting the dataset
+                newX.append(img) # I do not need culture for training 
+                newY.append(label[1])
+        del TS
+        return (newX, newY)
+
     def DL(
         self,
         TS,
@@ -355,7 +369,7 @@ class AdversarialStandard(GeneralModelClass):
         nDropout=0.2,
         g=0.1,
         val=True,
-        adv=0,
+        adv=0, # if 1-> adversarial model is trained, if 0 -> actual model is used
         adversarial_model=None,
         eps=0.1
 
@@ -364,18 +378,11 @@ class AdversarialStandard(GeneralModelClass):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
 
-
-
             if val:
                 monitor_val = "val_loss"
             else:
                 monitor_val = "loss"
-
-            if not adv:
                 
-                adv_samples = self.generate_adversarial_samples(TS[0], TS[1], epsilon=eps)
-
-
             data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
@@ -387,40 +394,43 @@ class AdversarialStandard(GeneralModelClass):
                 ]
             )
 
+            if self.imbalanced:
+                TS = self.ImbalancedTransformation(TS)
 
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
 
-            if adv:
+            if adv: # adversarial model
                 train_generator = train_generator.map(
                     lambda img, y: (
                         data_augmentation(img, training=aug),
-                        y[: self.n_cultures],
+                        y[0: self.n_cultures],
                     )
-                ).shuffle(len(train_generator) * 10)
+                )
             else:  # actual model
                 train_generator = train_generator.map(
                     lambda img, y: (
-                        data_augmentation(img, training=aug),
-                        y[self.n_cultures],
+                        self.generate_adversarial_samples((data_augmentation(img, training=aug),
+                        y[0:self.n_cultures]), adversarial_model, epsilon=eps)
                     )
-                ).shuffle(len(train_generator) * 10)
+                )
+                
 
             train_generator = (
                 train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
             )
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
-                # validation_generator = validation_generator.random.shuffle(int(validation_generator.cardinality()/batch_size))
+                
 
                 if adv:
                     validation_generator = validation_generator.map(
                         lambda img, y: (
                             data_augmentation(img, training=aug),
-                            y[: self.n_cultures],
+                            y[0: self.n_cultures],
                         )
-                    ).shuffle(len(train_generator) * 10)
+                    )
                 else:
                     validation_generator = validation_generator.map(
                         lambda img, y: (
@@ -493,22 +503,19 @@ class AdversarialStandard(GeneralModelClass):
             x = keras.layers.GlobalAveragePooling2D()(x)
             x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
             if adv:
-                outputs = keras.layers.Dense(3, activation="sigmoid")(x)
+                outputs = keras.layers.Dense(3, activation="softmax")(x)
             else:
                 outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
 
+            self.model.summary()
             
             if adv:
-                bcemetric = keras.metrics.CategoricalCrossentropy(from_logits=True)
-                val_bcemetric = keras.metrics.CategoricalCrossentropy(from_logits=True)
+                bcemetric = keras.metrics.SparseCategoricalCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.CategoricalAccuracy()
-                val_acc_metric = keras.metrics.CategoricalAccuracy()
             else:
                 bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
-                val_bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.BinaryAccuracy()
-                val_acc_metric = keras.metrics.BinaryAccuracy()
 
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
@@ -543,6 +550,7 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                
             )
 
             # FINE TUNING
