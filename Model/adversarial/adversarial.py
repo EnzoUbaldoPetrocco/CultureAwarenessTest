@@ -178,13 +178,9 @@ class AdversarialStandard(GeneralModelClass):
 
     @tf.function
     def generate_adversarial_image(self, img, lbl, model, epsilon=0.1):
-        img = tf.convert_to_tensor(
-        img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
-        )
-        lbl = tf.convert_to_tensor(lbl.reshape((1, self.n_cultures)))
         with tf.GradientTape() as tape:
             tape.watch(img)
-            prediction = model(img)
+            prediction = model(img, training=False)
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
         gradient = tape.gradient(loss, img)
         signed_grad = tf.sign(gradient)
@@ -415,8 +411,8 @@ class AdversarialStandard(GeneralModelClass):
             else:  # actual model
                 train_generator = train_generator.map(
                     lambda img, y: (
-                        self.generate_adversarial_image((data_augmentation(img, training=aug),
-                        y[0:self.n_cultures]), adversarial_model, epsilon=eps), y[self.n_cultures]
+                        self.generate_adversarial_image(data_augmentation(img, training=aug),
+                        y[0:self.n_cultures], adversarial_model, epsilon=eps), y[self.n_cultures]
                     )
                 )
                 
