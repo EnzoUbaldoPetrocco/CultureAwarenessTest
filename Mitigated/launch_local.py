@@ -84,7 +84,6 @@ for g_aug in g_gaugs:
             )
             for c in cs:
                 for k in ks:
-                    if k:
                         for i in range(2):
                             model = None
                             print(f"Training->aug={k%2};adv={floor(k/2)}")
@@ -106,7 +105,7 @@ for g_aug in g_gaugs:
                                 adversary=1,
                                 eps=eps,
                                 mult=mult,
-                                imbalanced=1
+                                imbalanced=0
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")

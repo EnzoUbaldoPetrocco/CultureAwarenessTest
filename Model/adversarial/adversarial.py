@@ -176,24 +176,26 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-
+    @tf.function
+    def generate_adversarial_image(self, img, lbl, model, epsilon=0.1):
+        img = tf.convert_to_tensor(
+        img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
+        )
+        lbl = tf.convert_to_tensor(lbl.reshape((1, self.n_cultures)))
+        with tf.GradientTape() as tape:
+            tape.watch(img)
+            prediction = model(img)
+            loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+        gradient = tape.gradient(loss, img)
+        signed_grad = tf.sign(gradient)
+        adversarial_img = img + epsilon * signed_grad
+        return tf.clip_by_value(adversarial_img, 0, 1)
     # Create adversarial samples
+    
     def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1):
-        with tf.device("/gpu:0"):
             adversarial_images = []
             for img, lbl in adv_train_generator:
-                img = tf.convert_to_tensor(
-                    img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
-                )
-                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
-                with tf.GradientTape() as tape:
-                    tape.watch(img)
-                    prediction = model(img)
-                    loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
-                gradient = tape.gradient(loss, img)
-                signed_grad = tf.sign(gradient)
-                adversarial_img = img + epsilon * signed_grad
-                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
+                adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon)
                 adversarial_images.append(adversarial_img)
             return tf.convert_to_tensor(adversarial_images)
         
@@ -203,9 +205,9 @@ class AdversarialStandard(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=False,
+        show_imgs=True,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[1e-2],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -349,9 +351,9 @@ class AdversarialStandard(GeneralModelClass):
         for i in range(len(X)):
             img = X[i]
             label = Y[i]
-            for i in range(int(1/self.weights[int(label[0])])): # I use the inverse of the total proportion for augmenting the dataset
-                newX.append(img) # I do not need culture for training 
-                newY.append(label[1])
+            for i in range(int(1/self.weights[label.index(1.0)])): # I use the inverse of the total proportion for augmenting the dataset
+                newX.append(np.asarray(img)) # I do not need culture for training 
+                newY.append(np.asarray(label))
         del TS
         return (newX, newY)
 
@@ -393,9 +395,11 @@ class AdversarialStandard(GeneralModelClass):
                     layers.Resizing(shape[0], shape[1]),
                 ]
             )
-
+            print(f"Shape of TS before: {np.shape(TS)}")
             if self.imbalanced:
                 TS = self.ImbalancedTransformation(TS)
+
+            print(f"Shape of TS after: {np.shape(TS)}")
 
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
@@ -411,8 +415,8 @@ class AdversarialStandard(GeneralModelClass):
             else:  # actual model
                 train_generator = train_generator.map(
                     lambda img, y: (
-                        self.generate_adversarial_samples((data_augmentation(img, training=aug),
-                        y[0:self.n_cultures]), adversarial_model, epsilon=eps)
+                        self.generate_adversarial_image((data_augmentation(img, training=aug),
+                        y[0:self.n_cultures]), adversarial_model, epsilon=eps), y[self.n_cultures]
                     )
                 )
                 
@@ -455,7 +459,7 @@ class AdversarialStandard(GeneralModelClass):
                 for i, (image, label) in enumerate(images):
                     ax = plt.subplot(3, 3, i + 1)
                     plt.imshow(image)
-                    plt.title(int(label))
+                    plt.title(label)
                     plt.axis("off")
                 plt.show()
 
@@ -511,10 +515,10 @@ class AdversarialStandard(GeneralModelClass):
             self.model.summary()
             
             if adv:
-                bcemetric = keras.metrics.SparseCategoricalCrossentropy(from_logits=True)
+                bcemetric = keras.losses.CategoricalCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.CategoricalAccuracy()
             else:
-                bcemetric = keras.metrics.BinaryCrossentropy(from_logits=True)
+                bcemetric = keras.losses.BinaryCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.BinaryAccuracy()
 
             lr_reduce = ReduceLROnPlateau(
@@ -534,8 +538,8 @@ class AdversarialStandard(GeneralModelClass):
             )
             callbacks = [early, lr_reduce]
 
-
             # self.model.summary()
+            
             # MODEL TRAINING
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
@@ -558,9 +562,10 @@ class AdversarialStandard(GeneralModelClass):
             # self.model.summary()
 
             self.model.compile(
-                optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-                loss=keras.losses.BinaryCrossentropy(from_logits=True),
-                metrics=[keras.metrics.BinaryAccuracy()],
+                optimizer=keras.optimizers.Adam(fine_lr),
+                loss=bcemetric,
+                metrics=[train_acc_metric],
+                # run_eagerly=True
             )
 
             history = self.model.fit(
