@@ -74,7 +74,7 @@ basePath = "./"
 
 # with tf.device("/CPU:0"):
 for i in range(2):
- for g_aug in np.flip(g_gaugs, axis=0):
+ for g_aug in g_gaugs:
     for percent in percents:
         for lamp in [0, 1]:
             procObj = ProcessingClass(
