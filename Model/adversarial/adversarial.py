@@ -178,6 +178,8 @@ class AdversarialStandard(GeneralModelClass):
 
     @tf.function
     def generate_adversarial_image(self, img, lbl, model, epsilon=0.1):
+        img = tf.expand_dims(img, axis=0)
+        lbl = tf.expand_dims(lbl, axis=0)
         with tf.GradientTape() as tape:
             tape.watch(img)
             prediction = model(img, training=False)
