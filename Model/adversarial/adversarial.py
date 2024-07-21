@@ -186,8 +186,8 @@ class AdversarialStandard(GeneralModelClass):
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
         gradient = tape.gradient(loss, img)
         signed_grad = tf.sign(gradient)
-        adversarial_img = img + epsilon * signed_grad
-        return tf.clip_by_value(adversarial_img, 0, 1)
+        adversarial_img = (img/255.0 + epsilon * signed_grad)*255.0
+        return tf.clip_by_value(adversarial_img, 0, 255)
     # Create adversarial samples
     
     def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1):
@@ -253,7 +253,6 @@ class AdversarialStandard(GeneralModelClass):
             adversarial_model=adversarial_model,
             eps=eps
         )
-
 
     def ModelSelection(
         self,
@@ -393,11 +392,28 @@ class AdversarialStandard(GeneralModelClass):
                     layers.Resizing(shape[0], shape[1]),
                 ]
             )
-            print(f"Shape of TS before: {np.shape(TS)}")
             if self.imbalanced:
                 TS = self.ImbalancedTransformation(TS)
 
-            print(f"Shape of TS after: {np.shape(TS)}")
+            if show_imgs and (not adv):
+                # DISPLAY IMAGES
+                # NOAUGMENTATION
+                images = []
+                for i in range(4):
+                    idx = np.random.randint(0, len(TS[0]) - 1)
+                    images.append((TS[0][idx], TS[1][idx]))
+                plt.figure(figsize=(10, 10))
+                for i, (image, label) in enumerate(images):
+                    ax = plt.subplot(4, 2, i + 1)
+                    plt.imshow(image)
+                    plt.title(label)
+                    ax = plt.subplot(4, 2, i + 5)
+                    adv_image = self.generate_adversarial_image(data_augmentation(image, training=aug),
+                        label[0:self.n_cultures], adversarial_model, epsilon=eps)[0]
+                    plt.imshow(adv_image/255.0)
+                    plt.title(label)
+                    plt.axis("off")
+                plt.show()
 
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
@@ -414,7 +430,7 @@ class AdversarialStandard(GeneralModelClass):
                 train_generator = train_generator.map(
                     lambda img, y: (
                         self.generate_adversarial_image(data_augmentation(img, training=aug),
-                        y[0:self.n_cultures], adversarial_model, epsilon=eps), y[self.n_cultures]
+                        y[0:self.n_cultures], adversarial_model, epsilon=eps)[0], y[self.n_cultures]
                     )
                 )
                 
@@ -446,20 +462,7 @@ class AdversarialStandard(GeneralModelClass):
                     .prefetch(buffer_size=10)
                 )
 
-            if show_imgs:
-                # DISPLAY IMAGES
-                # NOAUGMENTATION
-                images = []
-                for i in range(9):
-                    idx = np.random.randint(0, len(TS[0]) - 1)
-                    images.append((TS[0][idx], TS[1][idx]))
-                plt.figure(figsize=(10, 10))
-                for i, (image, label) in enumerate(images):
-                    ax = plt.subplot(3, 3, i + 1)
-                    plt.imshow(image)
-                    plt.title(label)
-                    plt.axis("off")
-                plt.show()
+            
 
             # DIVIDE IN BATCHES
             if aug:
