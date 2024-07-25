@@ -65,7 +65,7 @@ test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0, 1, 2]
+cs = [2,1,0]
 ks = [1]
 imbalanced = [1,0]
 
@@ -73,8 +73,8 @@ basePath = "./"
 
 
 # with tf.device("/CPU:0"):
-for i in range(2):
- for g_aug in np.flip(g_gaugs, axis=0):
+for i in range(4):
+ for g_aug in g_gaugs:
     for percent in percents:
         for lamp in [0, 1]:
             procObj = ProcessingClass(
