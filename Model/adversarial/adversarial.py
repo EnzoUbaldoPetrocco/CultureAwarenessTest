@@ -234,6 +234,36 @@ class AdversarialStandard(GeneralModelClass):
             eps=eps
         )
         adversarial_model=self.model
+
+        ###############################
+        ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
+        epsilons = np.logspace(-4, -1, 5)
+        if show_imgs:
+            for ep in epsilons:
+                for i in range(4):
+                    images = []
+                    for i in range(4):
+                        images.append((TS[0][i], TS[1][i]))
+                    plt.figure(figsize=(10, 10))
+                    for i, (image, label) in enumerate(images):
+                        ax = plt.subplot(4, 2, i + 1)
+                        plt.imshow(image)
+                        plt.title(label)
+                        ax = plt.subplot(4, 2, i + 5)
+                        print(np.shape(image))
+                        print(np.shape(label))
+                        print(np.shape(label[0:self.n_cultures]))
+                        adversarial_model.summary()
+                        print(ep)
+                        adv_image = self.generate_adversarial_image(image,
+                            label[0:self.n_cultures], adversarial_model, epsilon=ep)[0]
+                        plt.imshow(adv_image/255.0)
+                        plt.title(label)
+                        plt.axis("off")
+                    plt.show()
+
+
+
         self.model = None
         self.ModelSelection(
             TS=TS,
