@@ -526,7 +526,7 @@ class ResAcquisitionClass:
         cultures = [0, 1, 2]
         percents = [0.05]
         augments = [0, 1]
-        g_augments = np.logspace(-4, -1, 6) #[0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
+        g_augments = np.logspace(-4, -1, 11) #[0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
         adversary = [0]
         lambda_indeces = range(-1, 13)
         taugments = [0]
