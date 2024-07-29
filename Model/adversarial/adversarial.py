@@ -176,15 +176,20 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-    @tf.function
+    #@tf.function
     def generate_adversarial_image(self, img, lbl, model, epsilon=0.1):
         img = tf.expand_dims(img, axis=0)
         lbl = tf.expand_dims(lbl, axis=0)
+        print(img)
+        print(lbl)
         with tf.GradientTape() as tape:
             tape.watch(img)
             prediction = model(img, training=False)
+            print(prediction)
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+            print(loss)
         gradient = tape.gradient(loss, img)
+        print(gradient)
         signed_grad = tf.sign(gradient)
         adversarial_img = (img/255.0 + epsilon * signed_grad)*255.0
         return tf.clip_by_value(adversarial_img, 0, 255)
@@ -205,7 +210,7 @@ class AdversarialStandard(GeneralModelClass):
         aug,
         show_imgs=True,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[ 1e-5],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -255,7 +260,7 @@ class AdversarialStandard(GeneralModelClass):
                         print(np.shape(label[0:self.n_cultures]))
                         adversarial_model.summary()
                         print(ep)
-                        adv_image = self.generate_adversarial_image(image,
+                        adv_image = self.generate_adversarial_image(image*1.0,
                             label[0:self.n_cultures], adversarial_model, epsilon=ep)[0]
                         plt.imshow(adv_image/255.0)
                         plt.title(label)
