@@ -176,22 +176,20 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
-    #@tf.function
+    @tf.function
     def generate_adversarial_image(self, img, lbl, model, epsilon=0.1):
         img = tf.expand_dims(img, axis=0)
         lbl = tf.expand_dims(lbl, axis=0)
-        print(img)
-        print(lbl)
         with tf.GradientTape() as tape:
             tape.watch(img)
             prediction = model(img, training=False)
-            print(prediction)
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
-            print(loss)
         gradient = tape.gradient(loss, img)
-        print(gradient)
         signed_grad = tf.sign(gradient)
-        adversarial_img = (img/255.0 + epsilon * signed_grad)*255.0
+        img = img/255.0
+        sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(signed_grad, dtype=np.float32)
+        adversarial_img = tf.cast(img, dtype=np.float32) + sum
+        adversarial_img = adversarial_img*255.0
         return tf.clip_by_value(adversarial_img, 0, 255)
     # Create adversarial samples
     
@@ -218,55 +216,105 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         save=False,
         path="./",
-        eps=0.1
+        eps=0.1,
+        class_division = 1
     ):
-        self.ModelSelection(
-            TS=TS,
-            VS=VS,
-            aug=aug,
-            show_imgs=show_imgs,
-            batches=batches,
-            lrs=lrs,
-            fine_lrs=fine_lrs,
-            epochs=epochs,
-            fine_epochs=fine_epochs,
-            nDropouts=nDropouts,
-            g=g,
-            save=save,
-            path=path,
-            adv=1, 
-            adversarial_model=None,
-            eps=eps
-        )
-        adversarial_model=self.model
+        if self.imbalanced:
+                TS = self.ImbalancedTransformation(TS)
 
-        ###############################
-        ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
-        epsilons = np.logspace(-4, -1, 5)
-        if show_imgs:
-            for ep in epsilons:
-                for i in range(4):
-                    images = []
-                    for i in range(4):
-                        images.append((TS[0][i], TS[1][i]))
+        epsilons = np.logspace(-3, 0, 5)
+        images = []
+        for i in range(4):
+            idx = np.random.randint(0,len(TS[0]))
+            images.append((TS[0][idx], TS[1][idx]))
+
+        if class_division:
+            adversarial_model = []
+            print(f"ADVERSARIAL USING CLASS DIVISION")
+            
+            for j in range(2):
+                tempX = [TS[0][i] for i in range(len(TS[0])) if TS[1][i][self.n_cultures]==j]
+                tempY = [TS[1][i] for i in range(len(TS[1])) if TS[1][i][self.n_cultures]==j]
+                tempTS = (tempX, tempY)
+                tempX = [VS[0][i] for i in range(len(VS[0])) if VS[1][i][self.n_cultures]==j]
+                tempY = [VS[1][i] for i in range(len(VS[1])) if VS[1][i][self.n_cultures]==j]
+                tempVS = (tempX, tempY)
+                self.ModelSelection(
+                    TS=tempTS,
+                    VS=tempVS,
+                    aug=aug,
+                    show_imgs=show_imgs,
+                    batches=batches,
+                    lrs=lrs,
+                    fine_lrs=fine_lrs,
+                    epochs=epochs,
+                    fine_epochs=fine_epochs,
+                    nDropouts=nDropouts,
+                    g=g,
+                    save=save,
+                    path=path,
+                    adv=1, 
+                    adversarial_model=None,
+                    eps=eps
+                )
+                adversarial_model.append(self.model)
+                self.model = None
+            if show_imgs:
+                for ep in epsilons:
                     plt.figure(figsize=(10, 10))
+                    c = 1
                     for i, (image, label) in enumerate(images):
-                        ax = plt.subplot(4, 2, i + 1)
+                        ax = plt.subplot(4, 2, c)
                         plt.imshow(image)
                         plt.title(label)
-                        ax = plt.subplot(4, 2, i + 5)
-                        print(np.shape(image))
-                        print(np.shape(label))
-                        print(np.shape(label[0:self.n_cultures]))
-                        adversarial_model.summary()
-                        print(ep)
+                        ax = plt.subplot(4, 2, c + 1)
+                        c = c + 2
+                        adv_image = self.generate_adversarial_image(image*1.0,
+                            label[0:self.n_cultures], adversarial_model[int(label[self.n_cultures])], epsilon=ep)[0]
+                        plt.imshow(adv_image/255.0)
+                        plt.title(label)
+                        plt.axis("off")
+                    plt.show()
+
+        else: 
+            self.ModelSelection(
+                TS=TS,
+                VS=VS,
+                aug=aug,
+                show_imgs=show_imgs,
+                batches=batches,
+                lrs=lrs,
+                fine_lrs=fine_lrs,
+                epochs=epochs,
+                fine_epochs=fine_epochs,
+                nDropouts=nDropouts,
+                g=g,
+                save=save,
+                path=path,
+                adv=1, 
+                adversarial_model=None,
+                eps=eps,
+                class_division=0
+            )
+            adversarial_model=self.model
+            ###############################
+            ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
+            if show_imgs:
+                for ep in epsilons:
+                    plt.figure(figsize=(10, 10))
+                    c = 1
+                    for i, (image, label) in enumerate(images):
+                        ax = plt.subplot(4, 2, c)
+                        plt.imshow(image)
+                        plt.title(label)
+                        ax = plt.subplot(4, 2, c + 1)
+                        c = c + 2
                         adv_image = self.generate_adversarial_image(image*1.0,
                             label[0:self.n_cultures], adversarial_model, epsilon=ep)[0]
                         plt.imshow(adv_image/255.0)
                         plt.title(label)
                         plt.axis("off")
                     plt.show()
-
 
 
         self.model = None
@@ -286,7 +334,8 @@ class AdversarialStandard(GeneralModelClass):
             path=path,
             adv=0,
             adversarial_model=adversarial_model,
-            eps=eps
+            eps=eps,
+            class_division=class_division
         )
 
     def ModelSelection(
@@ -306,7 +355,8 @@ class AdversarialStandard(GeneralModelClass):
         path="./",
         adv=0, # if 1-> adversarial model is trained, if 0 -> actual model is used
         adversarial_model=None,
-        eps=0.1
+        eps=0.1,
+        class_division = 0
     ):
 
         if self.verbose_param:
@@ -336,7 +386,8 @@ class AdversarialStandard(GeneralModelClass):
                             g=g,
                             adv=adv,
                             adversarial_model=adversarial_model,
-                            eps=eps
+                            eps=eps,
+                            class_division = class_division
                         )
 
                         if loss < best_loss:
@@ -353,7 +404,6 @@ class AdversarialStandard(GeneralModelClass):
             f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
         )
         list(TS).append(VS)
-        print(f"Shape of TS is {np.shape(TS)}")
         self.DL(
             TS,
             None,
@@ -369,7 +419,8 @@ class AdversarialStandard(GeneralModelClass):
             g=g,
             adv=adv,
             adversarial_model=adversarial_model,
-            eps=0.1
+            eps=eps,
+            class_division = class_division
         )
 
         if save:
@@ -388,6 +439,9 @@ class AdversarialStandard(GeneralModelClass):
                 newY.append(np.asarray(label))
         del TS
         return (newX, newY)
+    
+    
+
 
     def DL(
         self,
@@ -405,7 +459,8 @@ class AdversarialStandard(GeneralModelClass):
         val=True,
         adv=0, # if 1-> adversarial model is trained, if 0 -> actual model is used
         adversarial_model=None,
-        eps=0.1
+        eps=0.1,
+        class_division = 0
 
 
     ):
@@ -426,9 +481,8 @@ class AdversarialStandard(GeneralModelClass):
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
-            )
-            if self.imbalanced:
-                TS = self.ImbalancedTransformation(TS)
+            )     
+            
 
             if show_imgs and (not adv):
                 # DISPLAY IMAGES
@@ -443,7 +497,7 @@ class AdversarialStandard(GeneralModelClass):
                     plt.imshow(image)
                     plt.title(label)
                     ax = plt.subplot(4, 2, i + 5)
-                    adv_image = self.generate_adversarial_image(data_augmentation(image, training=aug),
+                    adv_image = self.generate_adversarial_image(data_augmentation(image, training=aug)*1.0,
                         label[0:self.n_cultures], adversarial_model, epsilon=eps)[0]
                     plt.imshow(adv_image/255.0)
                     plt.title(label)
@@ -462,12 +516,20 @@ class AdversarialStandard(GeneralModelClass):
                     )
                 )
             else:  # actual model
-                train_generator = train_generator.map(
-                    lambda img, y: (
-                        self.generate_adversarial_image(data_augmentation(img, training=aug),
-                        y[0:self.n_cultures], adversarial_model, epsilon=eps)[0], y[self.n_cultures]
+                if class_division:
+                    train_generator = train_generator.map(
+                        lambda img, y: (
+                            self.generate_adversarial_image(data_augmentation(img, training=aug)*1.0,
+                            y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], epsilon=eps.astype(np.float32))[0], y[self.n_cultures]
+                        )
                     )
-                )
+                else:
+                    train_generator = train_generator.map(
+                        lambda img, y: (
+                            self.generate_adversarial_image(data_augmentation(img, training=aug)*1.0,
+                            y[0:self.n_cultures], adversarial_model, epsilon=eps.astype(np.float32))[0], y[self.n_cultures]
+                        )
+                    )
                 
 
             train_generator = (
@@ -520,6 +582,8 @@ class AdversarialStandard(GeneralModelClass):
                             plt.axis("off")
                         plt.show()
 
+            adversarial_model = None
+
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
@@ -548,7 +612,6 @@ class AdversarialStandard(GeneralModelClass):
                 outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
 
-            self.model.summary()
             
             if adv:
                 bcemetric = keras.losses.CategoricalCrossentropy(from_logits=True)
