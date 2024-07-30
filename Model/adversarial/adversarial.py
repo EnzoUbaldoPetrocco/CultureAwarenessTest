@@ -20,6 +20,7 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import random
 from datetime import datetime
+
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
@@ -70,8 +71,6 @@ class AdversarialProcessing(keras.models.Model):
             return tf.convert_to_tensor(adversarial_images)
 
 
-
-
 class AdversarialStandard(GeneralModelClass):
     def __init__(
         self,
@@ -83,7 +82,7 @@ class AdversarialStandard(GeneralModelClass):
         epochs=15,
         batch_size=1,
         weights=None,
-        imbalanced=0
+        imbalanced=0,
     ):
         """
         Initialization function for modeling standard ML models.
@@ -98,7 +97,9 @@ class AdversarialStandard(GeneralModelClass):
         :param epochs: hyperparameter for DL
         :param batch_size: hyperparameter for DL
         """
-        GeneralModelClass.__init__(self, standard=1, adversarial=1, imbalanced=imbalanced)
+        GeneralModelClass.__init__(
+            self, standard=1, adversarial=1, imbalanced=imbalanced
+        )
         self.type = type
         self.points = points
         self.kernel = kernel
@@ -106,9 +107,9 @@ class AdversarialStandard(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
-        self.weights=np.ones(self.n_cultures)
+        self.weights = np.ones(self.n_cultures)
         if weights is not None:
-            self.weights=weights
+            self.weights = weights
 
     def SVC(self, TS):
         """
@@ -186,20 +187,22 @@ class AdversarialStandard(GeneralModelClass):
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
         gradient = tape.gradient(loss, img)
         signed_grad = tf.sign(gradient)
-        img = img/255.0
-        sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(signed_grad, dtype=np.float32)
+        img = img / 255.0
+        sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(
+            signed_grad, dtype=np.float32
+        )
         adversarial_img = tf.cast(img, dtype=np.float32) + sum
-        adversarial_img = adversarial_img*255.0
+        adversarial_img = adversarial_img * 255.0
         return tf.clip_by_value(adversarial_img, 0, 255)
+
     # Create adversarial samples
-    
+
     def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1):
-            adversarial_images = []
-            for img, lbl in adv_train_generator:
-                adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon)
-                adversarial_images.append(adversarial_img)
-            return tf.convert_to_tensor(adversarial_images)
-        
+        adversarial_images = []
+        for img, lbl in adv_train_generator:
+            adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon)
+            adversarial_images.append(adversarial_img)
+        return tf.convert_to_tensor(adversarial_images)
 
     def LearningAdversarially(
         self,
@@ -208,7 +211,7 @@ class AdversarialStandard(GeneralModelClass):
         aug,
         show_imgs=True,
         batches=[32],
-        lrs=[ 1e-5],
+        lrs=[1e-5],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -217,27 +220,42 @@ class AdversarialStandard(GeneralModelClass):
         save=False,
         path="./",
         eps=0.1,
-        class_division = 1
+        class_division=1,
     ):
         if self.imbalanced:
-                TS = self.ImbalancedTransformation(TS)
+            TS = self.ImbalancedTransformation(TS)
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
         for i in range(4):
-            idx = np.random.randint(0,len(TS[0]))
+            idx = np.random.randint(0, len(TS[0]))
             images.append((TS[0][idx], TS[1][idx]))
 
         if class_division:
             adversarial_model = []
             print(f"ADVERSARIAL USING CLASS DIVISION")
-            
             for j in range(2):
-                tempX = [TS[0][i] for i in range(len(TS[0])) if TS[1][i][self.n_cultures]==j]
-                tempY = [TS[1][i] for i in range(len(TS[1])) if TS[1][i][self.n_cultures]==j]
+                tempX = [
+                    TS[0][i]
+                    for i in range(len(TS[0]))
+                    if TS[1][i][self.n_cultures] == j
+                ]
+                tempY = [
+                    TS[1][i]
+                    for i in range(len(TS[1]))
+                    if TS[1][i][self.n_cultures] == j
+                ]
                 tempTS = (tempX, tempY)
-                tempX = [VS[0][i] for i in range(len(VS[0])) if VS[1][i][self.n_cultures]==j]
-                tempY = [VS[1][i] for i in range(len(VS[1])) if VS[1][i][self.n_cultures]==j]
+                tempX = [
+                    VS[0][i]
+                    for i in range(len(VS[0]))
+                    if VS[1][i][self.n_cultures] == j
+                ]
+                tempY = [
+                    VS[1][i]
+                    for i in range(len(VS[1]))
+                    if VS[1][i][self.n_cultures] == j
+                ]
                 tempVS = (tempX, tempY)
                 self.ModelSelection(
                     TS=tempTS,
@@ -253,9 +271,9 @@ class AdversarialStandard(GeneralModelClass):
                     g=g,
                     save=save,
                     path=path,
-                    adv=1, 
+                    adv=1,
                     adversarial_model=None,
-                    eps=eps
+                    eps=eps,
                 )
                 adversarial_model.append(self.model)
                 self.model = None
@@ -269,14 +287,18 @@ class AdversarialStandard(GeneralModelClass):
                         plt.title(label)
                         ax = plt.subplot(4, 2, c + 1)
                         c = c + 2
-                        adv_image = self.generate_adversarial_image(image*1.0,
-                            label[0:self.n_cultures], adversarial_model[int(label[self.n_cultures])], epsilon=ep)[0]
-                        plt.imshow(adv_image/255.0)
+                        adv_image = self.generate_adversarial_image(
+                            image * 1.0,
+                            label[0 : self.n_cultures],
+                            adversarial_model[int(label[self.n_cultures])],
+                            epsilon=ep,
+                        )[0]
+                        plt.imshow(adv_image / 255.0)
                         plt.title(label)
                         plt.axis("off")
                     plt.show()
 
-        else: 
+        else:
             self.ModelSelection(
                 TS=TS,
                 VS=VS,
@@ -291,12 +313,12 @@ class AdversarialStandard(GeneralModelClass):
                 g=g,
                 save=save,
                 path=path,
-                adv=1, 
+                adv=1,
                 adversarial_model=None,
                 eps=eps,
-                class_division=0
+                class_division=0,
             )
-            adversarial_model=self.model
+            adversarial_model = self.model
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
             if show_imgs:
@@ -309,13 +331,16 @@ class AdversarialStandard(GeneralModelClass):
                         plt.title(label)
                         ax = plt.subplot(4, 2, c + 1)
                         c = c + 2
-                        adv_image = self.generate_adversarial_image(image*1.0,
-                            label[0:self.n_cultures], adversarial_model, epsilon=ep)[0]
-                        plt.imshow(adv_image/255.0)
+                        adv_image = self.generate_adversarial_image(
+                            image * 1.0,
+                            label[0 : self.n_cultures],
+                            adversarial_model,
+                            epsilon=ep,
+                        )[0]
+                        plt.imshow(adv_image / 255.0)
                         plt.title(label)
                         plt.axis("off")
                     plt.show()
-
 
         self.model = None
         self.ModelSelection(
@@ -335,7 +360,7 @@ class AdversarialStandard(GeneralModelClass):
             adv=0,
             adversarial_model=adversarial_model,
             eps=eps,
-            class_division=class_division
+            class_division=class_division,
         )
 
     def ModelSelection(
@@ -353,10 +378,10 @@ class AdversarialStandard(GeneralModelClass):
         g=0.1,
         save=False,
         path="./",
-        adv=0, # if 1-> adversarial model is trained, if 0 -> actual model is used
+        adv=0,  # if 1-> adversarial model is trained, if 0 -> actual model is used
         adversarial_model=None,
         eps=0.1,
-        class_division = 0
+        class_division=0,
     ):
 
         if self.verbose_param:
@@ -387,7 +412,7 @@ class AdversarialStandard(GeneralModelClass):
                             adv=adv,
                             adversarial_model=adversarial_model,
                             eps=eps,
-                            class_division = class_division
+                            class_division=class_division,
                         )
 
                         if loss < best_loss:
@@ -420,7 +445,7 @@ class AdversarialStandard(GeneralModelClass):
             adv=adv,
             adversarial_model=adversarial_model,
             eps=eps,
-            class_division = class_division
+            class_division=class_division,
         )
 
         if save:
@@ -434,14 +459,13 @@ class AdversarialStandard(GeneralModelClass):
         for i in range(len(X)):
             img = X[i]
             label = Y[i]
-            for i in range(int(1/self.weights[label.index(1.0)])): # I use the inverse of the total proportion for augmenting the dataset
-                newX.append(np.asarray(img)) # I do not need culture for training 
+            for i in range(
+                int(1 / self.weights[label.index(1.0)])
+            ):  # I use the inverse of the total proportion for augmenting the dataset
+                newX.append(np.asarray(img))  # I do not need culture for training
                 newY.append(np.asarray(label))
         del TS
         return (newX, newY)
-    
-    
-
 
     def DL(
         self,
@@ -457,12 +481,10 @@ class AdversarialStandard(GeneralModelClass):
         nDropout=0.2,
         g=0.1,
         val=True,
-        adv=0, # if 1-> adversarial model is trained, if 0 -> actual model is used
+        adv=0,  # if 1-> adversarial model is trained, if 0 -> actual model is used
         adversarial_model=None,
         eps=0.1,
-        class_division = 0
-
-
+        class_division=0,
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
@@ -471,7 +493,7 @@ class AdversarialStandard(GeneralModelClass):
                 monitor_val = "val_loss"
             else:
                 monitor_val = "loss"
-                
+
             data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
@@ -481,8 +503,7 @@ class AdversarialStandard(GeneralModelClass):
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
-            )     
-            
+            )
 
             if show_imgs and (not adv):
                 # DISPLAY IMAGES
@@ -497,9 +518,21 @@ class AdversarialStandard(GeneralModelClass):
                     plt.imshow(image)
                     plt.title(label)
                     ax = plt.subplot(4, 2, i + 5)
-                    adv_image = self.generate_adversarial_image(data_augmentation(image, training=aug)*1.0,
-                        label[0:self.n_cultures], adversarial_model, epsilon=eps)[0]
-                    plt.imshow(adv_image/255.0)
+                    if class_division:
+                        adv_image = self.generate_adversarial_image(
+                            data_augmentation(image, training=aug) * 1.0,
+                            label[0 : self.n_cultures],
+                            adversarial_model[int(label[self.n_cultures])],
+                            epsilon=eps,
+                        )[0]
+                    else:
+                        adv_image = self.generate_adversarial_image(
+                            data_augmentation(image, training=aug) * 1.0,
+                            label[0 : self.n_cultures],
+                            adversarial_model,
+                            epsilon=eps,
+                        )[0]
+                    plt.imshow(adv_image / 255.0)
                     plt.title(label)
                     plt.axis("off")
                 plt.show()
@@ -508,42 +541,51 @@ class AdversarialStandard(GeneralModelClass):
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
 
-            if adv: # adversarial model
+            if adv:  # adversarial model
                 train_generator = train_generator.map(
                     lambda img, y: (
                         data_augmentation(img, training=aug),
-                        y[0: self.n_cultures],
+                        y[0 : self.n_cultures],
                     )
                 )
             else:  # actual model
                 if class_division:
-                    train_generator = train_generator.map(
-                        lambda img, y: (
-                            self.generate_adversarial_image(data_augmentation(img, training=aug)*1.0,
-                            y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], epsilon=eps.astype(np.float32))[0], y[self.n_cultures]
+                    for (img, y) in train_generator:
+                        img, y =  (
+                            self.generate_adversarial_image(
+                                data_augmentation(img, training=aug) * 1.0,
+                                y[0 : self.n_cultures],
+                                adversarial_model[int(y[self.n_cultures])],
+                                epsilon=eps,
+                            )[0],
+                            y[self.n_cultures],
                         )
-                    )
                 else:
                     train_generator = train_generator.map(
                         lambda img, y: (
-                            self.generate_adversarial_image(data_augmentation(img, training=aug)*1.0,
-                            y[0:self.n_cultures], adversarial_model, epsilon=eps.astype(np.float32))[0], y[self.n_cultures]
+                            self.generate_adversarial_image(
+                                data_augmentation(img, training=aug) * 1.0,
+                                y[0 : self.n_cultures],
+                                adversarial_model,
+                                epsilon=eps,
+                            )[0],
+                            y[self.n_cultures],
                         )
                     )
-                
+            for (img, y) in train_generator:
+                print(y)
 
             train_generator = (
                 train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
             )
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
-                
 
                 if adv:
                     validation_generator = validation_generator.map(
                         lambda img, y: (
                             data_augmentation(img, training=aug),
-                            y[0: self.n_cultures],
+                            y[0 : self.n_cultures],
                         )
                     )
                 else:
@@ -558,8 +600,6 @@ class AdversarialStandard(GeneralModelClass):
                     .batch(batch_size)
                     .prefetch(buffer_size=10)
                 )
-
-            
 
             # DIVIDE IN BATCHES
             if aug:
@@ -612,7 +652,6 @@ class AdversarialStandard(GeneralModelClass):
                 outputs = keras.layers.Dense(1, activation="sigmoid")(x)
             self.model = keras.Model(inputs, outputs)
 
-            
             if adv:
                 bcemetric = keras.losses.CategoricalCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.CategoricalAccuracy()
@@ -638,7 +677,7 @@ class AdversarialStandard(GeneralModelClass):
             callbacks = [early, lr_reduce]
 
             # self.model.summary()
-            
+
             # MODEL TRAINING
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
@@ -653,7 +692,6 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
-                
             )
 
             # FINE TUNING
@@ -675,8 +713,7 @@ class AdversarialStandard(GeneralModelClass):
                 callbacks=callbacks,
             )
             tf.keras.backend.clear_session()
-            return  history.history[monitor_val][-1]
-
+            return history.history[monitor_val][-1]
 
     # @tf.function
     def train_loop(
@@ -697,16 +734,18 @@ class AdversarialStandard(GeneralModelClass):
         n=0,
         adv=0,
         adversarial_model=None,
-        eps=0
+        eps=0,
     ):
-        
+
         @tf.function
         def create_adversarial_pattern(model, input_image, input_label):
             with tf.device("/gpu:0"):
                 with tf.GradientTape() as tape:
                     tape.watch(input_image)
                     prediction = model(input_image)
-                    loss = tf.keras.losses.categorical_crossentropy(input_label, prediction)
+                    loss = tf.keras.losses.categorical_crossentropy(
+                        input_label, prediction
+                    )
 
                 gradient = tape.gradient(loss, input_image)
                 signed_grad = tf.sign(gradient)
@@ -765,7 +804,7 @@ class AdversarialStandard(GeneralModelClass):
             "val_loss": tf.constant(0.0, dtype=float),
         }
         for epoch in range(epochs):
-            
+
             sys.stdout.write("\r")
             tf.get_logger().info(f"Epoch: {epoch}")
             pbt = tf.keras.utils.Progbar(n)
@@ -775,8 +814,14 @@ class AdversarialStandard(GeneralModelClass):
             step = 0
             for x_batch_train, y_batch_train in train_dataset:
                 if adv:
-                    x_batch_train= generate_adversarial_samples(adversarial_model, x_batch_train, y_batch_train, x_batch_train.shape, epsilon=eps)
-                
+                    x_batch_train = generate_adversarial_samples(
+                        adversarial_model,
+                        x_batch_train,
+                        y_batch_train,
+                        x_batch_train.shape,
+                        epsilon=eps,
+                    )
+
                 train_step(x_batch_train, y_batch_train)
                 # print(f"loss value is {loss_value}")
 
