@@ -550,8 +550,9 @@ class AdversarialStandard(GeneralModelClass):
                 )
             else:  # actual model
                 if class_division:
-                    for (img, y) in train_generator:
-                        img, y =  (
+                    tf.compat.v1.enable_eager_execution()
+                    train_generator = train_generator.map(
+                        lambda img, y: (
                             self.generate_adversarial_image(
                                 data_augmentation(img, training=aug) * 1.0,
                                 y[0 : self.n_cultures],
@@ -560,6 +561,8 @@ class AdversarialStandard(GeneralModelClass):
                             )[0],
                             y[self.n_cultures],
                         )
+                    )
+                    tf.compat.v1.disable_eager_execution()
                 else:
                     train_generator = train_generator.map(
                         lambda img, y: (
@@ -572,8 +575,6 @@ class AdversarialStandard(GeneralModelClass):
                             y[self.n_cultures],
                         )
                     )
-            for (img, y) in train_generator:
-                print(y)
 
             train_generator = (
                 train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
