@@ -209,9 +209,9 @@ class AdversarialStandard(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=True,
+        show_imgs=False,
         batches=[32],
-        lrs=[1e-5],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -278,23 +278,19 @@ class AdversarialStandard(GeneralModelClass):
                 adversarial_model.append(self.model)
                 self.model = None
 
-            print(np.shape(TS))
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
                 prev_img = img
                 img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], eps)
-                print(img==prev_img)
             
-            print(np.shape(VS))
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
                 prev_img = img
                 img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], eps)
-                print(img==prev_img)
 
             if show_imgs:
                 for ep in epsilons:
@@ -338,14 +334,14 @@ class AdversarialStandard(GeneralModelClass):
                 class_division=0,
             )
             adversarial_model = self.model
-            print(np.shape(TS))
+            
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
                 prev_img = img
                 img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model, eps)
-                print(img==prev_img)
+                
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
@@ -353,7 +349,7 @@ class AdversarialStandard(GeneralModelClass):
                 y = ys[i]
                 prev_img = img
                 img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model, eps)
-                print(img==prev_img)
+                
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
             if show_imgs:
