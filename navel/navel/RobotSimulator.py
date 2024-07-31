@@ -17,7 +17,7 @@ from io import BytesIO
 
 ip = "130.251.13.139"
 
-url = "http://" + ip + ":5000/"
+url = "http://" + ip + ":5000"
 
 random.seed(time.time())
 
@@ -124,9 +124,9 @@ class RobotSimulator(Node):
 
         #img = base64.b64encode(img)
         msg = {'image': img, 'shape': str(size)}
-        print(msg)
         req = json.dumps(msg)
         headers = {'content_type': 'application/json'}
+        print(req)
         res = requests.post(url+'/image',data=req, verify=False)
         print(res)
         print(res.json())
