@@ -209,9 +209,9 @@ class AdversarialStandard(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=True,
+        show_imgs=False,
         batches=[32],
-        lrs=[1e-5],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -277,6 +277,21 @@ class AdversarialStandard(GeneralModelClass):
                 )
                 adversarial_model.append(self.model)
                 self.model = None
+
+            (imgs, ys) = TS[0], TS[1]
+            for i in range(len(imgs)):
+                img = imgs[i]
+                y = ys[i]
+                prev_img = img
+                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], eps)
+            
+            (imgs, ys) = VS[0], VS[1]
+            for i in range(len(imgs)):
+                img = imgs[i]
+                y = ys[i]
+                prev_img = img
+                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], eps)
+
             if show_imgs:
                 for ep in epsilons:
                     plt.figure(figsize=(10, 10))
@@ -319,6 +334,22 @@ class AdversarialStandard(GeneralModelClass):
                 class_division=0,
             )
             adversarial_model = self.model
+            
+            (imgs, ys) = TS[0], TS[1]
+            for i in range(len(imgs)):
+                img = imgs[i]
+                y = ys[i]
+                prev_img = img
+                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model, eps)
+                
+            
+            (imgs, ys) = VS[0], VS[1]
+            for i in range(len(imgs)):
+                img = imgs[i]
+                y = ys[i]
+                prev_img = img
+                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model, eps)
+                
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
             if show_imgs:
@@ -549,31 +580,12 @@ class AdversarialStandard(GeneralModelClass):
                     )
                 )
             else:  # actual model
-                if class_division:
-                    for (img, y) in train_generator:
-                        img, y =  (
-                            self.generate_adversarial_image(
-                                data_augmentation(img, training=aug) * 1.0,
-                                y[0 : self.n_cultures],
-                                adversarial_model[int(y[self.n_cultures])],
-                                epsilon=eps,
-                            )[0],
-                            y[self.n_cultures],
-                        )
-                else:
-                    train_generator = train_generator.map(
-                        lambda img, y: (
-                            self.generate_adversarial_image(
-                                data_augmentation(img, training=aug) * 1.0,
-                                y[0 : self.n_cultures],
-                                adversarial_model,
-                                epsilon=eps,
-                            )[0],
-                            y[self.n_cultures],
-                        )
+                train_generator = train_generator.map(
+                    lambda img, y: (
+                        data_augmentation(img, training=aug),
+                        y[self.n_cultures],
                     )
-            for (img, y) in train_generator:
-                print(y)
+                )
 
             train_generator = (
                 train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
