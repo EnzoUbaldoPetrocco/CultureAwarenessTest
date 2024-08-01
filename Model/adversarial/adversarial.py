@@ -83,6 +83,7 @@ class AdversarialStandard(GeneralModelClass):
         batch_size=1,
         weights=None,
         imbalanced=0,
+        class_division=0,
     ):
         """
         Initialization function for modeling standard ML models.
@@ -108,6 +109,7 @@ class AdversarialStandard(GeneralModelClass):
         self.epochs = epochs
         self.batch_size = batch_size
         self.weights = np.ones(self.n_cultures)
+        self.class_division = class_division
         if weights is not None:
             self.weights = weights
 
@@ -220,8 +222,8 @@ class AdversarialStandard(GeneralModelClass):
         save=False,
         path="./",
         eps=0.1,
-        class_division=1,
     ):
+        class_division = self.class_division
         if self.imbalanced:
             TS = self.ImbalancedTransformation(TS)
 

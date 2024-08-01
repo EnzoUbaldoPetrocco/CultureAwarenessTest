@@ -260,7 +260,8 @@ class ProcessingClass:
         gradcam=False,
         complete = 0,
         n_cultures=3,
-        imbalanced=0
+        imbalanced=0,
+        class_division= 0
     ):
         """
         process function prepares the data and fit the model
@@ -319,7 +320,8 @@ class ProcessingClass:
                     epochs=epochs,
                     batch_size=batch_size,
                     weights=weights,
-                    imbalanced=imbalanced
+                    imbalanced=imbalanced,
+                    class_division= class_division
                     
                 )
             else:
@@ -401,12 +403,20 @@ class ProcessingClass:
         self.basePath = self.basePath + c + str(percent) + "/"
         if augment:
             if adversary:
-                aug = f"TOTAUG/g={gaug}/"
+                aug = f"TOTAUG/g={gaug}/eps={eps}/"
+                if class_division:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
             else:
                 aug = f"STDAUG/g={gaug}/"
         else:
             if adversary:
-                aug = "AVD/"
+                aug = f"AVD/eps={eps}/"
+                if class_division:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
             else:
                 aug = "NOAUG/"
 
