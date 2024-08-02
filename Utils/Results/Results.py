@@ -43,6 +43,7 @@ class ResultsClass:
         """
         This function converts the analysis to Pandas DataFrame
         """
+
         def convert_to_percentage(value):
             """
             This function converts a value to percentages, using 2 decimals
@@ -54,7 +55,6 @@ class ResultsClass:
             for i in range(3):
                 ls.append(convert_to_percentage(self.meanErrors[i]))
                 ls.append(convert_to_percentage(self.meanError_stds[i]))
-                
 
             ERR = convert_to_percentage(np.mean(self.meanErrors))
             ls.append(ERR)
@@ -173,7 +173,7 @@ class ResultsClass:
                 stdfp_i += (fp - mean_fp) ** 2
             std_matrix = np.array([[stdtn_i, stdfp_i], [stdfn_i, stdtp_i]])
             std_matrix = np.sqrt(std_matrix) / len(pcms)
-            #std_matrix = np.power(std_matrix, 2)
+            # std_matrix = np.power(std_matrix, 2)
             return mean_matrix, std_matrix
         else:
             return [], []
@@ -188,7 +188,7 @@ class ResultsClass:
             return -1
         return pcm[0][0] + pcm[1][1]
 
-    def get_error(self, pcm): 
+    def get_error(self, pcm):
         """
         Given a percentage confusion matrix, it returns the error
         :param pcm: confusion matrix
@@ -197,7 +197,7 @@ class ResultsClass:
         if len(pcm) <= 0:
             return -1
         return 1 - self.get_accuracy(pcm)
-    
+
     # FP
     def get_meanFP(self, pcms):
         """
@@ -301,7 +301,6 @@ class ResultsClass:
             return -1
         mean_pcms = self.get_statistics_pcm(pcms)[0]
         return self.get_error(mean_pcms)
-    
 
     def get_error_std(self, std_pcm):
         """
@@ -327,7 +326,7 @@ class ResultsClass:
     # CIC
     def get_CIC(self, c_pcms):
         """
-        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric. 
+        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric.
         With CIC = 1/|C| * sum |ERR^C-min(ERR^C)|
         :param c_pcms: list of percentage confusion matrices subdivided in cultures
         :return CIC
@@ -355,7 +354,7 @@ class ResultsClass:
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
         """
-        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric. 
+        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric.
         With CIC standard deviation
         :param c_pcms: list of percentage confusion matrices subdivided in cultures
         :param n_cultures: number of cultures
@@ -446,16 +445,18 @@ class ResAcquisitionClass:
         t_cult=0,
         out=0,
         g_augment=0,
-        imbalanced=0
+        eps=0,
+        class_division=0,
+        imbalanced=0,
     ):
         if standard:
             basePath = basePath + "STD/" + alg
         else:
             basePath = basePath + "MIT/" + alg
         if imbalanced:
-            basePath= basePath + "/IMB/"
+            basePath = basePath + "/IMB/"
         else:
-            basePath= basePath + "/BAL/"
+            basePath = basePath + "/BAL/"
         if lamp:
             if culture == 0:
                 c = "/LC/"
@@ -477,12 +478,20 @@ class ResAcquisitionClass:
         basePath = basePath + c + str(percent) + "/"
         if augment:
             if adversary:
-                aug = f"TOTAUG/g={g_augment}/"
+                aug = f"TOTAUG/g={g_augment}/eps={eps}"
+                if class_division:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
             else:
                 aug = f"STDAUG/g={g_augment}/"
         else:
             if adversary:
-                aug = "AVD/"
+                aug = f"AVD/eps={eps}"
+                if class_division:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
             else:
                 aug = "NOAUG/"
 
@@ -526,8 +535,12 @@ class ResAcquisitionClass:
         cultures = [0, 1, 2]
         percents = [0.05]
         augments = [0, 1]
-        g_augments = np.logspace(-4, -1, 11) #[0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-        adversary = [0]
+
+        g_augments = np.logspace(-4, -1, 11)
+        epsilons = np.logspace(
+            -4, 0, 6
+        )  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
+        adversary = [0, 1]
         lambda_indeces = range(-1, 13)
         taugments = [0]
         tadversaries = [0]
@@ -537,15 +550,220 @@ class ResAcquisitionClass:
         imbalanceds = [0, 1]
 
         for standard in standards:
-         for imb in imbalanceds:
-            for lamp in lamps:
-                for culture in cultures:
-                    for percent in percents:
-                        for augment in augments:
-                            if augment:
-                                for g_augment in g_augments:
-                                    for adv in adversary:
-                                        for adv in adversary:
+            for imb in imbalanceds:
+                for lamp in lamps:
+                    for culture in cultures:
+                        for percent in percents:
+                            for augment in augments:
+                                for adv in adversary:
+                                    if augment:
+                                        if adv:
+                                            for g_augment in g_augments:
+                                                for eps in epsilons:
+                                                    for class_division in [0, 1]:
+                                                        if standard == 0:
+                                                            for (
+                                                                lambda_index
+                                                            ) in lambda_indeces:
+                                                                for (
+                                                                    taugment
+                                                                ) in taugments:
+                                                                    for (
+                                                                        tadversary
+                                                                    ) in tadversaries:
+                                                                        for (
+                                                                            tgaug
+                                                                        ) in (
+                                                                            test_g_augs
+                                                                        ):
+                                                                            for (
+                                                                                teps
+                                                                            ) in (
+                                                                                test_eps
+                                                                            ):
+                                                                                tcultsl = (
+                                                                                    []
+                                                                                )
+                                                                                for t_cult in t_cults:
+                                                                                    path = self.buildPath(
+                                                                                        basePath,
+                                                                                        standard,
+                                                                                        alg,
+                                                                                        lamp,
+                                                                                        culture,
+                                                                                        percent,
+                                                                                        augment,
+                                                                                        adv,
+                                                                                        lambda_index,
+                                                                                        taugment,
+                                                                                        tadversary,
+                                                                                        tgaug,
+                                                                                        teps,
+                                                                                        t_cult,
+                                                                                        t_cult,
+                                                                                        g_augment=g_augment,
+                                                                                        eps=eps,
+                                                                                        class_division=class_division,
+                                                                                        imbalanced=imb,
+                                                                                    )
+                                                                                    outsl = self.get_cm_list(
+                                                                                        path
+                                                                                    )
+                                                                                    tcultsl.append(
+                                                                                        outsl
+                                                                                    )
+
+                                                                                tempst = path.split(
+                                                                                    "/"
+                                                                                )
+                                                                                tempst2 = (
+                                                                                    "./"
+                                                                                )
+                                                                                for (
+                                                                                    i
+                                                                                ) in range(
+                                                                                    3,
+                                                                                    len(
+                                                                                        tempst
+                                                                                    )
+                                                                                    - 2,
+                                                                                ):
+                                                                                    tempst2 += (
+                                                                                        tempst[
+                                                                                            i
+                                                                                        ]
+                                                                                        + "/"
+                                                                                    )
+                                                                                st = tempst2
+                                                                                dir = os.path.dirname(
+                                                                                    st
+                                                                                )
+                                                                                mkdir(
+                                                                                    dir
+                                                                                )
+                                                                                rc = ResultsClass(
+                                                                                    np.asarray(
+                                                                                        tcultsl
+                                                                                    )
+                                                                                )
+                                                                                weights = [
+                                                                                    percent
+                                                                                ] * len(
+                                                                                    cultures
+                                                                                )
+                                                                                weights[
+                                                                                    culture
+                                                                                ] = (
+                                                                                    weights[
+                                                                                        culture
+                                                                                    ]
+                                                                                    / percent
+                                                                                )
+                                                                                data = rc.to_df(
+                                                                                    weights
+                                                                                )
+                                                                                data.to_csv(
+                                                                                    st
+                                                                                    + "res.csv"
+                                                                                )
+                                                        else:
+                                                            for taugment in taugments:
+                                                                for (
+                                                                    tadversary
+                                                                ) in tadversaries:
+                                                                    for (
+                                                                        tgaug
+                                                                    ) in test_g_augs:
+                                                                        for (
+                                                                            teps
+                                                                        ) in test_eps:
+                                                                            tcultsl = []
+                                                                            for (
+                                                                                t_cult
+                                                                            ) in (
+                                                                                t_cults
+                                                                            ):
+                                                                                path = self.buildPath(
+                                                                                    basePath,
+                                                                                    standard,
+                                                                                    alg,
+                                                                                    lamp,
+                                                                                    culture,
+                                                                                    percent,
+                                                                                    augment,
+                                                                                    adv,
+                                                                                    0,
+                                                                                    taugment,
+                                                                                    tadversary,
+                                                                                    tgaug,
+                                                                                    teps,
+                                                                                    t_cult,
+                                                                                    t_cult,
+                                                                                    g_augment=g_augment,
+                                                                                    eps=eps,
+                                                                                    class_division=class_division,
+                                                                                    imbalanced=imb,
+                                                                                )
+                                                                                outsl = self.get_cm_list(
+                                                                                    path
+                                                                                )
+                                                                                tcultsl.append(
+                                                                                    outsl
+                                                                                )
+
+                                                                            tempst = path.split(
+                                                                                "/"
+                                                                            )
+                                                                            tempst2 = (
+                                                                                "./"
+                                                                            )
+                                                                            for (
+                                                                                i
+                                                                            ) in range(
+                                                                                3,
+                                                                                len(
+                                                                                    tempst
+                                                                                )
+                                                                                - 2,
+                                                                            ):
+                                                                                tempst2 += (
+                                                                                    tempst[
+                                                                                        i
+                                                                                    ]
+                                                                                    + "/"
+                                                                                )
+                                                                            st = tempst2
+                                                                            dir = os.path.dirname(
+                                                                                st
+                                                                            )
+                                                                            mkdir(dir)
+                                                                            rc = ResultsClass(
+                                                                                np.asarray(
+                                                                                    tcultsl
+                                                                                )
+                                                                            )
+                                                                            weights = [
+                                                                                percent
+                                                                            ] * len(
+                                                                                cultures
+                                                                            )
+                                                                            weights[
+                                                                                culture
+                                                                            ] = (
+                                                                                weights[
+                                                                                    culture
+                                                                                ]
+                                                                                / percent
+                                                                            )
+                                                                            data = rc.to_df(
+                                                                                weights
+                                                                            )
+                                                                            data.to_csv(
+                                                                                st
+                                                                                + "res.csv"
+                                                                            )
+                                        else:
+                                         for g_augment in g_augments:
                                             if standard == 0:
                                                 for lambda_index in lambda_indeces:
                                                     for taugment in taugments:
@@ -553,7 +771,9 @@ class ResAcquisitionClass:
                                                             for tgaug in test_g_augs:
                                                                 for teps in test_eps:
                                                                     tcultsl = []
-                                                                    for t_cult in t_cults:
+                                                                    for (
+                                                                        t_cult
+                                                                    ) in t_cults:
                                                                         path = self.buildPath(
                                                                             basePath,
                                                                             standard,
@@ -570,30 +790,54 @@ class ResAcquisitionClass:
                                                                             teps,
                                                                             t_cult,
                                                                             t_cult,
+                                                                            
                                                                             g_augment=g_augment,
-                                                                            imbalanced=imb
+                                                                            imbalanced=imb,
                                                                         )
                                                                         outsl = self.get_cm_list(
                                                                             path
                                                                         )
-                                                                        tcultsl.append(outsl)
+                                                                        tcultsl.append(
+                                                                            outsl
+                                                                        )
 
-                                                                    tempst = path.split("/")
+                                                                    tempst = path.split(
+                                                                        "/"
+                                                                    )
                                                                     tempst2 = "./"
                                                                     for i in range(
-                                                                        3, len(tempst) - 2
+                                                                        3,
+                                                                        len(tempst) - 2,
                                                                     ):
-                                                                        tempst2 += tempst[i] + "/"
+                                                                        tempst2 += (
+                                                                            tempst[i]
+                                                                            + "/"
+                                                                        )
                                                                     st = tempst2
-                                                                    dir = os.path.dirname(st)
+                                                                    dir = (
+                                                                        os.path.dirname(
+                                                                            st
+                                                                        )
+                                                                    )
                                                                     mkdir(dir)
                                                                     rc = ResultsClass(
-                                                                        np.asarray(tcultsl)
+                                                                        np.asarray(
+                                                                            tcultsl
+                                                                        )
                                                                     )
-                                                                    weights = [percent]*len(cultures)
-                                                                    weights[culture]= weights[culture]/percent
-                                                                    data = rc.to_df(weights)
-                                                                    data.to_csv(st + "res.csv")
+                                                                    weights = [
+                                                                        percent
+                                                                    ] * len(cultures)
+                                                                    weights[culture] = (
+                                                                        weights[culture]
+                                                                        / percent
+                                                                    )
+                                                                    data = rc.to_df(
+                                                                        weights
+                                                                    )
+                                                                    data.to_csv(
+                                                                        st + "res.csv"
+                                                                    )
                                             else:
                                                 for taugment in taugments:
                                                     for tadversary in tadversaries:
@@ -618,118 +862,368 @@ class ResAcquisitionClass:
                                                                         t_cult,
                                                                         t_cult,
                                                                         g_augment=g_augment,
-                                                                        imbalanced=imb
+                                                                        imbalanced=imb,
                                                                     )
-                                                                    outsl = self.get_cm_list(path)
-                                                                    tcultsl.append(outsl)
+                                                                    outsl = self.get_cm_list(
+                                                                        path
+                                                                    )
+                                                                    tcultsl.append(
+                                                                        outsl
+                                                                    )
 
                                                                 tempst = path.split("/")
                                                                 tempst2 = "./"
-                                                                for i in range(3, len(tempst) - 2):
-                                                                    tempst2 += tempst[i] + "/"
+                                                                for i in range(
+                                                                    3,
+                                                                    len(tempst) - 2,
+                                                                ):
+                                                                    tempst2 += (
+                                                                        tempst[i] + "/"
+                                                                    )
                                                                 st = tempst2
-                                                                dir = os.path.dirname(st)
+                                                                dir = os.path.dirname(
+                                                                    st
+                                                                )
                                                                 mkdir(dir)
                                                                 rc = ResultsClass(
                                                                     np.asarray(tcultsl)
                                                                 )
-                                                                weights = [percent]*len(cultures)
-                                                                weights[culture]= weights[culture]/percent
+                                                                weights = [
+                                                                    percent
+                                                                ] * len(cultures)
+                                                                weights[culture] = (
+                                                                    weights[culture]
+                                                                    / percent
+                                                                )
                                                                 data = rc.to_df(weights)
-                                                                data.to_csv(st + "res.csv")
-                            else:
-                                for adv in adversary:
-                                    if standard == 0:
-                                        for lambda_index in lambda_indeces:
-                                            for taugment in taugments:
-                                                for tadversary in tadversaries:
-                                                    for tgaug in test_g_augs:
-                                                        for teps in test_eps:
-                                                            tcultsl = []
-                                                            for t_cult in t_cults:
-                                                                path = self.buildPath(
-                                                                    basePath,
-                                                                    standard,
-                                                                    alg,
-                                                                    lamp,
-                                                                    culture,
-                                                                    percent,
-                                                                    augment,
-                                                                    adv,
-                                                                    lambda_index,
-                                                                    taugment,
-                                                                    tadversary,
-                                                                    tgaug,
-                                                                    teps,
-                                                                    t_cult,
-                                                                    t_cult,
-                                                                    imbalanced=imb
+                                                                data.to_csv(
+                                                                    st + "res.csv"
                                                                 )
-                                                                outsl = self.get_cm_list(
-                                                                    path
-                                                                )
-                                                                tcultsl.append(outsl)
-
-                                                            tempst = path.split("/")
-                                                            tempst2 = "./"
-                                                            for i in range(
-                                                                3, len(tempst) - 2
-                                                            ):
-                                                                tempst2 += tempst[i] + "/"
-                                                            st = tempst2
-                                                            dir = os.path.dirname(st)
-                                                            mkdir(dir)
-                                                            rc = ResultsClass(
-                                                                np.asarray(tcultsl)
-                                                            )
-                                                            weights = [percent]*len(cultures)
-                                                            weights[culture]= weights[culture]/percent
-                                                            data = rc.to_df(weights)
-                                                            data.to_csv(st + "res.csv")
                                     else:
-                                        for taugment in taugments:
-                                            for tadversary in tadversaries:
-                                                for tgaug in test_g_augs:
-                                                    for teps in test_eps:
-                                                        tcultsl = []
-                                                        for t_cult in t_cults:
-                                                            path = self.buildPath(
-                                                                basePath,
-                                                                standard,
-                                                                alg,
-                                                                lamp,
-                                                                culture,
-                                                                percent,
-                                                                augment,
-                                                                adv,
-                                                                0,
-                                                                taugment,
-                                                                tadversary,
-                                                                tgaug,
-                                                                teps,
-                                                                t_cult,
-                                                                t_cult,
-                                                                imbalanced=imb
-                                                            )
-                                                            outsl = self.get_cm_list(path)
-                                                            tcultsl.append(outsl)
+                                        if adv:
+                                            for eps in epsilons:
+                                                for class_division in [0, 1]:
+                                                    if standard == 0:
+                                                        for (
+                                                            lambda_index
+                                                        ) in lambda_indeces:
+                                                            for taugment in taugments:
+                                                                for (
+                                                                    tadversary
+                                                                ) in tadversaries:
+                                                                    for (
+                                                                        tgaug
+                                                                    ) in test_g_augs:
+                                                                        for (
+                                                                            teps
+                                                                        ) in test_eps:
+                                                                            tcultsl = []
+                                                                            for (
+                                                                                t_cult
+                                                                            ) in (
+                                                                                t_cults
+                                                                            ):
+                                                                                path = self.buildPath(
+                                                                                    basePath,
+                                                                                    standard,
+                                                                                    alg,
+                                                                                    lamp,
+                                                                                    culture,
+                                                                                    percent,
+                                                                                    augment,
+                                                                                    adv,
+                                                                                    lambda_index,
+                                                                                    taugment,
+                                                                                    tadversary,
+                                                                                    tgaug,
+                                                                                    teps,
+                                                                                    t_cult,
+                                                                                    t_cult,
+                                                                                    eps=eps,
+                                                                                    class_division=class_division,
+                                                                                    imbalanced=imb,
+                                                                                )
+                                                                                outsl = self.get_cm_list(
+                                                                                    path
+                                                                                )
+                                                                                tcultsl.append(
+                                                                                    outsl
+                                                                                )
 
-                                                        tempst = path.split("/")
-                                                        tempst2 = "./"
-                                                        for i in range(3, len(tempst) - 2):
-                                                            tempst2 += tempst[i] + "/"
-                                                        st = tempst2
-                                                        dir = os.path.dirname(st)
-                                                        mkdir(dir)
-                                                        rc = ResultsClass(
-                                                            np.asarray(tcultsl)
-                                                        )
-                                                        weights = [percent]*len(cultures)
-                                                        weights[culture]= weights[culture]/percent
-                                                        data = rc.to_df(weights)
-                                                        data.to_csv(st + "res.csv")
-                                                        
+                                                                            tempst = path.split(
+                                                                                "/"
+                                                                            )
+                                                                            tempst2 = (
+                                                                                "./"
+                                                                            )
+                                                                            for (
+                                                                                i
+                                                                            ) in range(
+                                                                                3,
+                                                                                len(
+                                                                                    tempst
+                                                                                )
+                                                                                - 2,
+                                                                            ):
+                                                                                tempst2 += (
+                                                                                    tempst[
+                                                                                        i
+                                                                                    ]
+                                                                                    + "/"
+                                                                                )
+                                                                            st = tempst2
+                                                                            dir = os.path.dirname(
+                                                                                st
+                                                                            )
+                                                                            mkdir(dir)
+                                                                            rc = ResultsClass(
+                                                                                np.asarray(
+                                                                                    tcultsl
+                                                                                )
+                                                                            )
+                                                                            weights = [
+                                                                                percent
+                                                                            ] * len(
+                                                                                cultures
+                                                                            )
+                                                                            weights[
+                                                                                culture
+                                                                            ] = (
+                                                                                weights[
+                                                                                    culture
+                                                                                ]
+                                                                                / percent
+                                                                            )
+                                                                            data = rc.to_df(
+                                                                                weights
+                                                                            )
+                                                                            data.to_csv(
+                                                                                st
+                                                                                + "res.csv"
+                                                                            )
+                                                    else:
+                                                        for taugment in taugments:
+                                                            for (
+                                                                tadversary
+                                                            ) in tadversaries:
+                                                                for (
+                                                                    tgaug
+                                                                ) in test_g_augs:
+                                                                    for (
+                                                                        teps
+                                                                    ) in test_eps:
+                                                                        tcultsl = []
+                                                                        for (
+                                                                            t_cult
+                                                                        ) in t_cults:
+                                                                            path = self.buildPath(
+                                                                                basePath,
+                                                                                standard,
+                                                                                alg,
+                                                                                lamp,
+                                                                                culture,
+                                                                                percent,
+                                                                                augment,
+                                                                                adv,
+                                                                                0,
+                                                                                taugment,
+                                                                                tadversary,
+                                                                                tgaug,
+                                                                                teps,
+                                                                                t_cult,
+                                                                                t_cult,
+                                                                                eps=eps,
+                                                                                class_division=class_division,
+                                                                                imbalanced=imb,
+                                                                            )
+                                                                            outsl = self.get_cm_list(
+                                                                                path
+                                                                            )
+                                                                            tcultsl.append(
+                                                                                outsl
+                                                                            )
 
+                                                                        tempst = (
+                                                                            path.split(
+                                                                                "/"
+                                                                            )
+                                                                        )
+                                                                        tempst2 = "./"
+                                                                        for i in range(
+                                                                            3,
+                                                                            len(tempst)
+                                                                            - 2,
+                                                                        ):
+                                                                            tempst2 += (
+                                                                                tempst[
+                                                                                    i
+                                                                                ]
+                                                                                + "/"
+                                                                            )
+                                                                        st = tempst2
+                                                                        dir = os.path.dirname(
+                                                                            st
+                                                                        )
+                                                                        mkdir(dir)
+                                                                        rc = ResultsClass(
+                                                                            np.asarray(
+                                                                                tcultsl
+                                                                            )
+                                                                        )
+                                                                        weights = [
+                                                                            percent
+                                                                        ] * len(
+                                                                            cultures
+                                                                        )
+                                                                        weights[
+                                                                            culture
+                                                                        ] = (
+                                                                            weights[
+                                                                                culture
+                                                                            ]
+                                                                            / percent
+                                                                        )
+                                                                        data = rc.to_df(
+                                                                            weights
+                                                                        )
+                                                                        data.to_csv(
+                                                                            st
+                                                                            + "res.csv"
+                                                                        )
+                                        else:
+
+                                            if standard == 0:
+                                                for lambda_index in lambda_indeces:
+                                                    for taugment in taugments:
+                                                        for tadversary in tadversaries:
+                                                            for tgaug in test_g_augs:
+                                                                for teps in test_eps:
+                                                                    tcultsl = []
+                                                                    for (
+                                                                        t_cult
+                                                                    ) in t_cults:
+                                                                        path = self.buildPath(
+                                                                            basePath,
+                                                                            standard,
+                                                                            alg,
+                                                                            lamp,
+                                                                            culture,
+                                                                            percent,
+                                                                            augment,
+                                                                            adv,
+                                                                            lambda_index,
+                                                                            taugment,
+                                                                            tadversary,
+                                                                            tgaug,
+                                                                            teps,
+                                                                            t_cult,
+                                                                            t_cult,
+                                                                            imbalanced=imb,
+                                                                        )
+                                                                        outsl = self.get_cm_list(
+                                                                            path
+                                                                        )
+                                                                        tcultsl.append(
+                                                                            outsl
+                                                                        )
+
+                                                                    tempst = path.split(
+                                                                        "/"
+                                                                    )
+                                                                    tempst2 = "./"
+                                                                    for i in range(
+                                                                        3,
+                                                                        len(tempst) - 2,
+                                                                    ):
+                                                                        tempst2 += (
+                                                                            tempst[i]
+                                                                            + "/"
+                                                                        )
+                                                                    st = tempst2
+                                                                    dir = (
+                                                                        os.path.dirname(
+                                                                            st
+                                                                        )
+                                                                    )
+                                                                    mkdir(dir)
+                                                                    rc = ResultsClass(
+                                                                        np.asarray(
+                                                                            tcultsl
+                                                                        )
+                                                                    )
+                                                                    weights = [
+                                                                        percent
+                                                                    ] * len(cultures)
+                                                                    weights[culture] = (
+                                                                        weights[culture]
+                                                                        / percent
+                                                                    )
+                                                                    data = rc.to_df(
+                                                                        weights
+                                                                    )
+                                                                    data.to_csv(
+                                                                        st + "res.csv"
+                                                                    )
+                                            else:
+                                                for taugment in taugments:
+                                                    for tadversary in tadversaries:
+                                                        for tgaug in test_g_augs:
+                                                            for teps in test_eps:
+                                                                tcultsl = []
+                                                                for t_cult in t_cults:
+                                                                    path = self.buildPath(
+                                                                        basePath,
+                                                                        standard,
+                                                                        alg,
+                                                                        lamp,
+                                                                        culture,
+                                                                        percent,
+                                                                        augment,
+                                                                        adv,
+                                                                        0,
+                                                                        taugment,
+                                                                        tadversary,
+                                                                        tgaug,
+                                                                        teps,
+                                                                        t_cult,
+                                                                        t_cult,
+                                                                        imbalanced=imb,
+                                                                    )
+                                                                    outsl = self.get_cm_list(
+                                                                        path
+                                                                    )
+                                                                    tcultsl.append(
+                                                                        outsl
+                                                                    )
+
+                                                                tempst = path.split("/")
+                                                                tempst2 = "./"
+                                                                for i in range(
+                                                                    3,
+                                                                    len(tempst) - 2,
+                                                                ):
+                                                                    tempst2 += (
+                                                                        tempst[i] + "/"
+                                                                    )
+                                                                st = tempst2
+                                                                dir = os.path.dirname(
+                                                                    st
+                                                                )
+                                                                mkdir(dir)
+                                                                rc = ResultsClass(
+                                                                    np.asarray(tcultsl)
+                                                                )
+                                                                weights = [
+                                                                    percent
+                                                                ] * len(cultures)
+                                                                weights[culture] = (
+                                                                    weights[culture]
+                                                                    / percent
+                                                                )
+                                                                data = rc.to_df(weights)
+                                                                data.to_csv(
+                                                                    st + "res.csv"
+                                                                )
 
 
 def mkdir(dir):

@@ -213,7 +213,7 @@ class AdversarialStandard(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[1e-2],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
