@@ -86,7 +86,7 @@ for i in range(4):
          for c in cs:
             for k in ks:
                 for ep in eps:
-                    for cl_div in class_divisions:
+                    
                         if k%2==1:
                             for g_aug in g_gaugs:
                                 model = None
@@ -110,7 +110,7 @@ for i in range(4):
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
-                                    class_division= cl_div
+                                    class_division= 0
                                 )
                                 # NoAUg
                                 print(f"Testing->aug={0};adv={0}")
@@ -146,7 +146,7 @@ for i in range(4):
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,
-                                class_division= cl_div
+                                class_division= 0
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")
