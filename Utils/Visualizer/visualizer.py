@@ -233,7 +233,9 @@ def perstr2float(val):
     return val
 
 
-def plotandsave(stddf, mitdfs, plot=True, title="", save=False, path="./", weighted=True):
+def plotandsave(
+    stddf, mitdfs, plot=True, title="", save=False, path="./", weighted=True
+):
     """
     This function plots in CIC-ERR plane the CIC(ERR) value of standard model
     and the CIC(ERR, gamma) values of mitigated model
@@ -404,7 +406,7 @@ def graphic_lambdas_comparison(
                                                 tadversary=tadversary,
                                                 tgaug=tgaug,
                                                 teps=teps,
-                                                imbalanced=imb
+                                                imbalanced=imb,
                                             )
 
                                             pt = pt.split("/")
@@ -430,7 +432,7 @@ def graphic_lambdas_comparison(
                                                     tadversary=tadversary,
                                                     tgaug=tgaug,
                                                     teps=teps,
-                                                    imbalanced=imb
+                                                    imbalanced=imb,
                                                 )
                                                 pt = pt.split("/")
                                                 pt = pt[: len(pt) - 2]
@@ -477,7 +479,7 @@ def graphic_lambdas_comparison(
                                             tadversary=tadversary,
                                             tgaug=tgaug,
                                             teps=0,
-                                            imbalanced=imb
+                                            imbalanced=imb,
                                         )
 
                                         pt = pt.split("/")
@@ -503,7 +505,7 @@ def graphic_lambdas_comparison(
                                                 tadversary=tadversary,
                                                 tgaug=tgaug,
                                                 teps=0,
-                                                imbalanced=imb
+                                                imbalanced=imb,
                                             )
                                             pt = pt.split("/")
                                             pt = pt[: len(pt) - 2]
@@ -550,7 +552,7 @@ def graphic_lambdas_comparison(
                                             tadversary=tadversary,
                                             tgaug=0,
                                             teps=teps,
-                                            imbalanced=imb
+                                            imbalanced=imb,
                                         )
                                         pt = pt.split("/")
                                         pt = pt[0 : len(pt) - 2]
@@ -575,7 +577,7 @@ def graphic_lambdas_comparison(
                                                 tadversary=tadversary,
                                                 tgaug=0,
                                                 teps=teps,
-                                                imbalanced=imb
+                                                imbalanced=imb,
                                             )
                                             pt = pt.split("/")
                                             pt = pt[: len(pt) - 2]
@@ -621,7 +623,7 @@ def graphic_lambdas_comparison(
                                         tadversary=tadversary,
                                         tgaug=0,
                                         teps=0,
-                                        imbalanced=imb
+                                        imbalanced=imb,
                                     )
                                     pt = pt.split("/")
                                     pt = pt[0 : len(pt) - 2]
@@ -646,7 +648,7 @@ def graphic_lambdas_comparison(
                                             tadversary=tadversary,
                                             tgaug=0,
                                             teps=0,
-                                            imbalanced=imb
+                                            imbalanced=imb,
                                         )
                                         pt = pt.split("/")
                                         pt = pt[: len(pt) - 2]
@@ -680,10 +682,10 @@ def graphic_lambdas_comparison(
 def sort_errs(errs):
     res = []
     errs = np.asarray(errs, dtype=object)
-    
+
     for i in range(len(errs)):
-        err = min(errs[:,0])
-        j = np.where(errs[:,0] == err)[0][0]
+        err = min(errs[:, 0])
+        j = np.where(errs[:, 0] == err)[0][0]
         idx = errs[j, 1]
         res.append([err, idx])
         errs = np.delete(errs, j, 0)
@@ -695,15 +697,13 @@ def sort_errs(errs):
 def get_best_df_gamma(mitdfs, tau=0.3, weighted=True):
     ERRString = "ERR"
     if weighted:
-        ERRString="W_ERR"
+        ERRString = "W_ERR"
     errs = []
     cics = []
     n = int(len(mitdfs) * tau)
-    #print(f"\n\n\n\n")
-    #print(f"n is {n}")
     for i, mitdf in enumerate(mitdfs):
         err = perstr2float(mitdf[f"{ERRString}"][0])
-        if err >0:
+        if err > 0:
             errs.append([err, i])
             cic = perstr2float(mitdf["CIC"][0])
             cics.append(cic)
@@ -712,7 +712,7 @@ def get_best_df_gamma(mitdfs, tau=0.3, weighted=True):
             cics.append(100)
 
     errs = np.asarray(errs, dtype=object)
-    
+
     tempcics = [cics[int(i)] for i in errs[:, 1]]
 
     cicstar = min(tempcics)
@@ -737,12 +737,12 @@ def get_test_name(taug, tadv, gaug=0, geps=0):
 
 class Res2TabClass:
     def borderTop(self, strRow, srRow):
-        #print(strRow, type(sRow), sRow.name)
+        # print(strRow, type(sRow), sRow.name)
         """if srRow.index%4 == 0:
             return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
         else:
             return [""] * len(srRow)"""
-        return [ "border-top: 1pt solid black; font-weight: bold" for sCol in srRow ]
+        return ["border-top: 1pt solid black; font-weight: bold" for sCol in srRow]
 
     def convert2list(self, test_name, df):
         res = [
@@ -765,26 +765,25 @@ class Res2TabClass:
     def get_path(self, base, lamp, culture, percent, imbalanced):
         pt = base
         if imbalanced:
-            pt += '/IMB/'
+            pt += "/IMB/"
         else:
-            pt += '/BAL/'
+            pt += "/BAL/"
         if lamp:
             if culture == 0:
                 pt += "LC/"
             if culture == 1:
                 pt += "LF/"
             if culture == 2:
-                pt += 'LT/'
+                pt += "LT/"
         else:
             if culture == 0:
                 pt += "CI/"
             if culture == 1:
                 pt += "CJ/"
             if culture == 2:
-                pt += 'CS/'
+                pt += "CS/"
 
-        pt += str(percent) + '/'
-
+        pt += str(percent) + "/"
 
         return pt
 
@@ -837,7 +836,6 @@ class Res2TabClass:
                     name = "CS"
 
             name += f" with p_u={percent}"
-            
 
             return name, columns
 
@@ -853,8 +851,6 @@ class Res2TabClass:
         # ...
         # Using TAU=0.1, we have to select the right LAMBDA
 
-        
-
         resacqobj = ResAcquisitionClass()
 
         alg = "DL"
@@ -862,9 +858,12 @@ class Res2TabClass:
         cultures = [0, 1, 2]
         percents = [0.05]
         augments = [0, 1]
-        adversary = [0]
-        g_augments = np.logspace(-4, -1, 11)  #[0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-
+        adversary = [0, 1]
+        g_augments = np.logspace(-4, -1, 11)
+        epsilons = np.logspace(
+            -4, 0, 6
+        )  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
+        adversary = [0, 1]
         taugments = [0, 1]
         tadversaries = [0, 1]
         test_g_augs = [0.01, 0.05, 0.1]
@@ -874,92 +873,161 @@ class Res2TabClass:
         t_cults = [0, 1, 2]
         imbalanceds = [0, 1]
         for lamp in lamps:
-         for imb in imbalanceds:
-            for culture in cultures:
-                for percent in percents:
+            for imb in imbalanceds:
+                for culture in cultures:
+                    for percent in percents:
                         # Here we have to divide the DataFrames
-                        name, columns = get_name_column(
-                            lamp, culture, percent
-                        )
+                        name, columns = get_name_column(lamp, culture, percent)
 
                         df = pd.DataFrame(columns=columns)
-                        for aug in augments:
-                            if not aug:
-                                pt = resacqobj.buildPath(
-                                        basePath=basePath,
-                                        standard=1,
-                                        alg="DL",
-                                        lamp=lamp,
-                                        culture=culture,
-                                        percent=percent,
-                                        augment=aug,
-                                        adversary=0,
-                                        lambda_index=0,
-                                        taugment=0,
-                                        tadversary=0,
-                                        tgaug=0,
-                                        teps=0,
-                                        imbalanced=imb
-                                )
-                                pt = pt.split("/")
-                                pt = pt[0 : len(pt) - 2]
-                                stdpt = ""
-                                for p in pt:
-                                    stdpt += p + "/"
-                                stdpt += "res.csv"
-                                stddf = pd.read_csv(stdpt)
-                                trainName = "NOAUG"
-                                ls = self.convert2list(
-                                trainName, stddf
-                                )
-                                print(f"Shape of row={np.shape(ls)}")
-                                df.loc[len(df)] = ls
-                            else:
-                                stddfs = []
-                                for g_augment in g_augments:
-                                    pt = resacqobj.buildPath(
-                                        basePath=basePath,
-                                        standard=1,
-                                        alg="DL",
-                                        lamp=lamp,
-                                        culture=culture,
-                                        percent=percent,
-                                        augment=aug,
-                                        adversary=0,
-                                        lambda_index=0,
-                                        taugment=0,
-                                        tadversary=0,
-                                        tgaug=0,
-                                        teps=0,
-                                        g_augment=g_augment,
-                                        imbalanced=imb
-                                    )
-                                    pt = pt.split("/")
-                                    pt = pt[0 : len(pt) - 2]
-                                    stdpt = ""
-                                    for p in pt:
-                                        stdpt += p + "/"
-                                    stdpt += "res.csv"
-                                    stddf = pd.read_csv(stdpt)
-                                    stddfs.append(stddf)
-                                    trainName = f"AUG, g={g_augment}"
-                                    df.loc[len(df)] = self.convert2list(
-                                    trainName, stddf
-                                    )
-                        
+                        for adv in adversary:
+                         for aug in augments:
+                                if not aug:
+                                    if not adv:
+                                        pt = resacqobj.buildPath(
+                                            basePath=basePath,
+                                            standard=1,
+                                            alg="DL",
+                                            lamp=lamp,
+                                            culture=culture,
+                                            percent=percent,
+                                            augment=aug,
+                                            adversary=adv,
+                                            lambda_index=0,
+                                            taugment=0,
+                                            tadversary=0,
+                                            tgaug=0,
+                                            teps=0,
+                                            imbalanced=imb,
+                                        )
+                                        pt = pt.split("/")
+                                        pt = pt[0 : len(pt) - 2]
+                                        stdpt = ""
+                                        for p in pt:
+                                            stdpt += p + "/"
+                                        stdpt += "res.csv"
+                                        stddf = pd.read_csv(stdpt)
+                                        trainName = "NOAUG"
+                                        ls = self.convert2list(trainName, stddf)
+                                        df.loc[len(df)] = ls
+                                    else:
+                                        for class_division in [0, 1]:
+                                         for eps in epsilons:
+                                            
+                                                pt = resacqobj.buildPath(
+                                                    basePath=basePath,
+                                                    standard=1,
+                                                    alg="DL",
+                                                    lamp=lamp,
+                                                    culture=culture,
+                                                    percent=percent,
+                                                    augment=aug,
+                                                    adversary=adv,
+                                                    lambda_index=0,
+                                                    taugment=0,
+                                                    tadversary=0,
+                                                    tgaug=0,
+                                                    teps=0,
+                                                    eps=eps,
+                                                    class_division=class_division,
+                                                    imbalanced=imb,
+                                                )
+                                                pt = pt.split("/")
+                                                pt = pt[0 : len(pt) - 2]
+                                                stdpt = ""
+                                                for p in pt:
+                                                    stdpt += p + "/"
+                                                stdpt += "res.csv"
+                                                stddf = pd.read_csv(stdpt)
+                                                trainName = f"ADV, CLSDIV={class_division}, eps={eps}"
+                                                ls = self.convert2list(trainName, stddf)
+                                                df.loc[len(df)] = ls
+                                else:
+                                    if not adv:
+                                        for g_augment in g_augments:
+                                            pt = resacqobj.buildPath(
+                                                basePath=basePath,
+                                                standard=1,
+                                                alg="DL",
+                                                lamp=lamp,
+                                                culture=culture,
+                                                percent=percent,
+                                                augment=aug,
+                                                adversary=adv,
+                                                lambda_index=0,
+                                                taugment=0,
+                                                tadversary=0,
+                                                tgaug=0,
+                                                teps=0,
+                                                g_augment=g_augment,
+                                                eps=0,
+                                                class_division=0,
+                                                imbalanced=imb,
+                                            )
+                                            pt = pt.split("/")
+                                            pt = pt[0 : len(pt) - 2]
+                                            stdpt = ""
+                                            for p in pt:
+                                                stdpt += p + "/"
+                                            stdpt += "res.csv"
+                                            stddf = pd.read_csv(stdpt)
+                                            trainName = (
+                                                f"AUG, g={g_augment}"
+                                            )
+                                            df.loc[len(df)] = self.convert2list(
+                                                trainName, stddf
+                                            )
+                                    else:
+                                        for class_division in [0, 1]:
+                                         for g_augment in g_augments:
+                                            for eps in epsilons:
+                                                    pt = resacqobj.buildPath(
+                                                        basePath=basePath,
+                                                        standard=1,
+                                                        alg="DL",
+                                                        lamp=lamp,
+                                                        culture=culture,
+                                                        percent=percent,
+                                                        augment=aug,
+                                                        adversary=adv,
+                                                        lambda_index=0,
+                                                        taugment=0,
+                                                        tadversary=0,
+                                                        tgaug=0,
+                                                        teps=0,
+                                                        g_augment=g_augment,
+                                                        eps=eps,
+                                                        class_division=class_division,
+                                                        imbalanced=imb,
+                                                    )
+                                                    pt = pt.split("/")
+                                                    pt = pt[0 : len(pt) - 2]
+                                                    stdpt = ""
+                                                    for p in pt:
+                                                        stdpt += p + "/"
+                                                    stdpt += "res.csv"
+                                                    stddf = pd.read_csv(stdpt)
+                                                    trainName = f"TOTAUG, CLSDIV={class_division}, g={g_augment}, eps={eps}"
+                                                    df.loc[len(df)] = self.convert2list(
+                                                        trainName, stddf
+                                                    )
                         print(name)
-                        df.style\
-                            .set_properties(subset=['Total'], **{'font-weight': 'bold', "border-left": "1pt solid black"})\
-                            .apply(functools.partial(self.borderTop, "STD"), axis=1)
+                        df.style.set_properties(
+                            subset=["Total"],
+                            **{"font-weight": "bold", "border-left": "1pt solid black"},
+                        ).apply(functools.partial(self.borderTop, "STD"), axis=1)
                         print(df.to_string())
-                        pt = self.get_path('../Results/TABRES/', lamp, culture, percent, imb)
-                        fileObj =  FileManagerClass(pt)
-                        df.to_csv(pt + 'df')
-                        pt = self.get_path('../Results/HTML/', lamp, culture, percent, imb)
-                        fileObj =  FileManagerClass(pt)
-                        df.to_html(pt + 'res.html')
+                        pt = self.get_path(
+                            "../Results/TABRES/", lamp, culture, percent, imb
+                        )
+                        fileObj = FileManagerClass(pt)
+                        df.to_csv(pt + "df")
+                        pt = self.get_path(
+                            "../Results/HTML/", lamp, culture, percent, imb
+                        )
+                        fileObj = FileManagerClass(pt)
+                        df.to_html(pt + "res.html")
 
-                            
 
 def main():
     visobj = VisualizerClass()

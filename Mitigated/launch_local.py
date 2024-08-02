@@ -66,9 +66,9 @@ eps = np.logspace(-3, 0, 5)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [0, 1, 2]
-ks = [0,1]
+ks = [1]
 
-basePath = "./PROVA/"
+basePath = "./PROVA_LOCALE/"
 
 
 # with tf.device("/CPU:0"):
@@ -106,7 +106,7 @@ for g_aug in g_gaugs:
                                 adversary=1,
                                 eps=ep,
                                 mult=mult,
-                                imbalanced=0
+                                imbalanced=1
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")
