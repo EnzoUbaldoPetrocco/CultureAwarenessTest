@@ -12,12 +12,18 @@ import time
 from PIL import Image
 from io import BytesIO
 from matplotlib import pyplot as plt
-
+from functools import wraps
+import socket
 ip = "130.251.13.139"
+ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+
+
 
 url = "http://" + ip + ":5000"
+#url = "http://130.251.13.139:5000"
 
 random.seed(time.time())
+
 
 class RobotSimulator(Node):
     def __init__(self):
@@ -119,12 +125,17 @@ class RobotSimulator(Node):
         img.save(buffered, format="JPEG")
         img = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-        msg = {'image': img, 'shape': str(size)}
+        msg = {"image": img, "shape": str(size)}
+        msg = {"image": None, "shape": str(size)}
         req = json.dumps(msg)
         headers = {'content_type': 'application/json'}
         print(req)
-        res = requests.post(url+'/image',data=req, verify=False, headers=headers)
-        print(res)
+        print(f"Posting at this url: {url+'/image'}")
+        res = requests.post(url+'/image',json=req,  headers=headers)
+        if res.status_code==200:
+            print(res)
+        else:
+            print(f"ERROR: {res.status_code} ")
 
     def rnd_get_image(self):
         lamp = random.randint(0,1)
@@ -133,6 +144,8 @@ class RobotSimulator(Node):
         else:
             img, label =  self.carpet_ds[random.randint(0, len(self.carpet_ds)-1)][random.randint(0, len(self.carpet_ds[0])-1)][random.randint(0, len(self.carpet_ds[0][0])-1)]
         return img
+    
+    
 
 def main(args=None):
     rclpy.init(args=args)

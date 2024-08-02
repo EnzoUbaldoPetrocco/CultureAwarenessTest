@@ -12,12 +12,17 @@ from sensor_msgs.msg import Image
 
 from matplotlib import pyplot as plt
 import asyncio
-from multiprocessing import Pool
-from time import sleep
-import multiprocessing
+import os
+from flask_cors import CORS
+from flask import jsonify
+import socket
+ip = "130.251.13.139"
+ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+
 
 
 app = Flask(__name__)
+CORS(app)
 
 ip = "130.251.13.139"
 class FlaskServer(Node):
@@ -45,11 +50,10 @@ class FlaskServer(Node):
         return navigation_command_fn
         
     def post_image(self):
-        @app.route("/image",  methods=['POST'])
+        @app.route('/image',  methods=['POST'])
         def post_image_fn():
-            self.get_logger().info('Wella')
             if request.method == 'POST':
-                self.get_logger().info('Inside Server Baby')
+                """"self.get_logger().info('Inside Server Baby')
                 image = request.get_json()['image']#request.args.get('image', None)
                 shape = request.get_json()['shape']#request.args.get('shape', None)
                 self.get_logger().info(f"Server: image is")
@@ -68,21 +72,25 @@ class FlaskServer(Node):
                 self.future = self.inf_cli.call_async(self.inf_req)
                 rclpy.spin_until_future_complete(self, self.future)
                 res = self.future.result()
-                response_json = {'prediction':res.res}
-                return response_json
-        return post_image_fn
+                response_json = {'prediction':res.res}"""
+                response_json = {"prediction":"JAN"}
+                return jsonify(response_json), 200
+        if request.method == "POST":
+            return post_image_fn
     
 
 
 
 
 def main(args=None): 
+    #os.environ['FLASK_DEBUG_PIN']="142-139-128"
     rclpy.init(args=args)
     fs = FlaskServer()
     async def run():
-        await asyncio.gather(app.run(host="130.251.13.139", port=5000, debug=True), rclpy.spin(fs))
+        await asyncio.gather(app.run(host="130.251.13.139", port=5000, debug=False), rclpy.spin(fs))
     asyncio.run(run())
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
