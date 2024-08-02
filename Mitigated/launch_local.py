@@ -66,7 +66,7 @@ eps = np.logspace(-3, 0, 5)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [0, 1, 2]
-ks = [1]
+ks = [2, 3]
 
 basePath = "./PROVA_LOCALE/"
 
@@ -87,7 +87,7 @@ for g_aug in g_gaugs:
                 for k in ks:
                         for i in range(2):
                             model = None
-                            print(f"Training->aug={k%2};adv={floor(k/2)}")
+                            print(f"Training->aug={k%2};adv={floor(k/2)}, ")
                             procObj.process(
                                 standard=standard,
                                 type="DL",
@@ -103,7 +103,7 @@ for g_aug in g_gaugs:
                                 n=n,
                                 augment=k % 2,
                                 gaug=g_aug,
-                                adversary=1,
+                                adversary=floor(k/2),
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=1
