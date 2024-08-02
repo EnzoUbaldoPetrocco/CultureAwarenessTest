@@ -284,15 +284,13 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                prev_img = img
-                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                prev_img = img
-                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model[int(y[self.n_cultures])], eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)
 
             if show_imgs:
                 for ep in epsilons:
@@ -341,16 +339,14 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                prev_img = img
-                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model, eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)
                 
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                prev_img = img
-                img = self.generate_adversarial_image(img*1.0, y[0:self.n_cultures], adversarial_model, eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)
                 
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
