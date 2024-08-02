@@ -2,7 +2,6 @@
 import rclpy
 from rclpy.node import Node
 import json
-from flask import Flask, request, make_response
 import requests
 import base64
 import cv2
@@ -11,9 +10,8 @@ from pathlib import Path
 import random
 import time
 from PIL import Image
-import socket
-import numpy as np
 from io import BytesIO
+from matplotlib import pyplot as plt
 
 ip = "130.251.13.139"
 
@@ -24,7 +22,6 @@ random.seed(time.time())
 class RobotSimulator(Node):
     def __init__(self):
         super().__init__("RobotSimulator")
-        self.get_logger().info(f"Service available at ip: {ip}")
         self.init_ds()
         
         self.timer = self.create_timer(1, self.send_random_image)
@@ -122,14 +119,12 @@ class RobotSimulator(Node):
         img.save(buffered, format="JPEG")
         img = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-        #img = base64.b64encode(img)
         msg = {'image': img, 'shape': str(size)}
         req = json.dumps(msg)
         headers = {'content_type': 'application/json'}
         print(req)
-        res = requests.post(url+'/image',data=req, verify=False)
+        res = requests.post(url+'/image',data=req, verify=False, headers=headers)
         print(res)
-        print(res.json())
 
     def rnd_get_image(self):
         lamp = random.randint(0,1)
