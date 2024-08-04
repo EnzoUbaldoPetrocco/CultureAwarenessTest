@@ -284,13 +284,13 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)[0]
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)[0]
 
             if show_imgs:
                 for ep in epsilons:
@@ -339,14 +339,14 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)[0]
                 
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)
+                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)[0]
                 
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
@@ -517,6 +517,7 @@ class AdversarialStandard(GeneralModelClass):
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
+            print(f"Shape is {shape}")
 
             if val:
                 monitor_val = "val_loss"
