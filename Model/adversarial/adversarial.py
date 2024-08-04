@@ -180,14 +180,23 @@ class AdversarialStandard(GeneralModelClass):
         self.model = H
 
     @tf.function
-    def generate_adversarial_image(self, img, lbl, model, epsilon=0.1):
+    def generate_adversarial_image(self, img, lbl, model, epsilon=0.1, aug=False):
         img = tf.expand_dims(img, axis=0)
         lbl = tf.expand_dims(lbl, axis=0)
+        img = tf.convert_to_tensor(img)
+        lbl = tf.convert_to_tensor(lbl)
+        
         with tf.GradientTape() as tape:
             tape.watch(img)
-            prediction = model(img, training=False)
+            prediction = model(img, training=aug)
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
         gradient = tape.gradient(loss, img)
+        print(lbl)
+        print(loss)
+        print(loss[0])
+        print(img)
+        print(prediction)
+        print(gradient)
         signed_grad = tf.sign(gradient)
         img = img / 255.0
         sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(
@@ -199,10 +208,10 @@ class AdversarialStandard(GeneralModelClass):
 
     # Create adversarial samples
 
-    def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1):
+    def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1, aug=False):
         adversarial_images = []
         for img, lbl in adv_train_generator:
-            adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon)
+            adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon, aug)
             adversarial_images.append(adversarial_img)
         return tf.convert_to_tensor(adversarial_images)
 
@@ -284,13 +293,13 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)[0]
+                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps)[0]
+                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
 
             if show_imgs:
                 for ep in epsilons:
@@ -307,6 +316,7 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model[int(label[self.n_cultures])],
                             epsilon=ep,
+                            aug=aug
                         )[0]
                         plt.imshow(adv_image / 255.0)
                         plt.title(label)
@@ -339,14 +349,14 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)[0]
+                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
                 
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(img*1.0, tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps)[0]
+                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
                 
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
@@ -365,6 +375,7 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model,
                             epsilon=ep,
+                            aug=aug
                         )[0]
                         plt.imshow(adv_image / 255.0)
                         plt.title(label)
@@ -554,6 +565,7 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model[int(label[self.n_cultures])],
                             epsilon=eps,
+                            aug=aug
                         )[0]
                     else:
                         adv_image = self.generate_adversarial_image(
@@ -561,6 +573,7 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model,
                             epsilon=eps,
+                            aug=aug
                         )[0]
                     plt.imshow(adv_image / 255.0)
                     plt.title(label)
