@@ -60,9 +60,10 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 
-A = np.logspace(-4, -1, 11)
-B = np.logspace(-4, -1, 6)
-g_gaugs = [i for i in A if i not in B]
+g_gaugs = np.logspace(-4, -1, 11)
+g_gaugs = g_gaugs[len(g_gaugs)-3:len(g_gaugs)-1]
+#B = np.logspace(-4, -1, 6)
+#g_gaugs = [i for i in A if i not in B]
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 eps = 0.03
 test_eps = [0.0005, 0.001, 0.005]
@@ -75,8 +76,8 @@ basePath = "./"
 
 
 # with tf.device("/CPU:0"):
-for i in range(2):
- for g_aug in g_gaugs[len(g_gaugs)-3:len(g_gaugs)-1]:
+for i in range(5):
+ for g_aug in g_gaugs:
     for percent in percents:
         for lamp in [0, 1]:
             procObj = ProcessingClass(
