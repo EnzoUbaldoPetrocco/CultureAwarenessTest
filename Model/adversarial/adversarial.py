@@ -188,7 +188,7 @@ class AdversarialStandard(GeneralModelClass):
         
         with tf.GradientTape() as tape:
             tape.watch(img)
-            prediction = model(img, training=aug)
+            prediction = model(img, training=False)
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
         gradient = tape.gradient(loss, img)
         print(lbl)
@@ -235,6 +235,7 @@ class AdversarialStandard(GeneralModelClass):
         class_division = self.class_division
         if self.imbalanced:
             TS = self.ImbalancedTransformation(TS)
+            
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
