@@ -191,12 +191,6 @@ class AdversarialStandard(GeneralModelClass):
             prediction = model(img, training=False)
             loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
         gradient = tape.gradient(loss, img)
-        print(lbl)
-        print(loss)
-        print(loss[0])
-        print(img)
-        print(prediction)
-        print(gradient)
         signed_grad = tf.sign(gradient)
         img = img / 255.0
         sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(
@@ -214,6 +208,18 @@ class AdversarialStandard(GeneralModelClass):
             adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon, aug)
             adversarial_images.append(adversarial_img)
         return tf.convert_to_tensor(adversarial_images)
+
+    def remove_data_aug(self, model :keras.Model):
+        
+        input = keras.Input(shape=self.shape)
+        x = model.layers[2](input)
+        x = model.layers[3](x)
+        x = model.layers[4](x)
+        x = model.layers[5](x)
+        y = model.layers[6](x)
+        truncated_model = keras.Model(inputs = input, outputs = y)   
+        truncated_model.summary()
+        return truncated_model
 
     def LearningAdversarially(
         self,
@@ -287,7 +293,10 @@ class AdversarialStandard(GeneralModelClass):
                     adversarial_model=None,
                     eps=eps,
                 )
-                adversarial_model.append(self.model)
+                if aug:
+                    adversarial_model.append(self.remove_data_aug(self.model))
+                else:
+                    adversarial_model.append(self.model)
                 self.model = None
 
             (imgs, ys) = TS[0], TS[1]
@@ -344,8 +353,12 @@ class AdversarialStandard(GeneralModelClass):
                 eps=eps,
                 class_division=0,
             )
-            adversarial_model = self.model
-            
+            if aug:
+                adversarial_model = self.remove_data_aug(self.model)
+            else:
+                adversarial_model = self.model
+            adversarial_model.summary()
+
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
@@ -529,7 +542,7 @@ class AdversarialStandard(GeneralModelClass):
     ):
         with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
-            print(f"Shape is {shape}")
+            self.shape = shape
 
             if val:
                 monitor_val = "val_loss"
