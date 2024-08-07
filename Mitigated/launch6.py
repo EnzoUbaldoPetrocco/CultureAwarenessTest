@@ -60,7 +60,7 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 class_divisions = [0, 1]
-imbalances = [0,1]
+imbalances = [1,0]
 
 g_gaugs = np.logspace(-4, 0, 6)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
@@ -74,7 +74,7 @@ basePath = "./PROVA/"
 # with tf.device("/CPU:0"):
 for i in range(4):
  for percent in percents:
-    for lamp in [1,0]:
+    for lamp in [0,1]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
