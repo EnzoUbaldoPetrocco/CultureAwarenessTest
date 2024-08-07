@@ -786,6 +786,55 @@ class Res2TabClass:
         pt += str(percent) + "/"
 
         return pt
+    
+    def visualize(self, df, title='BLA', plot=True, save=False, path='./'):
+        TSs = df['TS']
+        errs = df['ERR']
+        cics = df['CIC']
+
+        NOAUG_X = errs[0]
+        NOAUG_Y = cics[0]
+
+        plt.scatter(NOAUG_X, NOAUG_Y, color="k", label="NOAUG")
+
+        AUG_X = errs[1:12]
+        AUG_Y = cics[1:12]
+
+        plt.plot(AUG_X, AUG_Y, color='b', label='AUG')
+
+        ADV_C0_X = errs[12:18]
+        ADV_C0_Y = cics[12:18]
+
+        plt.plot(ADV_C0_X, ADV_C0_Y, color='g', label='ADV, CLSDIV=0')
+
+        ADV_C1_X = errs[18:24]
+        ADV_C1_Y = cics[18:24]
+
+        plt.plot(ADV_C1_X, ADV_C1_Y, color='y', label='ADV, CLSDIV=1')
+
+        # Naming the x-axis, y-axis and the whole graph
+        plt.xlabel(f"ERR")
+        plt.ylabel("CIC")
+        plt.title(title)
+
+        plt.xlim((0, 55))
+        plt.ylim((0, 18))
+
+        # Adding legend, which helps us recognize the curve according to it's color
+        plt.legend()
+
+        # To load the display window
+        
+        if plot:
+            plt.show()
+
+        if save:
+            plt.savefig(path)
+
+        # print(path)
+        plt.close()
+
+        
 
     def conversion(self):
         def get_name_column(lamp, culture, percent):
@@ -1027,6 +1076,24 @@ class Res2TabClass:
                         )
                         fileObj = FileManagerClass(pt)
                         df.to_html(pt + "res.html")
+
+                        if lamp:
+                            if culture==0:
+                                title = f"Chinese"
+                            if culture==1:
+                                title = f"French"
+                            if culture==2:
+                                title = f"Turkish"
+                        else:
+                            if culture==0:
+                                title = f"Indian"
+                            if culture==1:
+                                title = f"Japanese"
+                            if culture==2:
+                                title = f"Scandinavian"
+                        
+                        title += f", IMB={imb}"
+                        self.visualize(df, title=title)
 
 
 def main():
