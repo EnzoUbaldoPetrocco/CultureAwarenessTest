@@ -79,7 +79,7 @@ basePath = "./"
 for i in range(5):
  for g_aug in g_gaugs:
     for percent in percents:
-        for lamp in [0, 1]:
+        for lamp in [1, 0]:
             procObj = ProcessingClass(
                 shallow=0,
                 lamp=lamp,
