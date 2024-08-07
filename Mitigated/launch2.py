@@ -78,7 +78,7 @@ basePath = "./"
 for i in range(2):
  for g_aug in g_gaugs[len(g_gaugs)-3:len(g_gaugs)-1]:
     for percent in percents:
-        for lamp in [0, 1]:
+        for lamp in [1, 0]:
             procObj = ProcessingClass(
                 shallow=0,
                 lamp=lamp,
