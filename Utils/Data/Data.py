@@ -7,7 +7,6 @@ import random
 import time
 import tensorflow as tf
 import numpy as np
-from cleverhans.tf2.utils import optimize_linear
 from matplotlib import pyplot as plt
 from datetime import datetime
 random.seed(datetime.now().timestamp())
@@ -317,80 +316,3 @@ class PreprocessingClass:
         grad = g.gradient(loss, x)
         return grad
 
-    def my_fast_gradient_method(
-        self,
-        model_fn,
-        x,
-        eps,
-        norm,
-        loss_fn=None,
-        clip_min=None,
-        clip_max=None,
-        y=None,
-        targeted=False,
-        sanity_checks=False,
-        culture=0,
-        plot=None,
-    ):
-        """
-        Implementation of fast gradient method: the samples are moved against the
-        gradient using an eps step
-
-        :param model_fn: model w.r.t compute the gradient
-        :param x: samples
-        :param eps: gain of the step
-        :param norm: type of norm to be applied to optimize perturbation
-        :param loss_fn: loss function
-        :param clip_min: minimum threshold for saturation
-        :param clip_max: maximum threshold for saturation
-        :param y: label of samples
-        :param target:  if targeted, minimize loss of target label rather than maximize loss of correct label
-        :param sanity_checks: if enable, checks for asserts
-        :param culture: select the correct output in our Mitigation Strategy
-        :param plot: if enabled, plot the adversarial sample
-
-        """
-        if norm not in [np.inf, 1, 2]:
-            raise ValueError("Norm order must be either np.inf, 1, or 2.")
-
-        if loss_fn is None:
-            loss_fn = tf.nn.sparse_softmax_cross_entropy_with_logits
-
-        asserts = []
-
-        # If a data range was specified, check that the input was in that range
-        if clip_min is not None:
-            asserts.append(tf.math.greater_equal(x, clip_min))
-
-        if clip_max is not None:
-            asserts.append(tf.math.less_equal(x, clip_max))
-
-        # cast to tensor if provided as numpy array
-        x = tf.cast(x, tf.float32)
-
-        if y is None:
-            # Using model predictions as ground truth to avoid label leaking
-            yf = model_fn(x)[:, culture]
-            y = tf.argmax(yf, 1)
-        grad = self.my_compute_gradient(
-            model_fn, loss_fn, x, y, targeted, culture=culture
-        )
-
-        optimal_perturbation = optimize_linear(grad, eps, norm)
-
-        if plot is not None:
-            plt.imshow(optimal_perturbation[0])
-            plt.show()
-
-        # Add perturbation to original example to obtain adversarial example
-        adv_x = x + optimal_perturbation
-
-        # If clipping is needed, reset all values outside of [clip_min, clip_max]
-        if (clip_min is not None) or (clip_max is not None):
-            # We don't currently support one-sided clipping
-            assert clip_min is not None and clip_max is not None
-            adv_x = tf.clip_by_value(adv_x, clip_min, clip_max)
-
-        if sanity_checks:
-            assert np.all(asserts)
-        return np.asarray(adv_x[0])
