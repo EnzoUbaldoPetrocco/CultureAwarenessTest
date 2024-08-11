@@ -20,55 +20,12 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import random
 from datetime import datetime
+import keras_cv
+from PIL import Image
+from IPython.display import Image as IImage
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
-
-
-class AdversarialProcessing(keras.models.Model):
-
-    def __init__(self, epsilon, model):
-        super(AdversarialProcessing, self).__init__()
-        self.epsilon = epsilon
-        self.model = model
-
-    def __call__(self, batch, logs=None):
-        adversarial_images = []
-        for img, lbl in batch:
-            img = tf.convert_to_tensor(
-                img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
-            )
-            lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
-            with tf.GradientTape() as tape:
-                tape.watch(img)
-                prediction = self.model(img)
-                loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
-            gradient = tape.gradient(loss, img)
-            signed_grad = tf.sign(gradient)
-            adversarial_img = img + self.epsilon * signed_grad
-            adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
-            adversarial_images.append(adversarial_img)
-        return tf.convert_to_tensor(adversarial_images)
-
-    # Create adversarial samples
-    def generate_adversarial_samples(self, images, labels, epsilon=0.1):
-        with tf.device("/gpu:0"):
-            adversarial_images = []
-            for img, lbl in zip(images, labels):
-                img = tf.convert_to_tensor(
-                    img.reshape((1, self.input_shape[0], self.input_shape[1], 3))
-                )
-                lbl = tf.convert_to_tensor(lbl.reshape((1, 1)))
-                with tf.GradientTape() as tape:
-                    tape.watch(img)
-                    prediction = self.model(img)
-                    loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
-                gradient = tape.gradient(loss, img)
-                signed_grad = tf.sign(gradient)
-                adversarial_img = img + epsilon * signed_grad
-                adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
-                adversarial_images.append(adversarial_img)
-            return tf.convert_to_tensor(adversarial_images)
 
 
 class AdversarialStandard(GeneralModelClass):
@@ -200,8 +157,6 @@ class AdversarialStandard(GeneralModelClass):
         adversarial_img = adversarial_img * 255.0
         return tf.clip_by_value(adversarial_img, 0, 255)
 
-    # Create adversarial samples
-
     def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1, aug=False):
         adversarial_images = []
         for img, lbl in adv_train_generator:
@@ -209,8 +164,7 @@ class AdversarialStandard(GeneralModelClass):
             adversarial_images.append(adversarial_img)
         return tf.convert_to_tensor(adversarial_images)
 
-    def remove_data_aug(self, model :keras.Model):
-        
+    def remove_data_aug(self, model :keras.Model):  
         input = keras.Input(shape=self.shape)
         x = model.layers[2](input)
         x = model.layers[3](x)
@@ -221,6 +175,43 @@ class AdversarialStandard(GeneralModelClass):
         truncated_model.summary()
         return truncated_model
 
+    def generate_adv_images_using_text(self, TS):
+        keras.mixed_precision.set_global_policy("mixed_float16")
+
+        model = keras_cv.models.StableDiffusion(jit_compile=True)   
+        prompt_1 = "An image of a Chinese lamp"
+        prompt_2 = "An image of a French lamp"
+        interpolation_steps = 5
+
+        encoding_1 = tf.squeeze(model.encode_text(prompt_1))
+        encoding_2 = tf.squeeze(model.encode_text(prompt_2))
+
+        interpolated_encodings = tf.linspace(encoding_1, encoding_2, interpolation_steps)
+        print(f"Encoding shape: {encoding_1.shape}")
+        
+        #noise = tf.random.normal((512 // 8, 512 // 8, 4), seed=random.seed(datetime.now().timestamp()))
+        images = model.generate_image(
+            interpolated_encodings,
+            batch_size=interpolation_steps)
+        
+        def export_as_gif(filename, images, frames_per_second=10, rubber_band=False):
+            if rubber_band:
+                images += images[2:-1][::-1]
+            images[0].save(
+                filename,
+                save_all=True,
+                append_images=images[1:],
+                duration=1000 // frames_per_second,
+                loop=0)
+
+        export_as_gif(
+            "doggo-and-fruit-5.gif",
+            [Image.fromarray(img) for img in images],
+            frames_per_second=2,
+            rubber_band=True)
+              
+        IImage("doggo-and-fruit-5.gif")
+    
     def LearningAdversarially(
         self,
         TS,
@@ -237,8 +228,12 @@ class AdversarialStandard(GeneralModelClass):
         save=False,
         path="./",
         eps=0.1,
+        text_adv=1,
     ):
         class_division = self.class_division
+        if text_adv:
+            self.generate_adv_images_using_text(TS)
+
         if self.imbalanced:
             TS = self.ImbalancedTransformation(TS)
             
