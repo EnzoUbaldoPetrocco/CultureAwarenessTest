@@ -178,7 +178,7 @@ class AdversarialStandard(GeneralModelClass):
     def generate_adv_images_using_text(self, TS):
         keras.mixed_precision.set_global_policy("mixed_float16")
 
-        model = keras_cv.models.StableDiffusion(jit_compile=True)   
+        model = keras_cv.models.StableDiffusionV2(jit_compile=True)   
         prompt_1 = "An image of a Chinese lamp"
         prompt_2 = "An image of a French lamp"
         interpolation_steps = 5
@@ -189,10 +189,13 @@ class AdversarialStandard(GeneralModelClass):
         interpolated_encodings = tf.linspace(encoding_1, encoding_2, interpolation_steps)
         print(f"Encoding shape: {encoding_1.shape}")
         
-        #noise = tf.random.normal((512 // 8, 512 // 8, 4), seed=random.seed(datetime.now().timestamp()))
+        noise = tf.random.normal((512 // 8, 512 // 8, 4), seed=random.seed(datetime.now().timestamp()))
+        print(f"Before")
         images = model.generate_image(
             interpolated_encodings,
-            batch_size=interpolation_steps)
+            batch_size=interpolation_steps,
+            diffusion_noise=noise)
+        print(f"After")
         
         def export_as_gif(filename, images, frames_per_second=10, rubber_band=False):
             if rubber_band:
@@ -205,12 +208,12 @@ class AdversarialStandard(GeneralModelClass):
                 loop=0)
 
         export_as_gif(
-            "doggo-and-fruit-5.gif",
+            "./doggo-and-fruit-6.gif",
             [Image.fromarray(img) for img in images],
             frames_per_second=2,
             rubber_band=True)
               
-        IImage("doggo-and-fruit-5.gif")
+        IImage("./doggo-and-fruit-6.gif")
     
     def LearningAdversarially(
         self,
@@ -228,7 +231,7 @@ class AdversarialStandard(GeneralModelClass):
         save=False,
         path="./",
         eps=0.1,
-        text_adv=1,
+        text_adv=0,
     ):
         class_division = self.class_division
         if text_adv:
