@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 5000
+memory_limit = 5200
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -59,8 +59,8 @@ learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
 epochs = 15
-class_divisions = [0, 1]
-imbalances = [0,1]
+class_divisions = [1,0]
+imbalances = [1,0]
 
 g_gaugs = np.logspace(-8, -4, 6)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
@@ -75,7 +75,7 @@ basePath = "./PROVA/"
 for i in range(4):
  for k in ks:
   for percent in percents:
-    for lamp in [1,0]:
+    for lamp in [0, 1]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
