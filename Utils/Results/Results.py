@@ -537,6 +537,7 @@ class ResAcquisitionClass:
         augments = [0, 1]
 
         g_augments = np.logspace(-4, -1, 11)
+        g_augments_tot = np.logspace(-4, 0, 6)
         epsilons = np.logspace(
             -4, 0, 6
         )  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
@@ -558,7 +559,7 @@ class ResAcquisitionClass:
                                 for adv in adversary:
                                     if augment:
                                         if adv:
-                                            for g_augment in g_augments:
+                                            for g_augment in g_augments_tot:
                                                 for eps in epsilons:
                                                     for class_division in [0, 1]:
                                                         if standard == 0:
