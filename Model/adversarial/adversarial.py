@@ -240,8 +240,7 @@ class AdversarialStandard(GeneralModelClass):
             self.generate_adv_images_using_text(TS)
 
         if self.imbalanced:
-            TS = self.ImbalancedTransformation(TS)
-            
+            TS = self.ImbalancedTransformation(TS) 
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
