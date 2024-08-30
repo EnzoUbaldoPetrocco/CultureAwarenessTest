@@ -41,6 +41,7 @@ class AdversarialStandard(GeneralModelClass):
         weights=None,
         imbalanced=0,
         class_division=0,
+        only_imb_imgs=0
     ):
         """
         Initialization function for modeling standard ML models.
@@ -67,6 +68,7 @@ class AdversarialStandard(GeneralModelClass):
         self.batch_size = batch_size
         self.weights = np.ones(self.n_cultures)
         self.class_division = class_division
+        self.only_imb_imgs=only_imb_imgs
         if weights is not None:
             self.weights = weights
 
@@ -514,7 +516,7 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(
                 int(1 / self.weights[label.index(1.0)])
             ):  # I use the inverse of the total proportion for augmenting the dataset
-                newX.append(np.asarray(img))  # I do not need culture for training
+                newX.append(np.asarray(img))  
                 newY.append(np.asarray(label))
         del TS
         return (newX, newY)

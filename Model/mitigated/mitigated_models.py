@@ -32,7 +32,8 @@ class MitigatedModels(GeneralModelClass):
         lambda_index=-1,
         n_cultures = 3,
         weights=None,
-        imbalanced=0
+        imbalanced=0,
+        only_imb_imgs=0
     ):
         """
         Initialization function for modeling mitigated ML models.
