@@ -238,9 +238,14 @@ class AdversarialStandard(GeneralModelClass):
         class_division = self.class_division
         if text_adv:
             self.generate_adv_images_using_text(TS)
-
-        if self.imbalanced:
-            TS = self.ImbalancedTransformation(TS) 
+        
+        if not self.only_imb_imgs:
+            if self.imbalanced:
+                TS = self.ImbalancedTransformation(TS)
+                VS = self.ImbalancedTransformation(VS) 
+        else:
+            TS2 = self.ImbalancedTransformation(TS)
+            VS2 = self.ImbalancedTransformation(VS2)
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
@@ -509,14 +514,25 @@ class AdversarialStandard(GeneralModelClass):
         newY = []
         X = TS[0]
         Y = TS[1]
-        for i in range(len(X)):
-            img = X[i]
-            label = Y[i]
-            for i in range(
-                int(1 / self.weights[label.index(1.0)])
-            ):  # I use the inverse of the total proportion for augmenting the dataset
-                newX.append(np.asarray(img))  
-                newY.append(np.asarray(label))
+        if not self.only_imb_imgs:
+            for i in range(len(X)):
+                img = X[i]
+                label = Y[i]
+                for j in range(
+                    int(1 / self.weights[label.index(1.0)])
+                ):  # I use the inverse of the total proportion for augmenting the dataset
+                    newX.append(np.asarray(img))  
+                    newY.append(np.asarray(label))
+        else:
+            for i in range(len(X)):
+                img = X[i]
+                label = Y[i]
+                if int(1 / self.weights[label.index(1.0)])>1:
+                    for j in range(
+                        int(1 / self.weights[label.index(1.0)])
+                    ):  # I use the inverse of the total proportion for augmenting the dataset
+                        newX.append(np.asarray(img))  
+                        newY.append(np.asarray(label))
         del TS
         return (newX, newY)
 
