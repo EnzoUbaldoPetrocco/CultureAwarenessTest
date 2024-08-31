@@ -261,7 +261,8 @@ class ProcessingClass:
         complete = 0,
         n_cultures=3,
         imbalanced=0,
-        class_division= 0
+        class_division= 0,
+        only_imb_imgs = 0
     ):
         """
         process function prepares the data and fit the model
@@ -321,7 +322,8 @@ class ProcessingClass:
                     batch_size=batch_size,
                     weights=weights,
                     imbalanced=imbalanced,
-                    class_division= class_division
+                    class_division= class_division,
+                    only_imb_imgs = only_imb_imgs
                     
                 )
             else:
@@ -335,7 +337,8 @@ class ProcessingClass:
                         epochs=epochs,
                         batch_size=batch_size,
                         weights=weights,
-                        imbalanced=imbalanced
+                        imbalanced=imbalanced,
+                        only_imb_imgs = only_imb_imgs
                     )
                 else:
                     self.model = StandardModels(
@@ -347,7 +350,8 @@ class ProcessingClass:
                         epochs=epochs,
                         batch_size=batch_size,
                         weights=weights,
-                        imbalanced=imbalanced
+                        imbalanced=imbalanced,
+                        only_imb_imgs = only_imb_imgs
                     )
 
         else:
@@ -360,7 +364,8 @@ class ProcessingClass:
                 learning_rate=learning_rate,
                 lambda_index=lambda_index,
                 n_cultures=n_cultures,
-                imbalanced=imbalanced
+                imbalanced=imbalanced,
+                only_imb_imgs = only_imb_imgs
             )
 
         self.model.standard=standard
@@ -379,7 +384,10 @@ class ProcessingClass:
             self.basePath = self.basePath + "MIT/" + type
         
         if imbalanced:
-            self.basePath= self.basePath + "/IMB/"
+            if not only_imb_imgs:
+                self.basePath= self.basePath + "/IMB/"
+            else:
+                self.basePath= self.basePath + "/IMB_ONLY_IMGS/"
         else:
             self.basePath= self.basePath + "/BAL/"
         if self.lamp:

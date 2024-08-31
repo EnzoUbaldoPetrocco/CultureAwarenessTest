@@ -35,7 +35,8 @@ class StandardModels(GeneralModelClass):
         epochs=15,
         batch_size=1,
         weights=None,
-        imbalanced=0
+        imbalanced=0,
+        only_imb_imgs=0
     ):
         """
         Initialization function for modeling standard ML models.
