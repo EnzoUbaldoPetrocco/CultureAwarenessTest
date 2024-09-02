@@ -85,7 +85,7 @@ for i in range(3):
         for imb in imbalances:
          for c in cs:
             for k in ks:
-                for ep in eps:
+                for ep in np.flip(eps, axis=0):
                     for cl_div in class_divisions:
                         if k%2==1:
                             for g_aug in g_gaugs:
