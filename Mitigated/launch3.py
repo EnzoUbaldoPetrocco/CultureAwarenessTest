@@ -70,7 +70,7 @@ mult = 0.25
 cs = [2, 1, 0]
 ks = [0]
 
-basePath = "./PROVA/"
+basePath = "./"
 # with tf.device("/CPU:0"):
 for i in range(4):
  for percent in percents:
