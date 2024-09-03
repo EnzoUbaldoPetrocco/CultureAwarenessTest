@@ -52,7 +52,7 @@ percents = [0.05]
 standard = 1
 # lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -87,6 +87,7 @@ for i in range(3):
             for k in ks:
                 for ep in np.flip(eps, axis=0):
                     for cl_div in class_divisions:
+                        print(f"CLS DIV = {cl_div}")
                         if k%2==1:
                             for g_aug in g_gaugs:
                                 model = None
