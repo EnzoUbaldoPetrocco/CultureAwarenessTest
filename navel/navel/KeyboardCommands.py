@@ -1,58 +1,50 @@
-#!/usr/bin/env python3.10
-import rclpy
-from rclpy.node import Node
-from pynput import keyboard
+#!/usr/bin/env python
+
+import rospy
 from std_msgs.msg import String
+from pynput import keyboard
+import requests
 
-class KeyboardCommands(Node):
-    def __init__(self):
-        super().__init__("KeyboardCommands")
-        self.publisher_ = self.create_publisher(String, 'keyboard_commands', 10)
+# Flask Server Configuration
+FLASK_SERVER_URL = "http://your-server-ip:5000/move"
 
+def send_command_to_flask(direction):
+    try:
+        response = requests.get(f"{FLASK_SERVER_URL}?direction={direction}")
+        rospy.loginfo(f"Sent direction {direction} to Flask server: {response.json()}")
+    except Exception as e:
+        rospy.logerr(f"Failed to send direction {direction} to Flask server: {e}")
 
-    def on_press(self, key :keyboard.Key):
-        try:
-            if key.name in ['up', 'down', 'left', 'right']:
-                print('Command key {0} pressed'.format(
-                    key.name))
-                msg = String()
-                msg.data = key.name
-                self.publisher_.publish(msg)
-        except AttributeError:
-            print('special key {0} pressed'.format(
-                key))
-            msg = String()
-            msg.data = "error"
-            self.publisher_.publish(msg)
+# Function to publish keyboard commands
+def on_press(key):
+    try:
+        if key.char == 'w':
+            send_command_to_flask('front')
+        elif key.char == 's':
+            send_command_to_flask('back')
+        elif key.char == 'a':
+            send_command_to_flask('left')
+        elif key.char == 'd':
+            send_command_to_flask('right')
+    except AttributeError:
+        pass  # Handle special keys if needed
 
+# Function to stop the robot when key is released
+def on_release(key):
+    send_command_to_flask('stop')
+    if key == keyboard.Key.esc:
+        return False
 
-    def on_release(self,key:keyboard.Key):
-        try:
-            print('special key {0} released'.format(
-                key))
-            msg = String()
-            msg.data = "stop"
-            self.publisher_.publish(msg)
-        except AttributeError:
-            print('special key {0} released'.format(
-                key))
-            msg = String()
-            msg.data = "error"
-            self.publisher_.publish(msg)
+def keyboard_node():
+    rospy.init_node('keyboard_node', anonymous=True)
 
-def main(args=None):
-    rclpy.init(args=args)
-    kc = KeyboardCommands()
-
-    # ...or, in a non-blocking fashion:
-    listener = keyboard.Listener(
-        on_press=kc.on_press,
-        on_release=kc.on_release)
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
 
-    rclpy.spin(kc)
-
-    rclpy.shutdown()
+    rospy.spin()
 
 if __name__ == '__main__':
-    main()
+    try:
+        keyboard_node()
+    except rospy.ROSInterruptException:
+        pass

@@ -1,157 +1,55 @@
-#!/usr/bin/env python3.10
-import rclpy
-from rclpy.node import Node
-import json
+from naoqi import ALProxy
 import requests
-import base64
-import cv2
-import os
-from pathlib import Path
-import random
-import time
-from PIL import Image
-from io import BytesIO
-from matplotlib import pyplot as plt
-from functools import wraps
-import socket
-ip = "130.251.13.139"
-ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+import json
+import qi
+import sys
 
+# Pepper Configuration
+PEPPER_IP = "192.168.1.2"  # Replace with your Pepper's IP
+PEPPER_PORT = 9559
 
+# Flask Server Configuration
+FLASK_SERVER_URL = "http://your-server-ip:5000"  # Replace with your Flask server's IP
 
-url = "http://" + ip + ":5000"
-#url = "http://130.251.13.139:5000"
+motion_proxy = ALProxy("ALMotion", PEPPER_IP, PEPPER_PORT)
 
-random.seed(time.time())
+movement_map = {
+    "left": [-1.0, 0.0, 0.0],
+    "right": [1.0, 0.0, 0.0],
+    "front": [0.0, 1.0, 0.0],
+    "back": [0.0, -1.0, 0.0],
+    "stop": [0.0, 0.0, 0.0]
+}
 
+def move_pepper(direction):
+    x, y, theta = movement_map.get(direction, [0.0, 0.0, 0.0])
+    motion_proxy.moveTo(x, y, theta)
 
-class RobotSimulator(Node):
-    def __init__(self):
-        super().__init__("RobotSimulator")
-        self.init_ds()
-        
-        self.timer = self.create_timer(1, self.send_random_image)
+def send_image_for_prediction(image, cultural_info=None):
+    payload = {'image': image}
+    if cultural_info:
+        payload['cultural_info'] = cultural_info
+    try:
+        response = requests.post(f"{FLASK_SERVER_URL}/predict", json=payload)
+        data = response.json()
+        print(f"Prediction: {data['prediction']}, Probability: {data['probability']}")
+        move_pepper(data['current_command'])  # Move Pepper based on current command
+    except Exception as e:
+        print(f"Failed to send POST request for prediction: {e}")
 
-    def init_ds(self):
-        rt = "/home/rice/enzo/FINALDS"
-        
-        lamps_paths = [
-            rt + "/lamps/chinese/120/RGB",
-            rt + "/lamps/french/120/RGB",
-            rt + "/lamps/turkish/120/RGB",
-        ]
+def main():
+    session = qi.Session()
+    try:
+        session.connect("tcp://" + PEPPER_IP + ":" + str(PEPPER_PORT))
+    except RuntimeError:
+        print ("Can't connect to Pepper at ip \"" + PEPPER_IP + "\" on port " + str(PEPPER_PORT) +".")
+        sys.exit(1)
 
-        carpet_paths = [
-            rt + "/carpets_stretched/indian/200/RGB",
-            rt + "/carpets_stretched/japanese/200/RGB",
-            rt + "/carpets_stretched/scandinavian/200/RGB",
-        ]
+    # Example usage
+    # Replace with actual image data capture
+    image = [0] * (128 * 128 * 3)  # Example image data as a flat list
+    cultural_info = None  # Replace with actual cultural information if needed
+    send_image_for_prediction(image, cultural_info)
 
-
-        self.init_spec_dataset(lamps_paths, 1)
-        self.init_spec_dataset(carpet_paths, 0)
-
-    def init_spec_dataset(self, paths, lamp):
-        self.dataset = []
-        for j, path in enumerate(paths):
-            labels = self.get_labels(path)
-            imgs_per_culture = []
-            for i, label in enumerate(labels):
-                images = self.get_images(path + "/" + label)
-                X = []
-                for k in range(len(images)):
-                    X.append([images[k], [j, i]])
-                # print(f"Culture is {j}, label is {i}")
-                # plt.imshow(images[0])
-                # plt.show()
-                imgs_per_culture.append(X)
-                del images
-                del X
-            self.dataset.append(imgs_per_culture)
-
-        if lamp:
-            self.lamp_ds = self.dataset
-        else:
-            self.carpet_ds = self.dataset
-
-        self.dataset = None
-
-    def get_labels(self, path):
-        """
-        get_labels returns a list of the labels in a directory
-
-        :param path: directory in which search of the labels
-        :return list of labels
-        """
-        dir_list = []
-        for file in os.listdir(path):
-            d = os.path.join(path, file)
-            if os.path.isdir(d):
-                d = d.split("\\")
-                if len(d) == 1:
-                    d = d[0].split("/")
-                d = d[-1]
-                dir_list.append(d)
-        return dir_list
-
-    def get_images(self, path, n=1000, rescale=False):
-        """
-        get_images returns min(n, #images contained in a directory)
-
-        :param path: directory in which search for images
-        :param n: maximum number of images
-
-        :return list of images
-        """
-        images = []
-        types = ("*.png", "*.jpg", "*.jpeg")
-        paths = []
-        for typ in types:
-            paths.extend(Path(path).glob(typ))
-        paths = paths[0 : min(len(paths), n)]
-        for i in paths:
-            im = cv2.imread(str(i)) 
-            if rescale:
-                im = im  /255
-            im = im[..., ::-1]
-            images.append(im)
-        return images
-
-    def send_random_image(self):
-        img = self.rnd_get_image()
-        img = Image.fromarray(img)
-        size = img.size
-        buffered = BytesIO()
-        img.save(buffered, format="JPEG")
-        img = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-        msg = {"image": img, "shape": str(size)}
-        msg = {"image": None, "shape": str(size)}
-        req = json.dumps(msg)
-        headers = {'content_type': 'application/json'}
-        print(req)
-        print(f"Posting at this url: {url+'/image'}")
-        res = requests.post(url+'/image',json=req,  headers=headers)
-        if res.status_code==200:
-            print(res)
-        else:
-            print(f"ERROR: {res.status_code} ")
-
-    def rnd_get_image(self):
-        lamp = random.randint(0,1)
-        if lamp:
-            img, label =  self.lamp_ds[random.randint(0, len(self.lamp_ds)-1)][random.randint(0, len(self.lamp_ds[0])-1)][random.randint(0, len(self.lamp_ds[0][0])-1)]
-        else:
-            img, label =  self.carpet_ds[random.randint(0, len(self.carpet_ds)-1)][random.randint(0, len(self.carpet_ds[0])-1)][random.randint(0, len(self.carpet_ds[0][0])-1)]
-        return img
-    
-    
-
-def main(args=None):
-    rclpy.init(args=args)
-    robot = RobotSimulator()
-    rclpy.spin(robot)
-    rclpy.shutdown()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
