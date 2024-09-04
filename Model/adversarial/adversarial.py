@@ -360,13 +360,13 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
 
             if show_imgs:
                 for ep in epsilons:
@@ -378,7 +378,7 @@ class AdversarialStandard(GeneralModelClass):
                         plt.title(label)
                         ax = plt.subplot(4, 2, c + 1)
                         c = c + 2
-                        adv_image = self.generate_adversarial_image(
+                        adv_image = self.generate_adversarial_image_pgd(
                             image * 1.0,
                             label[0 : self.n_cultures],
                             adversarial_model[int(label[self.n_cultures])],
@@ -420,14 +420,14 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
                 
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
                 
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
@@ -441,7 +441,7 @@ class AdversarialStandard(GeneralModelClass):
                         plt.title(label)
                         ax = plt.subplot(4, 2, c + 1)
                         c = c + 2
-                        adv_image = self.generate_adversarial_image(
+                        adv_image = self.generate_adversarial_image_pgd(
                             image * 1.0,
                             label[0 : self.n_cultures],
                             adversarial_model,
@@ -642,7 +642,7 @@ class AdversarialStandard(GeneralModelClass):
                     plt.title(label)
                     ax = plt.subplot(4, 2, i + 5)
                     if class_division:
-                        adv_image = self.generate_adversarial_image(
+                        adv_image = self.generate_adversarial_image_pgd(
                             data_augmentation(image, training=aug) * 1.0,
                             label[0 : self.n_cultures],
                             adversarial_model[int(label[self.n_cultures])],
@@ -650,7 +650,7 @@ class AdversarialStandard(GeneralModelClass):
                             aug=aug
                         )[0]
                     else:
-                        adv_image = self.generate_adversarial_image(
+                        adv_image = self.generate_adversarial_image_pgd(
                             data_augmentation(image, training=aug) * 1.0,
                             label[0 : self.n_cultures],
                             adversarial_model,
