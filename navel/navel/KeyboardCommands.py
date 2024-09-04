@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from std_msgs.msg import String
@@ -10,7 +10,7 @@ FLASK_SERVER_URL = "http://your-server-ip:5000/move"
 
 def send_command_to_flask(direction):
     try:
-        response = requests.get(f"{FLASK_SERVER_URL}?direction={direction}")
+        response = requests.put(f"{FLASK_SERVER_URL}?direction={direction}")
         rospy.loginfo(f"Sent direction {direction} to Flask server: {response.json()}")
     except Exception as e:
         rospy.logerr(f"Failed to send direction {direction} to Flask server: {e}")

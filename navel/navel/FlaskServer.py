@@ -9,10 +9,15 @@ culturally_aware_model = tf.keras.models.load_model('culturally_aware_model.h5')
 culturally_unaware_model = tf.keras.models.load_model('culturally_unaware_model.h5')
 discriminator = tf.keras.models.load_model('discriminator.h5')
 
+#Initialization parameters:
+major_culture = "Indian"
+img_culture = "Unknown"
+
+
 # Movement Command received from the Keyboard Node via ROS
 current_command = 'stop'
 
-@app.route('/move', methods=['GET'])
+@app.route('/move', methods=['PUT'])
 def move():
     global current_command
     direction = request.args.get('direction')
