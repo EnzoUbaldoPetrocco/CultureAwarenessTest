@@ -275,7 +275,7 @@ class AdversarialStandard(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=True,
+        show_imgs=False,
         batches=[32],
         lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
