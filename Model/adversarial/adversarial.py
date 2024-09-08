@@ -160,7 +160,7 @@ class AdversarialStandard(GeneralModelClass):
         return tf.clip_by_value(adversarial_img, 0, 255)
     
     @tf.function
-    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.01, num_iter=20):
+    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.001, num_iter=20):
         """Parameters:
         - model: the target model to attack.
         - x: the input images (batch).
@@ -183,34 +183,20 @@ class AdversarialStandard(GeneralModelClass):
             with tf.GradientTape() as tape:
                 tape.watch(x_adv)
                 prediction = model(x_adv)
-                loss = tf.keras.losses.sparse_categorical_crossentropy(lbl, prediction)
+                loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
             
             # Get the gradients of the loss w.r.t. the input image.
             gradients = tape.gradient(loss, x_adv)
             
             # Perform the gradient ascent step
             perturbations = alpha * tf.sign(gradients)
-            x_adv = x_adv + perturbations
+            x_adv = x_adv/255.0 + perturbations
             
             # Project the perturbation onto the epsilon ball
-            x_adv = tf.clip_by_value(x_adv, img - epsilon, img + epsilon)
-            x_adv = tf.clip_by_value(x_adv, 0, 1)  # Ensure the pixel values are still valid
+            x_adv = tf.clip_by_value(x_adv, img/255.0 - epsilon, img/255.0 + epsilon)*255.0
+            x_adv = tf.clip_by_value(x_adv, 0, 255.0)  # Ensure the pixel values are still valid
             
         return x_adv
-
-        with tf.GradientTape() as tape:
-            tape.watch(img)
-            prediction = model(img, training=False)
-            loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
-        gradient = tape.gradient(loss, img)
-        signed_grad = tf.sign(gradient)
-        img = img / 255.0
-        sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(
-            signed_grad, dtype=np.float32
-        )
-        adversarial_img = tf.cast(img, dtype=np.float32) + sum
-        adversarial_img = adversarial_img * 255.0
-        return tf.clip_by_value(adversarial_img, 0, 255)
 
     def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1, aug=False):
         adversarial_images = []
@@ -288,6 +274,7 @@ class AdversarialStandard(GeneralModelClass):
         eps=0.1,
         text_adv=0,
     ):
+        eps = tf.cast(eps, np.float32)
         class_division = self.class_division
         if text_adv:
             self.generate_adv_images_using_text(TS)
@@ -355,19 +342,19 @@ class AdversarialStandard(GeneralModelClass):
                 else:
                     adversarial_model.append(self.model)
                 self.model = None
-
+            gc.collect()
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
                 imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
-            
+            gc.collect()
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
                 imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
-
+            gc.collect()
             if show_imgs:
                 for ep in epsilons:
                     plt.figure(figsize=(10, 10))
