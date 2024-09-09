@@ -160,7 +160,7 @@ class StandardModels(GeneralModelClass):
         TS,
         VS,
         aug,
-        show_imgs=False,
+        show_imgs=True,
         batches=[32],
         lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
@@ -288,48 +288,40 @@ class StandardModels(GeneralModelClass):
                 if show_imgs:
                     # DISPLAY IMAGES
                     # AUGMENTATION
-                    
-                    images = []
-                    for i in range(9):
+                    for k in range(6):
                         idx = np.random.randint(0, len(TS) - 1)
-                        images.append((TS[0][idx], TS[1][idx]))
-                    
-                    plt.figure(figsize=(10, 10))
-                    for i, (ims, labels) in enumerate(images):
+                        img = TS[0][idx]
+                        temp_ims = np.expand_dims(np.asarray(img).astype('float32'), 0)                            
+                        plt.figure(figsize=(10, 10))
                         
-                        ax = plt.subplot(3, 3, i + 1)
-                        temp_ims = np.expand_dims(np.asarray(ims).astype('float32'), 0)
-                        augmented_image = data_augmentation(
+                        plt.tick_params(
+                                axis='both',          # changes apply to the x-axis
+                                which='both',      # both major and minor ticks are affected
+                                bottom=False,      # ticks along the bottom edge are off
+                                top=False,         # ticks along the top edge are off
+                                labelbottom=False) # labels along the bottom edge are off
+                        plt.imshow(temp_ims[0].astype("int32"))
+                        plt.show()
+                        for i, j in enumerate(np.logspace(-4, 0, 6)):
+                            
+                            ax = plt.subplot(3, 2, i + 1)
+                            dt_aug =  keras.Sequential(
+                                    [
+                                        layers.RandomFlip("horizontal"),
+                                        layers.RandomRotation(0.01),
+                                        layers.GaussianNoise(j),
+                                        tf.keras.layers.RandomBrightness(0.01),
+                                        layers.RandomZoom(j, j),
+                                        layers.Resizing(shape[0], shape[1]),
+                                    ]
+                                )
+
+                            augmented_image = dt_aug(
                             tf.constant(temp_ims), training=True
-                        )
-                        for j in range(30):
-                            augmented_image = data_augmentation(
-                            augmented_image, training=True
-                        )
-                        plt.imshow(augmented_image[0].numpy().astype("int32"))
-                    plt.show()
-
-                print(f"NOAUGMENTED!!!!!!!")
-
-                if show_imgs:
-                    # CHECK IF NO AUGMENTATIO WHEN Training = False or Predict
-                    # AUGMENTATION
-                    
-                    images = []
-                    for i in range(9):
-                        idx = np.random.randint(0, len(TS) - 1)
-                        images.append((TS[0][idx], TS[1][idx]))
-                    
-                    plt.figure(figsize=(10, 10))
-                    for i, (ims, labels) in enumerate(images):
-                        ax = plt.subplot(3, 3, i + 1)
-                        temp_ims = np.expand_dims(np.asarray(ims).astype('float32'), 0)
-                        augmented_image = data_augmentation.predict(tf.constant(temp_ims))
-                        for j in range(20):
-                            augmented_image = data_augmentation.predict(augmented_image)
-                        plt.imshow(np.asarray(augmented_image[0]).astype("int32"))
-                    plt.show()
-
+                            )
+                            plt.imshow(augmented_image[0].numpy().astype("int32"))
+                                
+                        plt.show()
 
             if self.imbalanced:
                 TS = self.ImbalancedTransformation(TS, data_augmentation, aug)
@@ -350,20 +342,6 @@ class StandardModels(GeneralModelClass):
                 yv = tf.constant(VS[1], dtype="float32")
                 validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
 
-            '''if show_imgs:
-                # DISPLAY IMAGES
-                # NOAUGMENTATION
-                images = []
-                for i in range(9):
-                    idx = np.random.randint(0, len(TS[0]) - 1)
-                    images.append((TS[0][idx], TS[1][idx]))
-                plt.figure(figsize=(10, 10))
-                for i, (image, label) in enumerate(images):
-                    ax = plt.subplot(3, 3, i + 1)
-                    plt.imshow(image)
-                    plt.title(int(label))
-                    plt.axis("off")
-                plt.show()'''
 
             
             # MODEL IMPLEMENTATION
