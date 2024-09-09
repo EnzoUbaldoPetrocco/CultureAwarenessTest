@@ -41,7 +41,8 @@ class AdversarialStandard(GeneralModelClass):
         weights=None,
         imbalanced=0,
         class_division=0,
-        only_imb_imgs=0
+        only_imb_imgs=0,
+        save_discriminator=0
     ):
         """
         Initialization function for modeling standard ML models.
@@ -69,6 +70,7 @@ class AdversarialStandard(GeneralModelClass):
         self.weights = np.ones(self.n_cultures)
         self.class_division = class_division
         self.only_imb_imgs=only_imb_imgs
+        self.save_discriminator = save_discriminator
         if weights is not None:
             self.weights = weights
 
@@ -341,6 +343,9 @@ class AdversarialStandard(GeneralModelClass):
                     adversarial_model.append(self.remove_data_aug(self.model))
                 else:
                     adversarial_model.append(self.model)
+
+                if self.save_discriminator:
+                    self.model.save(path=path + f'/class_discriminator={i}')
                 self.model = None
             gc.collect()
             (imgs, ys) = TS[0], TS[1]
@@ -401,7 +406,9 @@ class AdversarialStandard(GeneralModelClass):
                 adversarial_model = self.remove_data_aug(self.model)
             else:
                 adversarial_model = self.model
-            adversarial_model.summary()
+                
+            if self.save_discriminator:
+                    self.model.save(path=path + f'/class_discriminator={i}')
 
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)):
