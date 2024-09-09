@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 8000
+memory_limit = 7500
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -52,29 +52,29 @@ percents = [0.05]
 standard = 1
 # lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
 epochs = 15
-class_divisions = [1,0]
-imbalances = [1]
+class_divisions = [0,1]
+imbalances = [0,1]
 
 g_gaugs = np.logspace(-4, 0, 6)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 eps = np.logspace(-4, 0, 6)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [2, 1, 0]
+cs = [0]
 ks = [0]
 
 basePath = "./"
 # with tf.device("/CPU:0"):
 for i in range(3):
  for percent in percents:
-    for lamp in [0,1]:
+    for lamp in [1,0]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
@@ -87,6 +87,7 @@ for i in range(3):
             for k in ks:
                 for ep in eps:
                     for cl_div in class_divisions:
+                        print(f"CLS DIV = {cl_div}")
                         if k%2==1:
                             for g_aug in g_gaugs:
                                 model = None
