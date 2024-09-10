@@ -162,7 +162,7 @@ class AdversarialStandard(GeneralModelClass):
         return tf.clip_by_value(adversarial_img, 0, 255)
     
     @tf.function
-    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.001, num_iter=20):
+    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.02, num_iter=20):
         """Parameters:
         - model: the target model to attack.
         - x: the input images (batch).
@@ -265,7 +265,7 @@ class AdversarialStandard(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[1e-2],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -287,7 +287,7 @@ class AdversarialStandard(GeneralModelClass):
                 VS = self.ImbalancedTransformation(VS) 
         else:
             TS2 = self.ImbalancedTransformation(TS)
-            VS2 = self.ImbalancedTransformation(VS2)
+            VS2 = self.ImbalancedTransformation(VS)
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
@@ -352,13 +352,13 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
             gc.collect()
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model[int(y[self.n_cultures])], eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
             gc.collect()
             if show_imgs:
                 for ep in epsilons:
@@ -374,8 +374,7 @@ class AdversarialStandard(GeneralModelClass):
                             image * 1.0,
                             label[0 : self.n_cultures],
                             adversarial_model[int(label[self.n_cultures])],
-                            epsilon=ep,
-                            aug=aug
+                            epsilon=ep
                         )[0]
                         plt.imshow(adv_image / 255.0)
                         plt.title(label)
@@ -406,7 +405,7 @@ class AdversarialStandard(GeneralModelClass):
                 adversarial_model = self.remove_data_aug(self.model)
             else:
                 adversarial_model = self.model
-                
+
             if self.save_discriminator:
                     self.model.save(path=path + f'/class_discriminator={i}')
 
@@ -414,14 +413,14 @@ class AdversarialStandard(GeneralModelClass):
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
                 
             
             (imgs, ys) = VS[0], VS[1]
             for i in range(len(imgs)):
                 img = imgs[i]
                 y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(tf.cast(img, dtype=np.float32), tf.cast(y[0:self.n_cultures], dtype=np.float32), adversarial_model, eps, aug)[0]
+                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
                 
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
@@ -440,7 +439,6 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model,
                             epsilon=ep,
-                            aug=aug
                         )[0]
                         plt.imshow(adv_image / 255.0)
                         plt.title(label)
@@ -467,6 +465,7 @@ class AdversarialStandard(GeneralModelClass):
             eps=eps,
             class_division=class_division,
         )
+        tf.keras.backend.clear_session()
 
     def ModelSelection(
         self,
@@ -552,7 +551,7 @@ class AdversarialStandard(GeneralModelClass):
             eps=eps,
             class_division=class_division,
         )
-
+        tf.keras.backend.clear_session()
         if save:
             self.save(path)
 
@@ -581,6 +580,7 @@ class AdversarialStandard(GeneralModelClass):
                         newX.append(np.asarray(img))  
                         newY.append(np.asarray(label))
         del TS
+        tf.keras.backend.clear_session()
         return (newX, newY)
 
     def DL(
@@ -641,7 +641,6 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model[int(label[self.n_cultures])],
                             epsilon=eps,
-                            aug=aug
                         )[0]
                     else:
                         adv_image = self.generate_adversarial_image_pgd(
@@ -649,7 +648,6 @@ class AdversarialStandard(GeneralModelClass):
                             label[0 : self.n_cultures],
                             adversarial_model,
                             epsilon=eps,
-                            aug=aug
                         )[0]
                     plt.imshow(adv_image / 255.0)
                     plt.title(label)
