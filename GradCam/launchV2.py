@@ -65,7 +65,7 @@ def get_cm_samples(procObj: ProcessingClass, Xt, yt, out, n=1, standard=0):
     return cms
 
 
-def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: ProcessingClass, images_test_path):
+def cmp_and_save_heatmap(pt, standard, grdC: GradCAM, Xt, yt, procObj: ProcessingClass):
     for culture in range(3):
         path = pt + f"CULTURE{culture}/"
         mkdirs(path, nt)
@@ -113,8 +113,6 @@ nt = 5
 memory_limit = 5000
 
 basePath = "./"
-images_test_path = './STD/Dl/BAL/'
-
 
 for lamp in [0, 1]:
     procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit, basePath=basePath)
@@ -150,7 +148,7 @@ for lamp in [0, 1]:
                         pt = procObj.basePath + f"TNOAUG/"
                         Xt = procObj.dataobj.Xt
                         yt = procObj.dataobj.yt
-                        cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj, images_test_path)
+                        cmp_and_save_heatmap(pt, standard, grdC, Xt, yt, procObj)
                         procObj.partial_clear(basePath)
 
 
