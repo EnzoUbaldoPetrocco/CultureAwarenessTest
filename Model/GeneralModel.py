@@ -111,7 +111,7 @@ class GeneralModelClass:
     def get_model_from_weights(self, path="./"):
         self.model = tf.keras.models.load_model(path)
 
-    def save(self, path="./"):
+    def save_model(self, path="./"):
         self.model.save(path)
         
 

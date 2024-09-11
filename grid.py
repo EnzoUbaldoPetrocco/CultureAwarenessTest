@@ -1,7 +1,7 @@
 import numpy as np
 
 A = np.logspace(-4, -1, 11)
-B = np.logspace(-4, -1, 6)
+B = np.logspace(-4, 0, 6)
 
 print(f"A is {A}")
 print(f"B is {B}")
