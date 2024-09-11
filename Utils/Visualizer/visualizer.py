@@ -913,7 +913,7 @@ class Res2TabClass:
         epsilons = np.logspace(
             -4, 0, 6
         )  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-        adversary = [0]
+        adversary = [0, 1]
         taugments = [0, 1]
         tadversaries = [0, 1]
         test_g_augs = [0.01, 0.05, 0.1]
