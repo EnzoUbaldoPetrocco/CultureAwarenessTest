@@ -71,7 +71,8 @@ basePath = "./"
 
 
 # with tf.device("/CPU:0"):
-for lamp in [1, 0]:
+for i in range(10):
+ for lamp in [1, 0]:
     procObj = ProcessingClass(
         shallow=0, lamp=lamp, gpu=False, memory_limit=memory_limit, basePath=basePath
     )
@@ -93,23 +94,16 @@ for lamp in [1, 0]:
                             val_split=val_split,
                             test_split=test_split,
                             n=n,
-                            augment=0,
-                            gaug=0,
-                            adversary=0,
-                            eps=eps,
-                            mult=mult,
+                            discriminator=1
                         )
                         # NoAUg
                         print(f"Testing->aug={0};adv={0}")
                         procObj.test(
                             standard=standard,
                             culture=c,
-                            augment=0,
-                            gaug=0,
-                            adversary=0,
-                            eps=test_eps,
                         )
-                        #pt = procObj.basePath + '/model/'
-                        #fObj = FileManagerClass(pt)
-                        #procObj.model.save_model(path=pt)
+                        if i == 0:
+                            pt = procObj.basePath + '/model/'
+                            fObj = FileManagerClass(pt)
+                            procObj.model.save_model(path=pt)
                         procObj.partial_clear(basePath)

@@ -28,7 +28,7 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 
-class AdversarialStandard(GeneralModelClass):
+class Discriminator(GeneralModelClass):
     def __init__(
         self,
         type="SVC",
