@@ -7,6 +7,7 @@ from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
 from Model.adversarial.adversarial import AdversarialStandard 
+from Model.discriminator.discriminator import Discriminator
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
 from Utils.Results.Results import ResultsClass
@@ -254,6 +255,7 @@ class ProcessingClass:
         n: int = 1000,
         augment=0,
         gaug: float = 0.1,
+        discriminator=0,
         adversary=0,
         eps=0.3,
         mult=0.05,
@@ -310,9 +312,8 @@ class ProcessingClass:
             imbalanced=imbalanced
         )
         self.model = None
-        if standard:
-            if adversary:
-                self.model = AdversarialStandard(
+        if discriminator:
+            self.model = Discriminator(
                     type=type,
                     points=points,
                     kernel=kernel,
@@ -326,9 +327,10 @@ class ProcessingClass:
                     only_imb_imgs = only_imb_imgs
                     
                 )
-            else:
-                if gradcam:
-                    self.model = StandardModels4GradCam(
+        else:
+            if standard:
+                if adversary:
+                    self.model = AdversarialStandard(
                         type=type,
                         points=points,
                         kernel=kernel,
@@ -338,35 +340,50 @@ class ProcessingClass:
                         batch_size=batch_size,
                         weights=weights,
                         imbalanced=imbalanced,
+                        class_division= class_division,
                         only_imb_imgs = only_imb_imgs
+                        
                     )
                 else:
-                    self.model = StandardModels(
-                        type=type,
-                        points=points,
-                        kernel=kernel,
-                        verbose_param=verbose_param,
-                        learning_rate=learning_rate,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        weights=weights,
-                        imbalanced=imbalanced,
-                        only_imb_imgs = only_imb_imgs
-                    )
-
-        else:
-            self.model = MitigatedModels(
-                type=type,
-                culture=culture,
-                verbose_param=verbose_param,
-                epochs=epochs,
-                batch_size=batch_size,
-                learning_rate=learning_rate,
-                lambda_index=lambda_index,
-                n_cultures=n_cultures,
-                imbalanced=imbalanced,
-                only_imb_imgs = only_imb_imgs
-            )
+                    if gradcam:
+                        self.model = StandardModels4GradCam(
+                            type=type,
+                            points=points,
+                            kernel=kernel,
+                            verbose_param=verbose_param,
+                            learning_rate=learning_rate,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            weights=weights,
+                            imbalanced=imbalanced,
+                            only_imb_imgs = only_imb_imgs
+                        )
+                    else:
+                        self.model = StandardModels(
+                            type=type,
+                            points=points,
+                            kernel=kernel,
+                            verbose_param=verbose_param,
+                            learning_rate=learning_rate,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            weights=weights,
+                            imbalanced=imbalanced,
+                            only_imb_imgs = only_imb_imgs
+                        )
+            else:
+                self.model = MitigatedModels(
+                    type=type,
+                    culture=culture,
+                    verbose_param=verbose_param,
+                    epochs=epochs,
+                    batch_size=batch_size,
+                    learning_rate=learning_rate,
+                    lambda_index=lambda_index,
+                    n_cultures=n_cultures,
+                    imbalanced=imbalanced,
+                    only_imb_imgs = only_imb_imgs
+                )
 
         self.model.standard=standard
             # Base path:
@@ -377,12 +394,14 @@ class ProcessingClass:
         # - lambda index: -1, 0, 1, ...
         # Complete path:
         # - augment in Test: TNOAUG, TSTDAUG, TADV, TTOTAUG
-        
-        if standard:
+        if discriminator:
             self.basePath = self.basePath + "STD/" + type
         else:
-            self.basePath = self.basePath + "MIT/" + type
-        
+            if standard:
+                self.basePath = self.basePath + "STD/" + type
+            else:
+                self.basePath = self.basePath + "MIT/" + type
+            
         if imbalanced:
             if not only_imb_imgs:
                 self.basePath= self.basePath + "/IMB/"
