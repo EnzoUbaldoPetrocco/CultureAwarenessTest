@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 7500
+memory_limit = 8000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -67,14 +67,14 @@ test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 eps = np.logspace(-4, 0, 6)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [0]
-ks = [1]
+cs = [1]
+ks = [0]
 
 basePath = "./"
 # with tf.device("/CPU:0"):
 for i in range(3):
  for percent in percents:
-    for lamp in [0,1]:
+    for lamp in [1]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
@@ -107,7 +107,7 @@ for i in range(3):
                                     n=n,
                                     augment=k % 2,
                                     gaug=g_aug,
-                                    adversary=0,
+                                    adversary=1,
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
@@ -143,7 +143,7 @@ for i in range(3):
                                 n=n,
                                 augment=k % 2,
                                 gaug=0,
-                                adversary=0,
+                                adversary=1,
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,
