@@ -101,9 +101,7 @@ for i in range(10):
                         procObj.test(
                             standard=standard,
                             culture=c,
+                            discriminator=1
                         )
-                        if i == 0:
-                            pt = procObj.basePath + '/model/'
-                            fObj = FileManagerClass(pt)
-                            procObj.model.save_model(path=pt)
+                        
                         procObj.partial_clear(basePath)

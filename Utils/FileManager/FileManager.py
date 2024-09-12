@@ -2,6 +2,7 @@
 __author__ = "Enzo Ubaldo Petrocco"
 import csv
 import os
+import pandas as pd
 
 
 class FileManagerClass:
@@ -51,27 +52,40 @@ class FileManagerClass:
             #print(f"Error in reading file {self.name}")
         return csvlist
 
-    def writerow(self, row):
+    def writerow(self, row, discriminator=0):
         """
         writerow opens a file and write in it a row
         :param row: row to be saved in the file
         """
         try:
             with open(self.name, "a", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow(row)
+                if discriminator:
+                    row.to_csv(file)
+                    file.write('\n')
+                else:
+                    writer = csv.writer(file)
+                    writer.writerow(row)
                 del row
                 file.close()
         except Exception as e:
             print(f"Error in writing file {self.name} due to Exception:\n{e}")
 
-    def writecm(self, cm):
+    def writecm(self, cm, discriminator=0):
         """
         writecm creates a row from confusion matrix
         :param cm: confusion matrix to be stored
         """
-        row = [cm[0][0], cm[0][1], cm[1][0], cm[1][1]]
-        self.writerow(row)
+        if discriminator:
+            class_labels = ['Class 0', 'Class 1', 'Class 2']
+            # Convert confusion matrices to pandas DataFrames
+            row = pd.DataFrame(cm, columns=class_labels, index=class_labels)
+            # Add a label to identify the matrix
+            row['Matrix'] = 'CM'
+            # Move the 'Matrix' column to the first position
+            row = row[['Matrix'] + class_labels]
+        else:
+            row = [cm[0][0], cm[0][1], cm[1][0], cm[1][1]]
+        self.writerow(row, discriminator=discriminator)
         del row
 
     def readcms(self):

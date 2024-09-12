@@ -95,7 +95,7 @@ class Discriminator(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[ 1e-3],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -161,9 +161,6 @@ class Discriminator(GeneralModelClass):
                     g=g,
                     save=save,
                     path=path,
-                    adv=1,
-                    adversarial_model=None,
-                    eps=eps,
                 )
                 if aug:
                     adversarial_model.append(self.remove_data_aug(self.model))
@@ -189,10 +186,6 @@ class Discriminator(GeneralModelClass):
                 g=g,
                 save=save,
                 path=path,
-                adv=1,
-                adversarial_model=None,
-                eps=eps,
-                class_division=0,
             )
             if aug:
                 adversarial_model = self.remove_data_aug(self.model)
@@ -239,7 +232,6 @@ class Discriminator(GeneralModelClass):
                             TS,
                             VS,
                             aug,
-                            show_imgs,
                             b,
                             lr,
                             fine_lr,
@@ -267,7 +259,6 @@ class Discriminator(GeneralModelClass):
             TS,
             None,
             aug,
-            show_imgs,
             best_bs,
             best_lr,
             best_fine_lr,
@@ -344,9 +335,13 @@ class Discriminator(GeneralModelClass):
             )
 
             validation_generator = None
+
+            print(f"Shape of TS[1] is {np.shape(TS[1][0])}")
+
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
-
+            
+            
         
             train_generator = train_generator.map(
                 lambda img, y: (

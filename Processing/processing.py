@@ -6,7 +6,7 @@ sys.path.insert(1, "../")
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
-from Model.adversarial.adversarial import AdversarialStandard 
+from Model.adversarial.adversarial import AdversarialStandard
 from Model.discriminator.discriminator import Discriminator
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
@@ -29,12 +29,15 @@ class ProcessingClass:
     ProcessingClass is a middleware that takes into account
     the the processing modules for testing the models
     """
-    def __init__(self, shallow, lamp, gpu=False, memory_limit=2700, basePath='./') -> None:
+
+    def __init__(
+        self, shallow, lamp, gpu=False, memory_limit=2700, basePath="./"
+    ) -> None:
         """
         init function initialize the dataset object and the gpu setup
         :param shallow: if enabled, shallow learning mode is activated and
-        we can use models such as Linear SVM, Gaussian SVM, ... If so, 
-        we have the images to be greyscale and then flattened, else, we can use 
+        we can use models such as Linear SVM, Gaussian SVM, ... If so,
+        we have the images to be greyscale and then flattened, else, we can use
         deep learning algorithms (such as RESNER), so we must have images as RGB
         :param lamp: if enabled we get the images from lamp folder, else from carpet
         folder
@@ -98,7 +101,7 @@ class ProcessingClass:
         g_noise: float = 0.1,
         g_bright: float = 0.1,
         adversarial=0,
-        imbalanced=0
+        imbalanced=0,
     ):
         """
         This function prepares the data for training
@@ -125,7 +128,7 @@ class ProcessingClass:
             test_split=test_split,
             n=n,
             adversarial=adversarial,
-            imbalanced=imbalanced
+            imbalanced=imbalanced,
         )
         if augment:
             with tf.device("/gpu:0"):
@@ -159,7 +162,7 @@ class ProcessingClass:
     ):
         """
         This function prepares the data for testing
-        
+
         :param augment: if enabled, we augment the dataset
         :param g_rot: if augment is enabled, is the gain of random rotation
         :param g_noise: if augment is enabled, is the gain of gaussian noise
@@ -169,7 +172,7 @@ class ProcessingClass:
         fast gradient method
         :param eps: is adversary is enabled, it is the gain of fast gradient method
         :param nt: is the number of images to use for testing
-        
+
         """
         self.Xt_totaug = []
         self.Xt_adv = []
@@ -260,17 +263,17 @@ class ProcessingClass:
         eps=0.3,
         mult=0.05,
         gradcam=False,
-        complete = 0,
+        complete=0,
         n_cultures=3,
         imbalanced=0,
-        class_division= 0,
-        only_imb_imgs = 0
+        class_division=0,
+        only_imb_imgs=0,
     ):
         """
         process function prepares the data and fit the model
 
         This function prepares the data for training
-        
+
         :param standard: if enabled, we prepare the dataset for
         standard ML, else our mitigation strategy
         :param type: select the algorithm, possible values: (SVM and DL/RESNET)
@@ -297,8 +300,8 @@ class ProcessingClass:
         :param nt: is the number of images to use for testing
         :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
         """
-        weights = np.ones(n_cultures)*percent
-        weights[culture]=1 #this are the proportions in the dataset
+        weights = np.ones(n_cultures) * percent
+        weights[culture] = 1  # this are the proportions in the dataset
 
         self.prepare_data(
             standard=standard,
@@ -309,24 +312,23 @@ class ProcessingClass:
             n=n,
             augment=0,
             adversarial=adversary,
-            imbalanced=imbalanced
+            imbalanced=imbalanced,
         )
         self.model = None
         if discriminator:
             self.model = Discriminator(
-                    type=type,
-                    points=points,
-                    kernel=kernel,
-                    verbose_param=verbose_param,
-                    learning_rate=learning_rate,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    weights=weights,
-                    imbalanced=imbalanced,
-                    class_division= class_division,
-                    only_imb_imgs = only_imb_imgs
-                    
-                )
+                type=type,
+                points=points,
+                kernel=kernel,
+                verbose_param=verbose_param,
+                learning_rate=learning_rate,
+                epochs=epochs,
+                batch_size=batch_size,
+                weights=weights,
+                imbalanced=imbalanced,
+                class_division=class_division,
+                only_imb_imgs=only_imb_imgs,
+            )
         else:
             if standard:
                 if adversary:
@@ -340,9 +342,8 @@ class ProcessingClass:
                         batch_size=batch_size,
                         weights=weights,
                         imbalanced=imbalanced,
-                        class_division= class_division,
-                        only_imb_imgs = only_imb_imgs
-                        
+                        class_division=class_division,
+                        only_imb_imgs=only_imb_imgs,
                     )
                 else:
                     if gradcam:
@@ -356,7 +357,7 @@ class ProcessingClass:
                             batch_size=batch_size,
                             weights=weights,
                             imbalanced=imbalanced,
-                            only_imb_imgs = only_imb_imgs
+                            only_imb_imgs=only_imb_imgs,
                         )
                     else:
                         self.model = StandardModels(
@@ -369,7 +370,7 @@ class ProcessingClass:
                             batch_size=batch_size,
                             weights=weights,
                             imbalanced=imbalanced,
-                            only_imb_imgs = only_imb_imgs
+                            only_imb_imgs=only_imb_imgs,
                         )
             else:
                 self.model = MitigatedModels(
@@ -382,11 +383,11 @@ class ProcessingClass:
                     lambda_index=lambda_index,
                     n_cultures=n_cultures,
                     imbalanced=imbalanced,
-                    only_imb_imgs = only_imb_imgs
+                    only_imb_imgs=only_imb_imgs,
                 )
 
-        self.model.standard=standard
-            # Base path:
+        self.model.standard = standard
+        # Base path:
         # - STD/MIT
         # - model: SVC, RFC, DL
         # - culture: LC, LF, LT, CI, CJ, CS
@@ -401,14 +402,14 @@ class ProcessingClass:
                 self.basePath = self.basePath + "STD/" + type
             else:
                 self.basePath = self.basePath + "MIT/" + type
-            
+
         if imbalanced:
             if not only_imb_imgs:
-                self.basePath= self.basePath + "/IMB/"
+                self.basePath = self.basePath + "/IMB/"
             else:
-                self.basePath= self.basePath + "/IMB_ONLY_IMGS/"
+                self.basePath = self.basePath + "/IMB_ONLY_IMGS/"
         else:
-            self.basePath= self.basePath + "/BAL/"
+            self.basePath = self.basePath + "/BAL/"
         if self.lamp:
             if culture == 0:
                 c = "/LC/"
@@ -448,7 +449,7 @@ class ProcessingClass:
                 aug = "NOAUG/"
 
         self.basePath = self.basePath + aug
-        if ((not standard) and (not complete)):
+        if (not standard) and (not complete):
             self.basePath = self.basePath + str(lambda_index) + "/"
         del c
         del aug
@@ -459,9 +460,9 @@ class ProcessingClass:
             mult=mult,
             gradcam=gradcam,
             out_dir=self.basePath,
-            complete = complete,
+            complete=complete,
             aug=augment,
-            g=gaug
+            g=gaug,
         )
 
     def test(
@@ -472,7 +473,8 @@ class ProcessingClass:
         gaug=0.1,
         adversary=0,
         eps=0.3,
-        nt = None
+        nt=None,
+        discriminator=0,
     ):
         """
         This function is used for testing the model
@@ -502,71 +504,110 @@ class ProcessingClass:
         else:
             print("Pay attention: no model information given for tests")
             return -1
-        for culture in range(3):
-            if standard:
-                if augment:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_totaug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.Xt_aug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TSTDAUG/G_AUG={gaug}/"
-                else:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_adv[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TAVD/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.dataobj.Xt[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TNOAUG/"
-                testaug = testaug + f"CULTURE{culture}/"
-                path = self.basePath + testaug + "res.csv"
-                self.save_results(cm, path)
-            else:
-                for i in range(3):
+        if not discriminator:
+            for culture in range(3):
+                if standard:
                     if augment:
                         if adversary:
                             cm = self.model.get_model_stats(
-                                self.Xt_totaug[culture], self.dataobj.yt[culture], i
+                                self.Xt_totaug[culture],
+                                self.dataobj.yt[culture],
+                                discriminator=discriminator,
                             )
                             testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
                         else:
                             cm = self.model.get_model_stats(
-                                self.Xt_aug[culture], self.dataobj.yt[culture], i
+                                self.Xt_aug[culture],
+                                self.dataobj.yt[culture],
+                                discriminator=discriminator,
                             )
                             testaug = f"TSTDAUG/G_AUG={gaug}/"
                     else:
                         if adversary:
                             cm = self.model.get_model_stats(
-                                self.Xt_adv[culture], self.dataobj.yt[culture], i
+                                self.Xt_adv[culture],
+                                self.dataobj.yt[culture],
+                                discriminator=discriminator,
                             )
                             testaug = f"TAVD/EPS={eps}/"
                         else:
                             cm = self.model.get_model_stats(
-                                self.dataobj.Xt[culture], self.dataobj.yt[culture], i
+                                self.dataobj.Xt[culture],
+                                self.dataobj.yt[culture],
+                                discriminator=discriminator,
                             )
                             testaug = f"TNOAUG/"
                     testaug = testaug + f"CULTURE{culture}/"
-                    path = self.basePath + testaug + "out " + str(i) + ".csv"
+                    path = self.basePath + testaug + "res.csv"
                     self.save_results(cm, path)
-                    del path
-                    del testaug
-        return 0
+                else:
+                    for i in range(3):
+                        if augment:
+                            if adversary:
+                                cm = self.model.get_model_stats(
+                                    self.Xt_totaug[culture],
+                                    self.dataobj.yt[culture],
+                                    i,
+                                    discriminator=discriminator,
+                                )
+                                testaug = f"TTOTAUG/G_AUG={gaug}/EPS={eps}/"
+                            else:
+                                cm = self.model.get_model_stats(
+                                    self.Xt_aug[culture],
+                                    self.dataobj.yt[culture],
+                                    i,
+                                    discriminator=discriminator,
+                                )
+                                testaug = f"TSTDAUG/G_AUG={gaug}/"
+                        else:
+                            if adversary:
+                                cm = self.model.get_model_stats(
+                                    self.Xt_adv[culture],
+                                    self.dataobj.yt[culture],
+                                    i,
+                                    discriminator=discriminator,
+                                )
+                                testaug = f"TAVD/EPS={eps}/"
+                            else:
+                                cm = self.model.get_model_stats(
+                                    self.dataobj.Xt[culture],
+                                    self.dataobj.yt[culture],
+                                    i,
+                                    discriminator=discriminator,
+                                )
+                                testaug = f"TNOAUG/"
+                        testaug = testaug + f"CULTURE{culture}/"
+                        path = self.basePath + testaug + "out " + str(i) + ".csv"
+                        print(f"Path is {path}")
+                        self.save_results(cm, path, discriminator=discriminator)
+                        del path
+                        del testaug
+        else:
+            if augment:
 
-    def save_results(self, cm, path):
+                cm = self.model.get_model_stats(
+                    self.Xt_aug, self.dataobj.yt, discriminator=discriminator
+                )
+                testaug = f"TSTDAUG/G_AUG={gaug}/"
+            else:
+
+                cm = self.model.get_model_stats(
+                    self.dataobj.Xt, self.dataobj.yt, discriminator=discriminator
+                )
+                testaug = f"TNOAUG/"
+            testaug = testaug + f"CULTURE{culture}/"
+            path = self.basePath + testaug + "res.csv"
+            self.save_results(cm, path, discriminator=discriminator)
+
+        return
+
+    def save_results(self, cm, path, discriminator=0):
         """
         :param cm: is the confusion matrix to be saved
         :param path: is the path in which we want to save the confusion matrix
         """
         fObj = FileManagerClass(path)
-        fObj.writecm(cm)
+        fObj.writecm(cm, discriminator=discriminator)
         del fObj
 
     def partial_clear(self, basePath=None):
@@ -584,5 +625,5 @@ class ProcessingClass:
         self.Xt_aug = None
         del self.Xt_aug
         self.basePath = basePath
-        
+
         gc.collect()

@@ -82,7 +82,7 @@ class GeneralModelClass:
             print("Try fitting the model before")
             return None
 
-    def get_model_stats(self, Xt, yT, out=-1):
+    def get_model_stats(self, Xt, yT, out=-1, discriminator=0):
         """
         This function returns a confusion matrix based on a set of samples and its true values
         :param Xt: set of samples
@@ -91,21 +91,38 @@ class GeneralModelClass:
 
         :return list confusion matrix
         """
-        yFq = self.test(Xt, out)
-        if len(np.shape(yT)) > 1:
-            if type(yT) == list:
-                yT = np.asarray(yT)
-            if self.standard:
-                if not self.adversarial:
-                    yT = yT[:, 1]
+        
+        if not discriminator:
+            yFq = self.test(Xt, out)
+            if len(np.shape(yT)) > 1:
+                if type(yT) == list:
+                    yT = np.asarray(yT)
+                if self.standard:
+                    if not self.adversarial:
+                        yT = yT[:, 1]
+                    else:
+                        yT = yT[:, self.n_cultures]
                 else:
                     yT = yT[:, self.n_cultures]
-            else:
-                yT = yT[:, self.n_cultures]
+                gc.collect()
             gc.collect()
-        gc.collect()
-        if yFq:
-            cm = confusion_matrix(y_true=yT, y_pred=yFq)
+        else:
+            X = []
+            for XC in Xt:
+                X.extend(XC)
+            y = []
+            for yC in yT:
+                y.extend(yC)
+            yF = self.model.predict(np.asarray(X, dtype='int32'))
+            yF = np.argmax(yF, axis=1)
+            y = np.asarray(y)
+            y = y[:,0: self.n_cultures]
+            y = np.argmax(y, axis=1)
+            print(f"yF\n{yF}")
+            print(f"yT\n{y}")
+        if yF.any()!=None:
+            cm = confusion_matrix(y_true=y, y_pred=yF)
+            print(f"Confusion Matrix: {cm}")
             return cm
         
     def get_model_from_weights(self, path="./"):
