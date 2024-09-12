@@ -67,7 +67,7 @@ mult = 0.25
 cs = [0, 1, 2]
 ks = [0]
 
-basePath = "./"
+basePath = "./local/"
 
 
 # with tf.device("/CPU:0"):

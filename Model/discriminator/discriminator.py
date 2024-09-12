@@ -74,8 +74,6 @@ class Discriminator(GeneralModelClass):
         if weights is not None:
             self.weights = weights
 
-
-
     def remove_data_aug(self, model :keras.Model):  
         input = keras.Input(shape=self.shape)
         x = model.layers[2](input)
@@ -87,7 +85,6 @@ class Discriminator(GeneralModelClass):
         truncated_model.summary()
         return truncated_model
 
-    
     def LearningAdversarially(
         self,
         TS,
@@ -95,11 +92,11 @@ class Discriminator(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[ 1e-3],
+        lrs=[1e-3, 1e-4],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
-        nDropouts=[0.4],
+        nDropouts=[0.4, 0.6],
         g=0.1,
         save=False,
         path="./",
