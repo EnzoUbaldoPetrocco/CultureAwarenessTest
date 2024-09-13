@@ -668,7 +668,6 @@ class Res2TabClass:
                             df = df.reset_index()  # make sure indexes pair with number of rows
 
                             for index, row in df.iterrows():
-                                print(row)
                                 totdf.loc[len(totdf)] = row
                         
 
