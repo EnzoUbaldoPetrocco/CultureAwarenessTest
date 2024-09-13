@@ -1066,6 +1066,7 @@ class ResAcquisitionClass:
                                                                             st
                                                                         )
                                                                         mkdir(dir)
+                                                                        #print(f"Incriminated directory is {dir}")
                                                                         rc = ResultsClass(
                                                                             np.asarray(
                                                                                 tcultsl
