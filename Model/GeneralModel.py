@@ -106,6 +106,10 @@ class GeneralModelClass:
                     yT = yT[:, self.n_cultures]
                 gc.collect()
             gc.collect()
+            if yFq!=None:
+                cm = confusion_matrix(y_true=y, y_pred=yF)
+                print(f"Confusion Matrix: {cm}")
+                return cm
         else:
             X = []
             for XC in Xt:
@@ -120,10 +124,10 @@ class GeneralModelClass:
             y = np.argmax(y, axis=1)
             print(f"yF\n{yF}")
             print(f"yT\n{y}")
-        if yF.any()!=None:
-            cm = confusion_matrix(y_true=y, y_pred=yF)
-            print(f"Confusion Matrix: {cm}")
-            return cm
+            if yF.any()!=None:
+                cm = confusion_matrix(y_true=y, y_pred=yF)
+                print(f"Confusion Matrix: {cm}")
+                return cm
         
     def get_model_from_weights(self, path="./"):
         self.model = tf.keras.models.load_model(path)
