@@ -56,17 +56,76 @@ def print_tables(
             for culture in cultures:
                 for percent in range(len(percents)):
                     for augment in augments:
-                        for adv in adversary:
-                            if standard:
+                        if standard:
+                            for taugment in taugments:
+                                for tadversary in tadversaries:
+                                    if taugment and tadversary:
+                                        for tgaug in range(len(test_g_augs)):
+                                            for teps in range(len(test_eps)):
+
+                                                pt = paths[standard][lamp][culture][
+                                                    percent
+                                                ][augment][adv][taugment][tadversary][
+                                                    tgaug
+                                                ][
+                                                    teps
+                                                ]
+
+                                                pt = pt + "res.csv"
+                                                df = pd.read_csv(pt)
+                                                visobj.plot_table(
+                                                    df[df.columns[1 : len(df.columns)]],
+                                                    pt,
+                                                )
+                                    if taugment and not tadversary:
+                                        for tgaug in range(len(test_g_augs)):
+                                            pt = paths[standard][lamp][culture][
+                                                percent
+                                            ][augment][0][taugment][tadversary][tgaug][
+                                                teps
+                                            ]
+                                            pt = pt + "res.csv"
+                                            df = pd.read_csv(pt)
+                                            visobj.plot_table(
+                                                df[df.columns[1 : len(df.columns)]],
+                                                pt,
+                                            )
+
+                                    if not taugment and tadversary:
+                                        for teps in range(len(test_eps)):
+                                            pt = paths[standard][lamp][culture][
+                                                percent
+                                            ][augment][0][taugment][tadversary][tgaug][
+                                                teps
+                                            ]
+                                            pt = pt + "res.csv"
+                                            df = pd.read_csv(pt)
+                                            visobj.plot_table(
+                                                df[df.columns[1 : len(df.columns)]],
+                                                pt,
+                                            )
+                                    if not taugment and not tadversary:
+                                        pt = paths[standard][lamp][culture][percent][
+                                            augment
+                                        ][0][taugment][tadversary][tgaug][teps]
+                                        pt = pt + "res.csv"
+                                        df = pd.read_csv(pt)
+                                        visobj.plot_table(
+                                            df[df.columns[1 : len(df.columns)]],
+                                            pt,
+                                        )
+                        else:
+                            for lambda_index in lambda_indeces:
                                 for taugment in taugments:
                                     for tadversary in tadversaries:
                                         if taugment and tadversary:
                                             for tgaug in range(len(test_g_augs)):
                                                 for teps in range(len(test_eps)):
-
                                                     pt = paths[standard][lamp][culture][
                                                         percent
-                                                    ][augment][adv][taugment][
+                                                    ][augment][0][lambda_index][
+                                                        taugment
+                                                    ][
                                                         tadversary
                                                     ][
                                                         tgaug
@@ -88,130 +147,7 @@ def print_tables(
                                             for tgaug in range(len(test_g_augs)):
                                                 pt = paths[standard][lamp][culture][
                                                     percent
-                                                ][augment][adv][taugment][tadversary][
-                                                    tgaug
-                                                ][
-                                                    teps
-                                                ]
-                                                pt = pt + "res.csv"
-                                                df = pd.read_csv(pt)
-                                                visobj.plot_table(
-                                                    df[df.columns[1 : len(df.columns)]],
-                                                    pt,
-                                                )
-
-                                        if not taugment and tadversary:
-                                            for teps in range(len(test_eps)):
-                                                pt = paths[standard][lamp][culture][
-                                                    percent
-                                                ][augment][adv][taugment][tadversary][
-                                                    tgaug
-                                                ][
-                                                    teps
-                                                ]
-                                                pt = pt + "res.csv"
-                                                df = pd.read_csv(pt)
-                                                visobj.plot_table(
-                                                    df[df.columns[1 : len(df.columns)]],
-                                                    pt,
-                                                )
-                                        if not taugment and not tadversary:
-                                            pt = paths[standard][lamp][culture][
-                                                percent
-                                            ][augment][adv][taugment][tadversary][
-                                                tgaug
-                                            ][
-                                                teps
-                                            ]
-                                            pt = pt + "res.csv"
-                                            df = pd.read_csv(pt)
-                                            visobj.plot_table(
-                                                df[df.columns[1 : len(df.columns)]],
-                                                pt,
-                                            )
-                            else:
-                                for lambda_index in lambda_indeces:
-                                    for taugment in taugments:
-                                        for tadversary in tadversaries:
-                                            if taugment and tadversary:
-                                                for tgaug in range(len(test_g_augs)):
-                                                    for teps in range(len(test_eps)):
-                                                        pt = paths[standard][lamp][
-                                                            culture
-                                                        ][percent][augment][adv][
-                                                            lambda_index
-                                                        ][
-                                                            taugment
-                                                        ][
-                                                            tadversary
-                                                        ][
-                                                            tgaug
-                                                        ][
-                                                            teps
-                                                        ]
-
-                                                        pt = pt + "res.csv"
-                                                        df = pd.read_csv(pt)
-                                                        visobj.plot_table(
-                                                            df[
-                                                                df.columns[
-                                                                    1 : len(df.columns)
-                                                                ]
-                                                            ],
-                                                            pt,
-                                                        )
-                                            if taugment and not tadversary:
-                                                for tgaug in range(len(test_g_augs)):
-                                                    pt = paths[standard][lamp][culture][
-                                                        percent
-                                                    ][augment][adv][lambda_index][
-                                                        taugment
-                                                    ][
-                                                        tadversary
-                                                    ][
-                                                        tgaug
-                                                    ][
-                                                        teps
-                                                    ]
-                                                    pt = pt + "res.csv"
-                                                    df = pd.read_csv(pt)
-                                                    visobj.plot_table(
-                                                        df[
-                                                            df.columns[
-                                                                1 : len(df.columns)
-                                                            ]
-                                                        ],
-                                                        pt,
-                                                    )
-                                            if not taugment and tadversary:
-                                                for teps in range(len(test_eps)):
-                                                    pt = paths[standard][lamp][culture][
-                                                        percent
-                                                    ][augment][adv][lambda_index][
-                                                        taugment
-                                                    ][
-                                                        tadversary
-                                                    ][
-                                                        tgaug
-                                                    ][
-                                                        teps
-                                                    ]
-                                                    pt = pt + "res.csv"
-                                                    df = pd.read_csv(pt)
-                                                    visobj.plot_table(
-                                                        df[
-                                                            df.columns[
-                                                                1 : len(df.columns)
-                                                            ]
-                                                        ],
-                                                        pt,
-                                                    )
-                                            if not taugment and not tadversary:
-                                                tgaug = 0
-                                                teps = 0
-                                                pt = paths[standard][lamp][culture][
-                                                    percent
-                                                ][augment][adv][lambda_index][taugment][
+                                                ][augment][0][lambda_index][taugment][
                                                     tadversary
                                                 ][
                                                     tgaug
@@ -224,6 +160,41 @@ def print_tables(
                                                     df[df.columns[1 : len(df.columns)]],
                                                     pt,
                                                 )
+                                        if not taugment and tadversary:
+                                            for teps in range(len(test_eps)):
+                                                pt = paths[standard][lamp][culture][
+                                                    percent
+                                                ][augment][0][lambda_index][taugment][
+                                                    tadversary
+                                                ][
+                                                    tgaug
+                                                ][
+                                                    teps
+                                                ]
+                                                pt = pt + "res.csv"
+                                                df = pd.read_csv(pt)
+                                                visobj.plot_table(
+                                                    df[df.columns[1 : len(df.columns)]],
+                                                    pt,
+                                                )
+                                        if not taugment and not tadversary:
+                                            tgaug = 0
+                                            teps = 0
+                                            pt = paths[standard][lamp][culture][
+                                                percent
+                                            ][augment][0][lambda_index][taugment][
+                                                tadversary
+                                            ][
+                                                tgaug
+                                            ][
+                                                teps
+                                            ]
+                                            pt = pt + "res.csv"
+                                            df = pd.read_csv(pt)
+                                            visobj.plot_table(
+                                                df[df.columns[1 : len(df.columns)]],
+                                                pt,
+                                            )
 
 
 def perstr2float(val):
@@ -366,320 +337,6 @@ def gen_title_plot(
     return title, svpath
 
 
-def graphic_lambdas_comparison(
-    standards,
-    lamps,
-    cultures,
-    percents,
-    augments,
-    adversary,
-    lambda_indeces,
-    taugments,
-    tadversaries,
-    test_g_augs,
-    test_eps,
-    resacqobj: ResAcquisitionClass,
-    basePath="../Results/",
-    plot=False,
-    imb=0
-):
-    for lamp in lamps:
-        for culture in cultures:
-            for percent in percents:
-                for augment in augments:
-                    for adv in adversary:
-                        for taugment in taugments:
-                            for tadversary in tadversaries:
-                                if taugment and tadversary:
-                                    for tgaug in test_g_augs:
-                                        for teps in test_eps:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=1,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=augment,
-                                                adversary=adv,
-                                                lambda_index=0,
-                                                taugment=taugment,
-                                                tadversary=tadversary,
-                                                tgaug=tgaug,
-                                                teps=teps,
-                                                imbalanced=imb,
-                                            )
-
-                                            pt = pt.split("/")
-                                            pt = pt[0 : len(pt) - 2]
-                                            stdpt = ""
-                                            for p in pt:
-                                                stdpt += p + "/"
-                                            stdpt += "res.csv"
-                                            stddf = pd.read_csv(stdpt)
-                                            mitdfs = []
-                                            for lambda_index in lambda_indeces:
-                                                pt = resacqobj.buildPath(
-                                                    basePath=basePath,
-                                                    standard=0,
-                                                    alg="DL",
-                                                    lamp=lamp,
-                                                    culture=culture,
-                                                    percent=percent,
-                                                    augment=augment,
-                                                    adversary=adv,
-                                                    lambda_index=lambda_index,
-                                                    taugment=taugment,
-                                                    tadversary=tadversary,
-                                                    tgaug=tgaug,
-                                                    teps=teps,
-                                                    imbalanced=imb,
-                                                )
-                                                pt = pt.split("/")
-                                                pt = pt[: len(pt) - 2]
-                                                mitpt = ""
-                                                for p in pt:
-                                                    mitpt += p + "/"
-                                                pt = mitpt + "res.csv"
-                                                df = pd.read_csv(pt)
-                                                mitdfs.append(df)
-
-                                            title, svpath = gen_title_plot(
-                                                lamp,
-                                                culture,
-                                                percent,
-                                                augment,
-                                                adv,
-                                                taugment,
-                                                tadversary,
-                                                tgaug,
-                                                teps,
-                                            )
-                                            plotandsave(
-                                                stddf=stddf,
-                                                mitdfs=mitdfs,
-                                                plot=plot,
-                                                title=title,
-                                                save=True,
-                                                path=svpath,
-                                            )
-
-                                if taugment and not tadversary:
-                                    for tgaug in test_g_augs:
-                                        pt = resacqobj.buildPath(
-                                            basePath=basePath,
-                                            standard=1,
-                                            alg="DL",
-                                            lamp=lamp,
-                                            culture=culture,
-                                            percent=percent,
-                                            augment=augment,
-                                            adversary=adv,
-                                            lambda_index=0,
-                                            taugment=taugment,
-                                            tadversary=tadversary,
-                                            tgaug=tgaug,
-                                            teps=0,
-                                            imbalanced=imb,
-                                        )
-
-                                        pt = pt.split("/")
-                                        pt = pt[0 : len(pt) - 2]
-                                        stdpt = ""
-                                        for p in pt:
-                                            stdpt += p + "/"
-                                        stdpt += "res.csv"
-                                        stddf = pd.read_csv(stdpt)
-                                        mitdfs = []
-                                        for lambda_index in lambda_indeces:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=0,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=augment,
-                                                adversary=adv,
-                                                lambda_index=lambda_index,
-                                                taugment=taugment,
-                                                tadversary=tadversary,
-                                                tgaug=tgaug,
-                                                teps=0,
-                                                imbalanced=imb,
-                                            )
-                                            pt = pt.split("/")
-                                            pt = pt[: len(pt) - 2]
-                                            mitpt = ""
-                                            for p in pt:
-                                                mitpt += p + "/"
-                                            pt = mitpt + "res.csv"
-                                            df = pd.read_csv(pt)
-                                            mitdfs.append(df)
-
-                                        title, svpath = gen_title_plot(
-                                            lamp,
-                                            culture,
-                                            percent,
-                                            augment,
-                                            adv,
-                                            taugment,
-                                            tadversary,
-                                            tgaug,
-                                            0,
-                                        )
-                                        plotandsave(
-                                            stddf=stddf,
-                                            mitdfs=mitdfs,
-                                            plot=plot,
-                                            title=title,
-                                            save=True,
-                                            path=svpath,
-                                        )
-
-                                if not taugment and tadversary:
-                                    for teps in test_eps:
-                                        pt = resacqobj.buildPath(
-                                            basePath=basePath,
-                                            standard=1,
-                                            alg="DL",
-                                            lamp=lamp,
-                                            culture=culture,
-                                            percent=percent,
-                                            augment=augment,
-                                            adversary=adv,
-                                            lambda_index=0,
-                                            taugment=taugment,
-                                            tadversary=tadversary,
-                                            tgaug=0,
-                                            teps=teps,
-                                            imbalanced=imb,
-                                        )
-                                        pt = pt.split("/")
-                                        pt = pt[0 : len(pt) - 2]
-                                        stdpt = ""
-                                        for p in pt:
-                                            stdpt += p + "/"
-                                        stdpt += "res.csv"
-                                        stddf = pd.read_csv(stdpt)
-                                        mitdfs = []
-                                        for lambda_index in lambda_indeces:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=0,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=augment,
-                                                adversary=adv,
-                                                lambda_index=lambda_index,
-                                                taugment=taugment,
-                                                tadversary=tadversary,
-                                                tgaug=0,
-                                                teps=teps,
-                                                imbalanced=imb,
-                                            )
-                                            pt = pt.split("/")
-                                            pt = pt[: len(pt) - 2]
-                                            mitpt = ""
-                                            for p in pt:
-                                                mitpt += p + "/"
-                                            pt = mitpt + "res.csv"
-                                            df = pd.read_csv(pt)
-                                            mitdfs.append(df)
-
-                                        title, svpath = gen_title_plot(
-                                            lamp,
-                                            culture,
-                                            percent,
-                                            augment,
-                                            adv,
-                                            taugment,
-                                            tadversary,
-                                            0,
-                                            teps,
-                                        )
-                                        plotandsave(
-                                            stddf=stddf,
-                                            mitdfs=mitdfs,
-                                            plot=plot,
-                                            title=title,
-                                            save=True,
-                                            path=svpath,
-                                        )
-
-                                if (not taugment) and (not tadversary):
-                                    pt = resacqobj.buildPath(
-                                        basePath=basePath,
-                                        standard=1,
-                                        alg="DL",
-                                        lamp=lamp,
-                                        culture=culture,
-                                        percent=percent,
-                                        augment=augment,
-                                        adversary=adv,
-                                        lambda_index=0,
-                                        taugment=taugment,
-                                        tadversary=tadversary,
-                                        tgaug=0,
-                                        teps=0,
-                                        imbalanced=imb,
-                                    )
-                                    pt = pt.split("/")
-                                    pt = pt[0 : len(pt) - 2]
-                                    stdpt = ""
-                                    for p in pt:
-                                        stdpt += p + "/"
-                                    stdpt += "res.csv"
-                                    stddf = pd.read_csv(stdpt)
-                                    mitdfs = []
-                                    for lambda_index in lambda_indeces:
-                                        pt = resacqobj.buildPath(
-                                            basePath=basePath,
-                                            standard=0,
-                                            alg="DL",
-                                            lamp=lamp,
-                                            culture=culture,
-                                            percent=percent,
-                                            augment=augment,
-                                            adversary=adv,
-                                            lambda_index=lambda_index,
-                                            taugment=taugment,
-                                            tadversary=tadversary,
-                                            tgaug=0,
-                                            teps=0,
-                                            imbalanced=imb,
-                                        )
-                                        pt = pt.split("/")
-                                        pt = pt[: len(pt) - 2]
-                                        mitpt = ""
-                                        for p in pt:
-                                            mitpt += p + "/"
-                                        pt = mitpt + "res.csv"
-                                        df = pd.read_csv(pt)
-                                        mitdfs.append(df)
-                                    title, svpath = gen_title_plot(
-                                        lamp,
-                                        culture,
-                                        percent,
-                                        augment,
-                                        adv,
-                                        taugment,
-                                        tadversary,
-                                        0,
-                                        0,
-                                    )
-                                    plotandsave(
-                                        stddf=stddf,
-                                        mitdfs=mitdfs,
-                                        plot=plot,
-                                        title=title,
-                                        save=True,
-                                        path=svpath,
-                                    )
-
-
 def sort_errs(errs):
     res = []
     errs = np.asarray(errs, dtype=object)
@@ -787,23 +444,31 @@ class Res2TabClass:
         pt += str(percent) + "/"
 
         return pt
-    
-    def visualize(self, df, title='BLA', plot=True, save=False, path='./'):
-        TSs = df['TS']
-        errs = df['ERR']
-        cics = df['CIC']
+
+    def visualize(self, df, title="BLA", plot=True, save=False, path="./"):
+        TSs = df["TS"]
+        errs = df["ERR"]
+        cics = df["CIC"]
 
         NOAUG_X = errs[0]
         NOAUG_Y = cics[0]
 
-        plt.scatter(NOAUG_X, NOAUG_Y, color="k", label="NOAUG")
+        plt.scatter(NOAUG_X, NOAUG_Y, color="k", label="NOAUG, OS=False")
 
         AUG_X = errs[1:12]
         AUG_Y = cics[1:12]
 
-        plt.plot(AUG_X, AUG_Y, color='b', label='AUG')
+        plt.plot(AUG_X, AUG_Y, color="b", label="AUG, OS=False")
 
+        NOAUG_X = errs[12]
+        NOAUG_Y = cics[12]
 
+        plt.scatter(NOAUG_X, NOAUG_Y, color="r", label="NOAUG, OS=True")
+
+        AUG_X = errs[13:25]
+        AUG_Y = cics[13:25]
+
+        plt.plot(AUG_X, AUG_Y, color="y", label="AUG, OS=True")
 
         # Naming the x-axis, y-axis and the whole graph
         plt.xlabel(f"ERR")
@@ -817,7 +482,7 @@ class Res2TabClass:
         plt.legend()
 
         # To load the display window
-        
+
         if plot:
             plt.show()
 
@@ -826,8 +491,6 @@ class Res2TabClass:
 
         # print(path)
         plt.close()
-
-        
 
     def conversion(self):
         def get_name_column(lamp, culture, percent):
@@ -900,7 +563,6 @@ class Res2TabClass:
         cultures = [0, 1, 2]
         percents = [0.05]
         augments = [0, 1]
-        adversary = [0, 1]
         g_augments = np.logspace(-4, -1, 11)
         g_augments_tot = np.logspace(-4, 0, 6)
         epsilons = np.logspace(
@@ -916,144 +578,75 @@ class Res2TabClass:
         t_cults = [0, 1, 2]
         imbalanceds = [0, 1]
         for lamp in lamps:
-            for imb in imbalanceds:
-                for culture in cultures:
-                    for percent in percents:
-                        # Here we have to divide the DataFrames
-                        name, columns = get_name_column(lamp, culture, percent)
-
+            for culture in cultures:
+                for percent in percents:
+                    name, columns = get_name_column(lamp, culture, percent)
+                    totdf = pd.DataFrame(columns=columns)
+                    for imb in imbalanceds:
                         df = pd.DataFrame(columns=columns)
-                        for adv in adversary:
-                         for aug in augments:
-                                if not aug:
-                                    if not adv:
-                                        pt = resacqobj.buildPath(
-                                            basePath=basePath,
-                                            standard=1,
-                                            alg="DL",
-                                            lamp=lamp,
-                                            culture=culture,
-                                            percent=percent,
-                                            augment=aug,
-                                            adversary=adv,
-                                            lambda_index=0,
-                                            taugment=0,
-                                            tadversary=0,
-                                            tgaug=0,
-                                            teps=0,
-                                            imbalanced=imb,
-                                        )
-                                        pt = pt.split("/")
-                                        pt = pt[0 : len(pt) - 2]
-                                        stdpt = ""
-                                        for p in pt:
-                                            stdpt += p + "/"
-                                        stdpt += "res.csv"
-                                        stddf = pd.read_csv(stdpt)
-                                        trainName = "NOAUG"
-                                        ls = self.convert2list(trainName, stddf)
-                                        df.loc[len(df)] = ls
-                                    else:
-                                        for class_division in [0, 1]:
-                                         for eps in epsilons:
-                                            
-                                                pt = resacqobj.buildPath(
-                                                    basePath=basePath,
-                                                    standard=1,
-                                                    alg="DL",
-                                                    lamp=lamp,
-                                                    culture=culture,
-                                                    percent=percent,
-                                                    augment=aug,
-                                                    adversary=adv,
-                                                    lambda_index=0,
-                                                    taugment=0,
-                                                    tadversary=0,
-                                                    tgaug=0,
-                                                    teps=0,
-                                                    eps=eps,
-                                                    class_division=class_division,
-                                                    imbalanced=imb,
-                                                )
-                                                pt = pt.split("/")
-                                                pt = pt[0 : len(pt) - 2]
-                                                stdpt = ""
-                                                for p in pt:
-                                                    stdpt += p + "/"
-                                                stdpt += "res.csv"
-                                                stddf = pd.read_csv(stdpt)
-                                                trainName = f"ADV, CLSDIV={class_division}, eps={eps}"
-                                                ls = self.convert2list(trainName, stddf)
-                                                df.loc[len(df)] = ls
-                                else:
-                                    if not adv:
-                                        for g_augment in g_augments:
-                                            pt = resacqobj.buildPath(
-                                                basePath=basePath,
-                                                standard=1,
-                                                alg="DL",
-                                                lamp=lamp,
-                                                culture=culture,
-                                                percent=percent,
-                                                augment=aug,
-                                                adversary=adv,
-                                                lambda_index=0,
-                                                taugment=0,
-                                                tadversary=0,
-                                                tgaug=0,
-                                                teps=0,
-                                                g_augment=g_augment,
-                                                eps=0,
-                                                class_division=0,
-                                                imbalanced=imb,
-                                            )
-                                            pt = pt.split("/")
-                                            pt = pt[0 : len(pt) - 2]
-                                            stdpt = ""
-                                            for p in pt:
-                                                stdpt += p + "/"
-                                            stdpt += "res.csv"
-                                            stddf = pd.read_csv(stdpt)
-                                            trainName = (
-                                                f"AUG, g={g_augment}"
-                                            )
-                                            df.loc[len(df)] = self.convert2list(
-                                                trainName, stddf
-                                            )
-                                    else:
-                                        for class_division in [0, 1]:
-                                         for g_augment in g_augments_tot:
-                                            for eps in epsilons:
-                                                    pt = resacqobj.buildPath(
-                                                        basePath=basePath,
-                                                        standard=1,
-                                                        alg="DL",
-                                                        lamp=lamp,
-                                                        culture=culture,
-                                                        percent=percent,
-                                                        augment=aug,
-                                                        adversary=adv,
-                                                        lambda_index=0,
-                                                        taugment=0,
-                                                        tadversary=0,
-                                                        tgaug=0,
-                                                        teps=0,
-                                                        g_augment=g_augment,
-                                                        eps=eps,
-                                                        class_division=class_division,
-                                                        imbalanced=imb,
-                                                    )
-                                                    pt = pt.split("/")
-                                                    pt = pt[0 : len(pt) - 2]
-                                                    stdpt = ""
-                                                    for p in pt:
-                                                        stdpt += p + "/"
-                                                    stdpt += "res.csv"
-                                                    stddf = pd.read_csv(stdpt)
-                                                    trainName = f"TOTAUG, CLSDIV={class_division}, g={g_augment}, eps={eps}"
-                                                    df.loc[len(df)] = self.convert2list(
-                                                        trainName, stddf
-                                                    )
+                        for aug in augments:
+                            if not aug:
+
+                                pt = resacqobj.buildPath(
+                                    basePath=basePath,
+                                    standard=1,
+                                    alg="DL",
+                                    lamp=lamp,
+                                    culture=culture,
+                                    percent=percent,
+                                    augment=aug,
+                                    adversary=0,
+                                    lambda_index=0,
+                                    taugment=0,
+                                    tadversary=0,
+                                    tgaug=0,
+                                    teps=0,
+                                    imbalanced=imb,
+                                )
+                                pt = pt.split("/")
+                                pt = pt[0 : len(pt) - 2]
+                                stdpt = ""
+                                for p in pt:
+                                    stdpt += p + "/"
+                                stdpt += "res.csv"
+                                stddf = pd.read_csv(stdpt)
+                                trainName = "NOAUG"
+                                ls = self.convert2list(trainName, stddf)
+                                df.loc[len(df)] = ls
+                            else:
+
+                                for g_augment in g_augments:
+                                    pt = resacqobj.buildPath(
+                                        basePath=basePath,
+                                        standard=1,
+                                        alg="DL",
+                                        lamp=lamp,
+                                        culture=culture,
+                                        percent=percent,
+                                        augment=aug,
+                                        adversary=0,
+                                        lambda_index=0,
+                                        taugment=0,
+                                        tadversary=0,
+                                        tgaug=0,
+                                        teps=0,
+                                        g_augment=g_augment,
+                                        eps=0,
+                                        class_division=0,
+                                        imbalanced=imb,
+                                    )
+                                    pt = pt.split("/")
+                                    pt = pt[0 : len(pt) - 2]
+                                    stdpt = ""
+                                    for p in pt:
+                                        stdpt += p + "/"
+                                    stdpt += "res.csv"
+                                    stddf = pd.read_csv(stdpt)
+                                    trainName = f"AUG, g={g_augment}"
+                                    df.loc[len(df)] = self.convert2list(
+                                        trainName, stddf
+                                    )
+
                         print(name)
                         df.style.set_properties(
                             subset=["Total"],
@@ -1065,30 +658,37 @@ class Res2TabClass:
                         )
                         fileObj = FileManagerClass(pt)
                         df.to_csv(pt + "df")
-                        pt = self.get_path(
-                            "../Results/HTML/", lamp, culture, percent, imb
-                        )
+                        pt = self.get_path("../Results/HTML/", lamp, culture, percent, imb)
                         fileObj = FileManagerClass(pt)
                         df.to_html(pt + "res.html")
 
-                        if lamp:
-                            if culture==0:
-                                title = f"Chinese"
-                            if culture==1:
-                                title = f"French"
-                            if culture==2:
-                                title = f"Turkish"
+                        if imb==0:
+                            totdf = df
                         else:
-                            if culture==0:
-                                title = f"Indian"
-                            if culture==1:
-                                title = f"Japanese"
-                            if culture==2:
-                                title = f"Scandinavian"
+                            df = df.reset_index()  # make sure indexes pair with number of rows
+
+                            for index, row in df.iterrows():
+                                print(row)
+                                totdf.loc[len(totdf)] = row
                         
-                        
-                        title += f", OVERSAMPLING={bool(imb)}"
-                        self.visualize(df, title=title)
+
+                    if lamp:
+                        if culture == 0:
+                            title = f"Chinese"
+                        if culture == 1:
+                            title = f"French"
+                        if culture == 2:
+                            title = f"Turkish"
+                    else:
+                        if culture == 0:
+                            title = f"Indian"
+                        if culture == 1:
+                            title = f"Japanese"
+                        if culture == 2:
+                            title = f"Scandinavian"
+
+                    # title += f", OVERSAMPLING={bool(imb)}"
+                    self.visualize(totdf, title=title)
 
 
 def main():
@@ -1101,7 +701,7 @@ def main():
     cultures = [0, 1, 2]
     percents = [0.05, 0.1]
     augments = [0, 1]
-    adversary = [0, 1]
+    adversary = [0]
     lambda_indeces = range(0, 13)
     taugments = [0, 1]
     tadversaries = [0, 1]
