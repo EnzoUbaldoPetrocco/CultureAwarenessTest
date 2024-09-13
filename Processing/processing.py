@@ -102,6 +102,7 @@ class ProcessingClass:
         g_bright: float = 0.1,
         adversarial=0,
         imbalanced=0,
+        discriminator=0
     ):
         """
         This function prepares the data for training
@@ -127,7 +128,7 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
-            adversarial=adversarial,
+            adversarial=adversarial or discriminator,
             imbalanced=imbalanced,
         )
         if augment:
@@ -313,6 +314,7 @@ class ProcessingClass:
             augment=0,
             adversarial=adversary,
             imbalanced=imbalanced,
+            discriminator=discriminator
         )
         self.model = None
         if discriminator:
@@ -396,7 +398,7 @@ class ProcessingClass:
         # Complete path:
         # - augment in Test: TNOAUG, TSTDAUG, TADV, TTOTAUG
         if discriminator:
-            self.basePath = self.basePath + "STD/" + type
+            self.basePath = self.basePath + "/DISCR/STD/" + type
         else:
             if standard:
                 self.basePath = self.basePath + "STD/" + type
@@ -504,7 +506,7 @@ class ProcessingClass:
         else:
             print("Pay attention: no model information given for tests")
             return -1
-        if not discriminator:
+        if discriminator==0:
             for culture in range(3):
                 if standard:
                     if augment:
@@ -539,7 +541,7 @@ class ProcessingClass:
                             testaug = f"TNOAUG/"
                     testaug = testaug + f"CULTURE{culture}/"
                     path = self.basePath + testaug + "res.csv"
-                    self.save_results(cm, path)
+                    self.save_results(cm, path, discriminator=discriminator)
                 else:
                     for i in range(3):
                         if augment:
@@ -584,7 +586,6 @@ class ProcessingClass:
                         del testaug
         else:
             if augment:
-
                 cm = self.model.get_model_stats(
                     self.Xt_aug, self.dataobj.yt, discriminator=discriminator
                 )
@@ -606,6 +607,7 @@ class ProcessingClass:
         :param cm: is the confusion matrix to be saved
         :param path: is the path in which we want to save the confusion matrix
         """
+        print(f"Path is {path}")
         fObj = FileManagerClass(path)
         fObj.writecm(cm, discriminator=discriminator)
         del fObj
