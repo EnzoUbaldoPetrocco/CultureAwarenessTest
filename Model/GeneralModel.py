@@ -107,7 +107,7 @@ class GeneralModelClass:
                 gc.collect()
             gc.collect()
             if yFq!=None:
-                cm = confusion_matrix(y_true=y, y_pred=yF)
+                cm = confusion_matrix(y_true=yT, y_pred=yFq)
                 print(f"Confusion Matrix: {cm}")
                 return cm
         else:
@@ -122,8 +122,6 @@ class GeneralModelClass:
             y = np.asarray(y)
             y = y[:,0: self.n_cultures]
             y = np.argmax(y, axis=1)
-            print(f"yF\n{yF}")
-            print(f"yT\n{y}")
             if yF.any()!=None:
                 cm = confusion_matrix(y_true=y, y_pred=yF)
                 print(f"Confusion Matrix: {cm}")
