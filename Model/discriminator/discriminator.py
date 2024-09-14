@@ -91,12 +91,12 @@ class Discriminator(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[32],
-        lrs=[1e-3, 1e-4],
+        batches=[4],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
-        nDropouts=[0.4, 0.6],
+        nDropouts=[0.4],
         g=0.1,
         save=False,
         path="./",
@@ -332,8 +332,6 @@ class Discriminator(GeneralModelClass):
             )
 
             validation_generator = None
-
-            print(f"Shape of TS[1] is {np.shape(TS[1][0])}")
 
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
