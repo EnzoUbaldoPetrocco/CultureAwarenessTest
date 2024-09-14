@@ -74,7 +74,7 @@ basePath = "./"
 # with tf.device("/CPU:0"):
 for i in range(4):
  for percent in percents:
-    for lamp in [0]:
+    for lamp in [0, 1]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
