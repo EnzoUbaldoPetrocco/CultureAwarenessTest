@@ -9,7 +9,7 @@ PEPPER_IP = "192.168.1.2"  # Replace with your Pepper's IP
 PEPPER_PORT = 9559
 
 # Flask Server Configuration
-FLASK_SERVER_URL = "http://your-server-ip:5000"  # Replace with your Flask server's IP
+FLASK_SERVER_URL = "http://130.251.13.139:5000"  # Replace with your Flask server's IP
 
 motion_proxy = ALProxy("ALMotion", PEPPER_IP, PEPPER_PORT)
 
