@@ -48,7 +48,7 @@ else:
 
 
 percents = [0.05]
-standards = [0, 1]
+standards = [1]
 # lamp = 1
 
 verbose_param = 1
@@ -103,5 +103,11 @@ for i in range(10):
                             culture=c,
                             discriminator=1
                         )
+                        if i==0:
+                            path = procObj.basePath + '/model/'
+                            f = FileManagerClass(path)
+                            procObj.model.model.save(path)
+                            del path
+                            del f
                         
                         procObj.partial_clear(basePath)
