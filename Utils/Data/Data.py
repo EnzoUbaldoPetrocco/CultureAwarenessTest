@@ -9,6 +9,9 @@ import tensorflow as tf
 import numpy as np
 from matplotlib import pyplot as plt
 from datetime import datetime
+
+from tensorflow import keras
+from keras import layers
 random.seed(datetime.now().timestamp())
 
 
@@ -163,8 +166,6 @@ class DataClass:
                             a = np.append(a, label[1])
                             label=list(a) #label is {0,..0,1,0...0, original_label}  with 0,..,0,1,0..,0 is one hot encoding
                         
-                            
-
                     if shallow:
                         img = img[0::]
                         img = img.flatten()
@@ -223,7 +224,7 @@ class DataClass:
 # given a dataset it should perform standard data augmentation
 # given a dataset and a model it should perform adversarial data augm
 class PreprocessingClass:
-    def classical_augmentation(self, X, g_rot=0.1, g_noise=0.1, g_bright=0.1, n=-1):
+    def classical_augmentation(self, X, g=0.1, n=-1):
         """
         this function gets a set of images and return them augmented
         param: X: the set of images
@@ -236,11 +237,19 @@ class PreprocessingClass:
             n = len(X)
         X = X[0:n]
 
-        X = tf.keras.layers.RandomFlip("horizontal_and_vertical")(X, training=True)
-        X = tf.keras.layers.RandomRotation(g_rot)(X, training=True)
-        X = tf.keras.layers.GaussianNoise(g_noise)(X, training=True)
-        X_augmented = tf.keras.layers.RandomBrightness(g_bright / 5)(X, training=True)
-
+        shape = np.shape(X[0])
+        data_augmentation = keras.Sequential(
+                [
+                    layers.RandomFlip("horizontal"),
+                    layers.RandomRotation(0.01),
+                    layers.GaussianNoise(g),
+                    tf.keras.layers.RandomBrightness(0.01),
+                    layers.RandomZoom(g, g),
+                    layers.Resizing(shape[0], shape[1]),
+                ]
+            )
+        
+        X_augmented = data_augmentation(X, training=True)
         return np.asarray(X_augmented)
 
     def adversarial_augmentation(self, X, y, model, culture, eps=0.3):

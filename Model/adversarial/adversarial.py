@@ -23,6 +23,7 @@ from datetime import datetime
 #import keras_cv
 from PIL import Image
 from IPython.display import Image as IImage
+from Model.diffusion.diffusion_standard import DiffusionStandardModel
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
@@ -42,7 +43,9 @@ class AdversarialStandard(GeneralModelClass):
         imbalanced=0,
         class_division=0,
         only_imb_imgs=0,
-        save_discriminator=0
+        save_discriminator=0,
+        diffusion = 0,
+
     ):
         """
         Initialization function for modeling standard ML models.
@@ -71,6 +74,7 @@ class AdversarialStandard(GeneralModelClass):
         self.class_division = class_division
         self.only_imb_imgs=only_imb_imgs
         self.save_discriminator = save_discriminator
+        self.diffusion = diffusion
         if weights is not None:
             self.weights = weights
 
@@ -278,16 +282,14 @@ class AdversarialStandard(GeneralModelClass):
     ):
         eps = tf.cast(eps, np.float32)
         class_division = self.class_division
-        if text_adv:
-            self.generate_adv_images_using_text(TS)
-        
-        if not self.only_imb_imgs:
-            if self.imbalanced:
+        if self.imbalanced:
                 TS = self.ImbalancedTransformation(TS)
                 VS = self.ImbalancedTransformation(VS) 
-        else:
-            TS2 = self.ImbalancedTransformation(TS)
-            VS2 = self.ImbalancedTransformation(VS)
+        
+        if not self.only_imb_imgs:
+            TS0 = TS
+            VS0 = VS
+
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
@@ -446,6 +448,11 @@ class AdversarialStandard(GeneralModelClass):
                     plt.show()
 
         self.model = None
+        if not self.only_imb_imgs:
+            TS = TS + TS0
+            VS = VS + VS0
+
+        
         self.ModelSelection(
             TS=TS,
             VS=VS,
@@ -560,25 +567,16 @@ class AdversarialStandard(GeneralModelClass):
         newY = []
         X = TS[0]
         Y = TS[1]
-        if not self.only_imb_imgs:
-            for i in range(len(X)):
-                img = X[i]
-                label = Y[i]
-                for j in range(
-                    int(1 / self.weights[label.index(1.0)])
-                ):  # I use the inverse of the total proportion for augmenting the dataset
-                    newX.append(np.asarray(img))  
-                    newY.append(np.asarray(label))
-        else:
-            for i in range(len(X)):
-                img = X[i]
-                label = Y[i]
-                if int(1 / self.weights[label.index(1.0)])>1:
-                    for j in range(
-                        int(1 / self.weights[label.index(1.0)])
-                    ):  # I use the inverse of the total proportion for augmenting the dataset
-                        newX.append(np.asarray(img))  
-                        newY.append(np.asarray(label))
+        
+        for i in range(len(X)):
+            img = X[i]
+            label = Y[i]
+            for j in range(
+                int(1 / self.weights[label.index(1.0)])
+            ):  # I use the inverse of the total proportion for augmenting the dataset
+                newX.append(np.asarray(img))  
+                newY.append(np.asarray(label))
+        
         del TS
         tf.keras.backend.clear_session()
         return (newX, newY)

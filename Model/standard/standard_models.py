@@ -5,6 +5,8 @@ import sys
 from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 
+from Model.diffusion.diffusion_standard import DiffusionStandardModel
+
 sys.path.insert(1, "../")
 import numpy as np
 from sklearn.svm import SVC
@@ -36,7 +38,7 @@ class StandardModels(GeneralModelClass):
         batch_size=1,
         weights=None,
         imbalanced=0,
-        only_imb_imgs=0
+        diffusion=0,
     ):
         """
         Initialization function for modeling standard ML models.
@@ -60,6 +62,7 @@ class StandardModels(GeneralModelClass):
         self.epochs = epochs
         self.batch_size = batch_size
         self.weights=np.ones(self.n_cultures)
+        self.diffusion=diffusion
         if weights is not None:
             self.weights=weights
 
@@ -171,7 +174,6 @@ class StandardModels(GeneralModelClass):
         save=False,
         path="./",
     ):
-        
             best_loss = np.inf
             for b in batches:
                 for lr in lrs:
