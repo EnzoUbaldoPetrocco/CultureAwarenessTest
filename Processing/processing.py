@@ -3,6 +3,7 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../")
+from Model.diffusion.diffusion_standard import DiffusionStandardModel
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
@@ -97,12 +98,11 @@ class ProcessingClass:
         test_split: float = 0.2,
         n: int = 1000,
         augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
+        gaug = 0.01,
         adversarial=0,
         imbalanced=0,
-        discriminator=0
+        discriminator=0,
+        diffusion = 0
     ):
         """
         This function prepares the data for training
@@ -130,16 +130,62 @@ class ProcessingClass:
             n=n,
             adversarial=adversarial or discriminator,
             imbalanced=imbalanced,
+
         )
+        if diffusion and not discriminator:
+            if standard and not adversarial and not imbalanced:
+                diff_model = DiffusionStandardModel(image_size=np.shape(self.dataobj.X[0])[0])
+                for j in range(2):
+                    tempX = [
+                        self.dataobj.X[i]
+                        for i in range(len(self.dataobj.X))
+                        if self.dataobj.y[i]== j
+                    ]
+                    tempY = [
+                        self.dataobj.y[i]
+                        for i in range(len(self.dataobj.y))
+                        if self.dataobj.y[i]== j
+                    ]
+                    tempTS = (tempX, tempY)
+                    tempX = [
+                        self.dataobj.Xv[i]
+                        for i in range(len(self.dataobj.Xv))
+                        if self.dataobj.yv[i] == j
+                    ]
+                    tempY = [
+                        self.dataobj.yv[i]
+                        for i in range(len(self.dataobj.yv))
+                        if self.dataobj.yv[i] == j
+                    ]
+                    tempVS = (tempX, tempY)
+                    images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = False)
+                    for img in images:
+                        self.dataobj.X.extend(img)
+                        self.dataobj.y.extend(j)
+            else:
+                diff_model = DiffusionStandardModel(image_size=np.shape(self.dataobj.X[0])[0])
+                for j in range(2):
+                    tempTS = []
+                    for i in range(len(self.dataobj.X)):
+                        tempTS.append((self.dataobj.X[i], self.dataobj.y[i]))
+                    for i in range(len(self.dataobj.Xv)):
+                        tempTS.append((self.dataobj.Xv[i], self.dataobj.yv[i]))
+                    
+                    images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = False)
+                    for img in images:
+                        self.dataobj.X.extend(img)
+                        lbl = np.asarray(self.n_cultures)
+                        lbl = np.append(lbl, j)
+                        self.dataobj.y.extend(lbl)
         if augment:
             with tf.device("/gpu:0"):
                 print("Training Augmentation...")
                 prepObj = PreprocessingClass()
                 X_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.X, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
+                    X=self.dataobj.X, g=gaug, 
                 )
                 Xv_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.Xv, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
+                    X=self.dataobj.Xv, g=gaug
                 )
 
             self.dataobj.X.extend(X_augmented)
@@ -269,6 +315,7 @@ class ProcessingClass:
         imbalanced=0,
         class_division=0,
         only_imb_imgs=0,
+        diffusion=0,
     ):
         """
         process function prepares the data and fit the model
@@ -303,7 +350,7 @@ class ProcessingClass:
         """
         weights = np.ones(n_cultures) * percent
         weights[culture] = 1  # this are the proportions in the dataset
-
+        self.n_cultures = n_cultures
         self.prepare_data(
             standard=standard,
             culture=culture,
@@ -314,7 +361,9 @@ class ProcessingClass:
             augment=0,
             adversarial=adversary,
             imbalanced=imbalanced,
-            discriminator=discriminator
+            discriminator=discriminator,
+            diffusion = diffusion,
+            gaug = gaug
         )
         self.model = None
         if discriminator:
@@ -329,7 +378,6 @@ class ProcessingClass:
                 weights=weights,
                 imbalanced=imbalanced,
                 class_division=class_division,
-                only_imb_imgs=only_imb_imgs,
             )
         else:
             if standard:
@@ -346,6 +394,7 @@ class ProcessingClass:
                         imbalanced=imbalanced,
                         class_division=class_division,
                         only_imb_imgs=only_imb_imgs,
+                        diffusion=diffusion,
                     )
                 else:
                     if gradcam:
@@ -359,7 +408,7 @@ class ProcessingClass:
                             batch_size=batch_size,
                             weights=weights,
                             imbalanced=imbalanced,
-                            only_imb_imgs=only_imb_imgs,
+                            diffusion=diffusion,
                         )
                     else:
                         self.model = StandardModels(
@@ -372,7 +421,7 @@ class ProcessingClass:
                             batch_size=batch_size,
                             weights=weights,
                             imbalanced=imbalanced,
-                            only_imb_imgs=only_imb_imgs,
+                            diffusion=diffusion,                            
                         )
             else:
                 self.model = MitigatedModels(
@@ -385,7 +434,7 @@ class ProcessingClass:
                     lambda_index=lambda_index,
                     n_cultures=n_cultures,
                     imbalanced=imbalanced,
-                    only_imb_imgs=only_imb_imgs,
+                    diffusion=diffusion,
                 )
 
         self.model.standard = standard
@@ -406,10 +455,7 @@ class ProcessingClass:
                 self.basePath = self.basePath + "MIT/" + type
 
         if imbalanced:
-            if not only_imb_imgs:
-                self.basePath = self.basePath + "/IMB/"
-            else:
-                self.basePath = self.basePath + "/IMB_ONLY_IMGS/"
+            self.basePath = self.basePath + "/IMB/"
         else:
             self.basePath = self.basePath + "/BAL/"
         if self.lamp:
@@ -433,16 +479,27 @@ class ProcessingClass:
         self.basePath = self.basePath + c + str(percent) + "/"
         if augment:
             if adversary:
-                aug = f"TOTAUG/g={gaug}/eps={eps}/"
+                if only_imb_imgs:
+                    aug = f"ADD_TOTAUG/g={gaug}/eps={eps}/"
+                else:
+                    aug = f"TOTAUG/g={gaug}/eps={eps}/"
+                if diffusion:
+                    aug = aug + "DIFFUSION"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:
                     aug = aug + "/NOCLSDIV/"
+
             else:
                 aug = f"STDAUG/g={gaug}/"
         else:
             if adversary:
-                aug = f"AVD/eps={eps}/"
+                if only_imb_imgs:
+                    aug = f"ADD_AVD/eps={eps}/"
+                else:
+                    aug = f"AVD/eps={eps}/"
+                if diffusion:
+                    aug = aug + "DIFFUSION"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:

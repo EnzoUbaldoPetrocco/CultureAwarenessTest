@@ -4,6 +4,8 @@ import sys
 
 from matplotlib import pyplot as plt
 
+from Model.diffusion.diffusion_standard import DiffusionStandardModel
+
 sys.path.insert(1, "../")
 import numpy as np
 import tensorflow as tf
@@ -33,7 +35,7 @@ class MitigatedModels(GeneralModelClass):
         n_cultures = 3,
         weights=None,
         imbalanced=0,
-        only_imb_imgs=0
+        diffusion=0,
     ):
         """
         Initialization function for modeling mitigated ML models.
@@ -54,6 +56,7 @@ class MitigatedModels(GeneralModelClass):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.weights=np.ones(self.n_cultures)
+        self.diffusion=diffusion
         if weights is not None:
             self.weights=weights
 
@@ -183,6 +186,7 @@ class MitigatedModels(GeneralModelClass):
         best_loss = np.inf
         losses = []
         cics = []
+        
 
         lambdas = np.logspace(-4, 2, 15)
         for lmb in lambdas:

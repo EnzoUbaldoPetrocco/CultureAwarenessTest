@@ -41,7 +41,6 @@ class Discriminator(GeneralModelClass):
         weights=None,
         imbalanced=0,
         class_division=0,
-        only_imb_imgs=0,
         save_discriminator=0
     ):
         """
@@ -69,7 +68,6 @@ class Discriminator(GeneralModelClass):
         self.batch_size = batch_size
         self.weights = np.ones(self.n_cultures)
         self.class_division = class_division
-        self.only_imb_imgs=only_imb_imgs
         self.save_discriminator = save_discriminator
         if weights is not None:
             self.weights = weights
@@ -103,20 +101,11 @@ class Discriminator(GeneralModelClass):
         eps=0.1,
     ):
         class_division = self.class_division
-        
-        if not self.only_imb_imgs:
-            if self.imbalanced:
+
+        if self.imbalanced:
                 TS = self.ImbalancedTransformation(TS)
                 VS = self.ImbalancedTransformation(VS) 
-        else:
-            TS2 = self.ImbalancedTransformation(TS)
-            VS2 = self.ImbalancedTransformation(VS)
-
-        epsilons = np.logspace(-3, 0, 5)
-        images = []
-        for i in range(4):
-            idx = np.random.randint(0, len(TS[0]))
-            images.append((TS[0][idx], TS[1][idx]))
+    
 
         if class_division:
             adversarial_model = []
@@ -192,7 +181,6 @@ class Discriminator(GeneralModelClass):
             if self.save_discriminator:
                     self.model.save(path=path + f'/class_discriminator={i}')
 
-            
         tf.keras.backend.clear_session()
 
     def ModelSelection(
@@ -274,25 +262,15 @@ class Discriminator(GeneralModelClass):
         newY = []
         X = TS[0]
         Y = TS[1]
-        if not self.only_imb_imgs:
-            for i in range(len(X)):
-                img = X[i]
-                label = Y[i]
-                for j in range(
-                    int(1 / self.weights[label.index(1.0)])
-                ):  # I use the inverse of the total proportion for augmenting the dataset
-                    newX.append(np.asarray(img))  
-                    newY.append(np.asarray(label))
-        else:
-            for i in range(len(X)):
-                img = X[i]
-                label = Y[i]
-                if int(1 / self.weights[label.index(1.0)])>1:
-                    for j in range(
-                        int(1 / self.weights[label.index(1.0)])
-                    ):  # I use the inverse of the total proportion for augmenting the dataset
-                        newX.append(np.asarray(img))  
-                        newY.append(np.asarray(label))
+        for i in range(len(X)):
+            img = X[i]
+            label = Y[i]
+            for j in range(
+                int(1 / self.weights[label.index(1.0)])
+            ):  # I use the inverse of the total proportion for augmenting the dataset
+                newX.append(np.asarray(img))  
+                newY.append(np.asarray(label))
+
         del TS
         tf.keras.backend.clear_session()
         return (newX, newY)

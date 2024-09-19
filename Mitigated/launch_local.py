@@ -67,40 +67,78 @@ mult = 0.25
 cs = [0, 1, 2]
 ks = [0]
 
+diffusion = [1, 0]
+only_imb_imgs = [0, 1]
+adversary = [0, 1]
+
 basePath = "./PRUEVA/"
 
 
 # with tf.device("/CPU:0"):
 for i in range(10):
- for lamp in [1, 0]:
-    procObj = ProcessingClass(
-        shallow=0, lamp=lamp, gpu=False, memory_limit=memory_limit, basePath=basePath
-    )
-    for percent in percents:
-        for c in cs:
-            for standard in standards:
-                        model = None
-                        print(f"Training->aug={0};adv={0}")
-                        procObj.process(
-                            standard=standard,
-                            type="DL",
-                            verbose_param=verbose_param,
-                            learning_rate=learning_rate,
-                            epochs=epochs,
-                            batch_size=bs,
-                            lambda_index=0,
-                            culture=c,
-                            percent=percent,
-                            val_split=val_split,
-                            test_split=test_split,
-                            n=n,
-                            discriminator=1
-                        )
-                        # NoAUg
-                        print(f"Testing->aug={0};adv={0}")
-                        procObj.test(
-                            standard=standard,
-                            culture=c,
-                            discriminator=1
-                        )
-                        procObj.partial_clear(basePath)
+    for lamp in [1, 0]:
+        procObj = ProcessingClass(
+            shallow=0,
+            lamp=lamp,
+            gpu=False,
+            memory_limit=memory_limit,
+            basePath=basePath,
+        )
+        for percent in percents:
+            for c in cs:
+                for diff in diffusion:
+                    for adv in adversary:
+                        if adv:
+                         for only_imb_im in only_imb_imgs:
+                            standard=0
+                            model = None
+                            print(f"Training->aug={0};adv={0}")
+                            procObj.process(
+                                standard=standard,
+                                type="DL",
+                                verbose_param=verbose_param,
+                                learning_rate=learning_rate,
+                                epochs=epochs,
+                                batch_size=bs,
+                                lambda_index=0,
+                                culture=c,
+                                percent=percent,
+                                val_split=val_split,
+                                test_split=test_split,
+                                n=n,
+                                adversary=adv,
+                                only_imb_imgs=only_imb_im,
+                                diffusion=diff,
+                            )
+                            # NoAUg
+                            print(f"Testing->aug={0};adv={0}")
+                            procObj.test(
+                                standard=standard, culture=c, discriminator=1
+                            )
+                            procObj.partial_clear(basePath)
+                        else:
+                            for standard in standards:
+                                model = None
+                                print(f"Training->aug={0};adv={0}")
+                                procObj.process(
+                                    standard=standard,
+                                    type="DL",
+                                    verbose_param=verbose_param,
+                                    learning_rate=learning_rate,
+                                    epochs=epochs,
+                                    batch_size=bs,
+                                    lambda_index=0,
+                                    culture=c,
+                                    percent=percent,
+                                    val_split=val_split,
+                                    test_split=test_split,
+                                    n=n,
+                                    adversary=adv,
+                                    diffusion=diff,
+                                )
+                                # NoAUg
+                                print(f"Testing->aug={0};adv={0}")
+                                procObj.test(
+                                    standard=standard, culture=c, discriminator=1
+                                )
+                                procObj.partial_clear(basePath)
