@@ -61,6 +61,7 @@ test_split = 0.1
 epochs = 15
 class_divisions = [0,1]
 imbalances = [0,1]
+diffusion = 1
 
 g_gaugs = np.logspace(-4, 0, 6)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
@@ -112,6 +113,7 @@ for i in range(4):
                                     mult=mult,
                                     imbalanced=imb,  
                                     class_division= cl_div
+                                    diffusion = diffusion
                                 )
                                 # NoAUg
                                 print(f"Testing->aug={0};adv={0}")
@@ -147,7 +149,8 @@ for i in range(4):
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,
-                                class_division= cl_div
+                                class_division= cl_div,
+                                diffusion = diffusion
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")
