@@ -133,8 +133,8 @@ class ProcessingClass:
 
         )
         if diffusion and not discriminator:
-            if standard and not adversarial and not imbalanced:
-                diff_model = DiffusionStandardModel(image_size=np.shape(self.dataobj.X[0])[0])
+            diff_model = DiffusionStandardModel(image_size=np.shape(self.dataobj.X[0])[0])
+            if standard and (not adversarial) and (not imbalanced):
                 for j in range(2):
                     tempX = [
                         self.dataobj.X[i]
@@ -163,19 +163,35 @@ class ProcessingClass:
                         self.dataobj.X.extend(img)
                         self.dataobj.y.extend(j)
             else:
-                diff_model = DiffusionStandardModel(image_size=np.shape(self.dataobj.X[0])[0])
                 for j in range(2):
-                    tempTS = []
-                    for i in range(len(self.dataobj.X)):
-                        tempTS.append((self.dataobj.X[i], self.dataobj.y[i]))
-                    for i in range(len(self.dataobj.Xv)):
-                        tempTS.append((self.dataobj.Xv[i], self.dataobj.yv[i]))
+                    tempX = [
+                        self.dataobj.X[i]
+                        for i in range(len(self.dataobj.X))
+                        if self.dataobj.y[i][self.n_cultures]== j
+                    ]
+                    tempY = [
+                        self.dataobj.y[i]
+                        for i in range(len(self.dataobj.y))
+                        if self.dataobj.y[i][self.n_cultures]== j
+                    ]
+                    tempTS = (tempX, tempY)
+                    tempX = [
+                        self.dataobj.Xv[i]
+                        for i in range(len(self.dataobj.Xv))
+                        if self.dataobj.yv[i][self.n_cultures] == j
+                    ]
+                    tempY = [
+                        self.dataobj.yv[i]
+                        for i in range(len(self.dataobj.yv))
+                        if self.dataobj.yv[i][self.n_cultures] == j
+                    ]
+                    tempVS = (tempX, tempY)
                     
                     images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = False)
                     for img in images:
                         self.dataobj.X.extend(img)
-                        lbl = np.asarray(self.n_cultures)
-                        lbl = np.append(lbl, j)
+                        lbl = list(np.zeros(self.n_cultures))
+                        lbl.append(j)
                         self.dataobj.y.extend(lbl)
         if augment:
             with tf.device("/gpu:0"):

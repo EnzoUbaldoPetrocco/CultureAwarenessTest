@@ -384,12 +384,12 @@ class DiffusionStandardModel(tf.keras.Model):
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
-        train_dataset = tf.data.Dataset.from_tensor_slices((train_dataset[0], train_dataset[1]))
-        val_dataset = tf.data.Dataset.from_tensor_slices((val_dataset[0], val_dataset[1]))
 
+        train_dataset = tf.data.Dataset.from_tensor_slices(train_dataset)
+        val_dataset = tf.data.Dataset.from_tensor_slices(val_dataset)
         
-        train_dataset = train_dataset.map(lambda x, y: x)
-        val_dataset = val_dataset.map(lambda x, y: x)
+        train_dataset = train_dataset.map(lambda x, y: x).batch(batch_size, drop_remainder=True)
+        val_dataset = val_dataset.map(lambda x, y: x).batch(batch_size, drop_remainder=True)
 
         self.compile(
             optimizer=tfa.optimizers.AdamW(

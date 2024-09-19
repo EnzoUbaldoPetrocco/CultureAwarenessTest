@@ -112,7 +112,7 @@ for i in range(4):
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
-                                    class_division= cl_div
+                                    class_division= cl_div,
                                     diffusion = diffusion
                                 )
                                 # NoAUg
