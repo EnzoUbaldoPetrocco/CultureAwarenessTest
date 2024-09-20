@@ -169,6 +169,7 @@ class ProcessingClass:
                         for i in range(len(self.dataobj.X))
                         if self.dataobj.y[i][self.n_cultures]== j
                     ]
+                    
                     tempY = [
                         self.dataobj.y[i]
                         for i in range(len(self.dataobj.y))
@@ -187,12 +188,12 @@ class ProcessingClass:
                     ]
                     tempVS = (tempX, tempY)
                     
-                    images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = False)
+                    images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = True)
                     for img in images:
-                        self.dataobj.X.extend(img)
+                        self.dataobj.X.append(img)
                         lbl = list(np.zeros(self.n_cultures))
                         lbl.append(j)
-                        self.dataobj.y.extend(lbl)
+                        self.dataobj.y.append(lbl)
         if augment:
             with tf.device("/gpu:0"):
                 print("Training Augmentation...")

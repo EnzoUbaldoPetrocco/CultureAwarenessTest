@@ -40,7 +40,7 @@ widths = [32, 64, 96, 128]
 block_depth = 2
 
 # optimization
-batch_size = 64
+batch_size = 32
 ema = 0.999
 learning_rate = 1e-3
 weight_decay = 1e-4
