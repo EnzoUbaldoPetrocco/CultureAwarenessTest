@@ -19,6 +19,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import gc
+import cv2
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -132,65 +133,42 @@ class ProcessingClass:
             imbalanced=imbalanced,
 
         )
-        if diffusion and not discriminator:
-            diff_model = DiffusionStandardModel(image_size=np.shape(self.dataobj.X[0])[0])
+        if diffusion==1 and not discriminator:
+            print(f"Diffusion")
+            size = 64
+            diff_model = DiffusionStandardModel(image_size=size)
+            init_shape = np.shape(self.dataobj.X[0])
             if standard and (not adversarial) and (not imbalanced):
                 for j in range(2):
                     tempX = [
-                        self.dataobj.X[i]
+                        cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
                         for i in range(len(self.dataobj.X))
                         if self.dataobj.y[i]== j
                     ]
-                    tempY = [
-                        self.dataobj.y[i]
-                        for i in range(len(self.dataobj.y))
-                        if self.dataobj.y[i]== j
-                    ]
-                    tempTS = (tempX, tempY)
-                    tempX = [
-                        self.dataobj.Xv[i]
+                    tempXv = [
+                        cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
                         for i in range(len(self.dataobj.Xv))
                         if self.dataobj.yv[i] == j
                     ]
-                    tempY = [
-                        self.dataobj.yv[i]
-                        for i in range(len(self.dataobj.yv))
-                        if self.dataobj.yv[i] == j
-                    ]
-                    tempVS = (tempX, tempY)
-                    images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = False)
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = False)
                     for img in images:
-                        self.dataobj.X.extend(img)
-                        self.dataobj.y.extend(j)
+                        self.dataobj.X.append(np.asarray(cv2.resize(img, (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)), dtype=object) 
+                        self.dataobj.y.append(j)
             else:
                 for j in range(2):
                     tempX = [
-                        self.dataobj.X[i]
+                        cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
                         for i in range(len(self.dataobj.X))
                         if self.dataobj.y[i][self.n_cultures]== j
                     ]
-                    
-                    tempY = [
-                        self.dataobj.y[i]
-                        for i in range(len(self.dataobj.y))
-                        if self.dataobj.y[i][self.n_cultures]== j
-                    ]
-                    tempTS = (tempX, tempY)
-                    tempX = [
-                        self.dataobj.Xv[i]
+                    tempXv = [
+                        cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
                         for i in range(len(self.dataobj.Xv))
                         if self.dataobj.yv[i][self.n_cultures] == j
-                    ]
-                    tempY = [
-                        self.dataobj.yv[i]
-                        for i in range(len(self.dataobj.yv))
-                        if self.dataobj.yv[i][self.n_cultures] == j
-                    ]
-                    tempVS = (tempX, tempY)
-                    
-                    images = diff_model.learn_on_custom_dataset(tempTS, tempVS, n_images = 100, plot_imgs = True)
+                    ]                    
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = True)
                     for img in images:
-                        self.dataobj.X.append(img)
+                        self.dataobj.X.append(np.asarray(cv2.resize(img, (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)), dtype=object)
                         lbl = list(np.zeros(self.n_cultures))
                         lbl.append(j)
                         self.dataobj.y.append(lbl)
@@ -411,7 +389,6 @@ class ProcessingClass:
                         imbalanced=imbalanced,
                         class_division=class_division,
                         only_imb_imgs=only_imb_imgs,
-                        diffusion=diffusion,
                     )
                 else:
                     if gradcam:
