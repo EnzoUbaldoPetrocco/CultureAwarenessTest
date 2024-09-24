@@ -31,7 +31,7 @@ class Preprocessing:
             im = cv2.resize(im, (size, size), 
                interpolation = cv2.INTER_CUBIC)
             # save them with label
-            cv2.imwrite(svpath + f"im{i}.jpg", im)
+            cv2.imwrite(svpath + f"im{i}.jpg", im)  
 
 def main():
     prep = Preprocessing()
