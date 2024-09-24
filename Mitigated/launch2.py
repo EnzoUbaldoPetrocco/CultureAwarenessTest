@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 7000
+memory_limit = 6000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -59,22 +59,22 @@ learning_rate = 5e-4
 val_split = 0.2
 test_split = 0.1
 epochs = 15
-class_divisions = [1,0]
-imbalances = [1,0]
+class_divisions = [0,1]
+imbalances = [0,1]
 
-g_gaugs = np.logspace(-8, -4, 6)
+g_gaugs = np.logspace(-4, -1, 3)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-eps = np.logspace(-8, -4, 6)
+eps = np.logspace(-4, -1, 3)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [2,1,0]
-ks = [0]
+cs = [2, 1, 0]
+ks = [1]
+diffusion = 0
 
-basePath = "./PROVA/"
+basePath = "./"
 # with tf.device("/CPU:0"):
-for i in range(4):
- for k in ks:
-  for percent in percents:
+for i in range(3):
+ for percent in percents:
     for lamp in [0, 1]:
         procObj = ProcessingClass(
             shallow=0,
@@ -85,9 +85,10 @@ for i in range(4):
         )
         for imb in imbalances:
          for c in cs:
-            
+            for k in ks:
                 for ep in eps:
                     for cl_div in class_divisions:
+                        print(f"CLS DIV = {cl_div}")
                         if k%2==1:
                             for g_aug in g_gaugs:
                                 model = None
@@ -111,7 +112,8 @@ for i in range(4):
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
-                                    class_division= cl_div
+                                    class_division= cl_div,
+                                    diffusion = diffusion
                                 )
                                 # NoAUg
                                 print(f"Testing->aug={0};adv={0}")
@@ -147,7 +149,8 @@ for i in range(4):
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,
-                                class_division= cl_div
+                                class_division= cl_div,
+                                diffusion = diffusion
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")

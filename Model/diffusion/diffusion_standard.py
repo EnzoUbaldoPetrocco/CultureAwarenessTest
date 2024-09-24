@@ -24,10 +24,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 # data
-dataset_name = "imagenet2012_real"
+dataset_name = "scene_parse150"
 dataset_repetitions = 5
 num_epochs = 30  # train for at least 50 epochs for good results
-num_epochs_flowers = 50
+num_epochs_flowers = 40
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 5
@@ -41,7 +41,7 @@ max_signal_rate = 0.95
 embedding_dims = 32
 embedding_max_frequency = 1000.0
 widths = [32, 64, 96, 128]
-block_depth = 2
+block_depth = 3
 
 # optimization
 batch_size = 64
@@ -497,7 +497,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -515,7 +515,7 @@ class DiffusionStandardModel(tf.keras.Model):
                         layers.Rescaling(255.0),
                     ]
                 )
-            for i in range(2):
+            for i in range(1):
                 aug_images = data_augmentation(train_dataset)
                 val_aug_images = data_augmentation(val_dataset)
                 for img in aug_images:
@@ -545,33 +545,51 @@ class DiffusionStandardModel(tf.keras.Model):
         # calculate mean and variance of training dataset for normalization
 
         # load dataset
-        flowers_dataset = prepare_dataset("train[:80%]+validation[:80%]+test[:80%]", image_size=self.image_size)
-        val_flowers_dataset = prepare_dataset("train[80%:]+validation[80%:]+test[80%:]", image_size=self.image_size)
-
-        self.normalizer.adapt(flowers_dataset)
-
+        #ds_builder = tfds.datasets.scene_parse150.Builder()
         if plot_imgs:
+            
             callbacks = [
                 tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
                 #checkpoint_callback,
             ]
         else:
             callbacks = []
-        
-        # plot model
-        
-        #self.network.summary()
-        
-        self.fit(
-            flowers_dataset,
-            epochs=num_epochs_flowers,
-            validation_data=val_flowers_dataset,
-            callbacks=callbacks,
-            shuffle=True
-        )
 
-        del flowers_dataset
-        del val_flowers_dataset
+        
+        
+        if not get_pretrained:
+            flowers_dataset = prepare_dataset("train[:80%]+test[:80%]", image_size=self.image_size)
+            val_flowers_dataset = prepare_dataset("train[80%:]+test[80%:]", image_size=self.image_size)
+
+            self.normalizer.adapt(flowers_dataset)
+
+            lr_reduce = ReduceLROnPlateau(
+                monitor="val_kid",
+                factor=0.5,
+                patience=10,
+                verbose=1,
+                min_lr=1e-9,
+            )
+            callbacks.append(lr_reduce)
+        
+            self.fit(
+                flowers_dataset,
+                epochs=num_epochs_flowers,
+                validation_data=val_flowers_dataset,
+                callbacks=callbacks,
+                shuffle=True
+            )
+
+            del flowers_dataset
+            del val_flowers_dataset
+
+            callbacks.pop()
+
+            if save:
+                self.network.save('./diffusion_pretrained.keras')
+        else:
+            self.network = tf.keras.models.load_model('./diffusion_pretrained.keras')
+
 
         # run training and plot generated images periodically
         lr_reduce = ReduceLROnPlateau(
@@ -579,7 +597,6 @@ class DiffusionStandardModel(tf.keras.Model):
                 factor=0.2,
                 patience=8,
                 verbose=1,
-                mode="max",
                 min_lr=1e-9,
             )
         callbacks.append(lr_reduce)

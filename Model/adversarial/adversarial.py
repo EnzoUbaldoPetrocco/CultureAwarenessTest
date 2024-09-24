@@ -763,7 +763,6 @@ class AdversarialStandard(GeneralModelClass):
                 factor=0.2,
                 patience=5,
                 verbose=self.verbose_param,
-                mode="max",
                 min_lr=1e-9,
             )
             early = EarlyStopping(
