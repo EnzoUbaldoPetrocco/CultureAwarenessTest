@@ -7,10 +7,14 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from tensorflow import keras
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras import layers
 #from tf.keras import ops
 import numpy as np
 import tensorflow_addons as tfa
+import tensorflow_datasets as tfds
+
+
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -20,10 +24,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 # data
-dataset_name = "oxford_flowers102"
+dataset_name = "imagenet2012_real"
 dataset_repetitions = 5
-num_epochs = 20  # train for at least 50 epochs for good results
-#image_size = 64
+num_epochs = 30  # train for at least 50 epochs for good results
+num_epochs_flowers = 50
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 5
@@ -44,6 +48,35 @@ batch_size = 64
 ema = 0.999
 learning_rate = 1e-3
 weight_decay = 1e-4
+
+def preprocess_image(image_size = 128):
+    def  preprocess_function(data):
+        # center crop image
+        height = tf.shape(data["image"])[0]
+        width = tf.shape(data["image"])[1]
+        crop_size = tf.minimum(height, width)
+        image = tf.image.crop_to_bounding_box(
+            data["image"],
+            (height - crop_size) // 2,
+            (width - crop_size) // 2,
+            crop_size,
+            crop_size,
+        )
+
+        # resize and clip
+        # for image downsampling it is important to turn on antialiasing
+        image = tf.image.resize(image, size=[image_size, image_size], antialias=True)
+        return tf.clip_by_value(image / 255.0, 0.0, 1.0)
+    return preprocess_function
+
+
+def prepare_dataset(split,image_size = 128):
+    # the validation dataset is shuffled as well, because data order matters
+    # for the KID estimation
+    data = tfds.load(dataset_name, split=split, shuffle_files=False)
+    data = data.map(preprocess_image(image_size), num_parallel_calls=tf.data.AUTOTUNE)
+    data = data.cache().repeat(dataset_repetitions).batch(batch_size, drop_remainder=True).prefetch(buffer_size=tf.data.AUTOTUNE)
+    return data
 
 
 #@tf.keras.saving.register_tf.keras_serializable()
@@ -137,7 +170,7 @@ def ResidualBlock(width):
         else:
             residual = layers.Conv2D(width, kernel_size=1)(x)
         x = layers.BatchNormalization(center=False, scale=False)(x)
-        x = layers.Conv2D(width, kernel_size=3, padding="same", activation="swish")(x)
+        x = layers.Conv2D(width, kernel_size=3, padding="same", activation="relu")(x)
         x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
         x = layers.Add()([x, residual])
         return x
@@ -156,20 +189,86 @@ def DownBlock(width, block_depth):
 
     return apply
 
+def fix_shape_mismatch(x, skip):
+    """Adjust the shapes of the feature maps by either cropping or padding."""
+    if x.shape[1] != skip.shape[1] or x.shape[2] != skip.shape[2]:
+        if x.shape[1] > skip.shape[1] or x.shape[2] > skip.shape[2]:
+            # Crop x to match the skip dimensions
+            cropping = ((x.shape[1] - skip.shape[1]) // 2, (x.shape[2] - skip.shape[2]) // 2)
+            x = layers.Cropping2D(((cropping, cropping)))(x)
+        else:
+            # Pad x to match the skip dimensions
+            padding = ((skip.shape[1] - x.shape[1]) // 2, (skip.shape[2] - x.shape[2]) // 2)
+            x = layers.ZeroPadding2D(((padding, padding)))(x)
+    return x
+
+
 
 def UpBlock(width, block_depth):
     def apply(x):
         x, skips = x
-        x = layers.UpSampling2D(size=2, interpolation="bilinear")(x)
+        x = layers.UpSampling2D(size=(2,2), interpolation="bilinear")(x)
         for _ in range(block_depth):
-            x = layers.Concatenate()([x, skips.pop()])
+            skip = skips.pop()
+            x = fix_shape_mismatch(x, skip)
+            x = layers.Concatenate()([x, skip])
             x = ResidualBlock(width)(x)
         return x
 
     return apply
 
 
+def get_resnet50v2_network(image_size, widths, block_depth):
+    """Creates a network using ResNet50V2 as the backbone."""
+    
+    noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
+    noise_variances = tf.keras.Input(shape=(1, 1, 1))
+
+    # Sinusoidal embedding for noise variances
+    e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
+    e = layers.UpSampling2D(size=image_size // 4, interpolation="nearest")(e)
+
+    # Load pretrained ResNet50V2 model without the top layers
+    base_model = tf.keras.applications.ResNet50V2(
+        include_top=False, 
+        input_shape=(image_size, image_size, 3), 
+        weights='imagenet'
+    )
+    base_model.trainable = False
+
+    # Get the output of the base model
+    resnet_output = base_model(noisy_images)
+
+
+    # Upsample the ResNet output to match the spatial dimensions of the embedding
+    resnet_output = tf.keras.layers.Flatten()(resnet_output)
+    resnet_dense = layers.Dense(e.shape[1]*e.shape[2]*e.shape[3])(resnet_output)
+    reshaped_resnet_output = tf.keras.layers.Reshape(target_shape=e.shape[1:4])(resnet_dense)
+
+    # Concatenate the upsampled ResNet output with the sinusoidal embedding
+    
+    x = layers.Concatenate()([reshaped_resnet_output, e])
+
+    skips = []
+    for width in widths[:-1]:
+        x = DownBlock(width, block_depth)([x, skips])
+
+
+    for _ in range(block_depth):
+        x = ResidualBlock(widths[-1])(x)
+
+    for width in reversed(widths[:-1]):
+        x = UpBlock(width, block_depth)([x, skips])
+
+    x = layers.UpSampling2D(size=image_size // x.shape[1], interpolation='bilinear')(x)
+    x = layers.Conv2D(3, kernel_size=1)(x)
+    
+
+    return tf.keras.Model([noisy_images, noise_variances], x, name="resnet_unet")
+
+
 def get_network(image_size, widths, block_depth):
+
     noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
     noise_variances = tf.keras.Input(shape=(1, 1, 1))
 
@@ -189,13 +288,13 @@ def get_network(image_size, widths, block_depth):
     for width in reversed(widths[:-1]):
         x = UpBlock(width, block_depth)([x, skips])
 
-    x = layers.Conv2D(3, kernel_size=1, kernel_initializer="zeros")(x)
+    x = layers.Conv2D(3, kernel_size=1)(x)
 
     return tf.keras.Model([noisy_images, noise_variances], x, name="residual_unet")
 
 #@tf.keras.saving.register_tf.keras_serializable()
 class DiffusionStandardModel(tf.keras.Model):
-    def __init__(self, image_size, widths=[32, 64, 96, 128], block_depth=2):
+    def __init__(self, image_size, widths=widths, block_depth=block_depth):
         super().__init__()
 
         self.normalizer = layers.Normalization()
@@ -379,17 +478,62 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.show()
         plt.close()
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True): 
+    def plot_dataset(self, ds, num_rows=3, num_cols=6):
+        def close_event():
+            plt.close()
+        fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+        
+        for row in range(num_rows):
+            for col in range(num_cols):
+                index = row * num_cols + col
+                plt.subplot(num_rows, num_cols, index + 1)
+                plt.imshow(ds[index])
+                plt.axis("off")
+        plt.tight_layout()
+        timer = fig.canvas.new_timer(interval = 3000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer.add_callback(close_event)
+        timer.start()
+        plt.show()
+        plt.close()
+
+
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
 
-        train_dataset = tf.data.Dataset.from_tensor_slices(train_dataset)
-        val_dataset = tf.data.Dataset.from_tensor_slices(val_dataset)
+        if aug:
+            data_augmentation = keras.Sequential(
+                    [
+                        layers.Rescaling(1.0/255.0),
+                        layers.RandomFlip("horizontal_and_vertical"),
+                        layers.RandomRotation(0.01),
+                        layers.GaussianNoise(0.01),
+                        tf.keras.layers.RandomBrightness(0.01),
+                        layers.RandomZoom(0.01, 0.01),
+                        layers.Rescaling(255.0),
+                    ]
+                )
+            for i in range(2):
+                aug_images = data_augmentation(train_dataset)
+                val_aug_images = data_augmentation(val_dataset)
+                for img in aug_images:
+                    img = tf.clip_by_value(img, 0, 255)
+                    img = tf.cast(img, "uint8")
+                    train_dataset.append(img)
+
+                for img in val_aug_images:
+                    img = tf.clip_by_value(img, 0, 255)
+                    img = tf.cast(img, "uint8")
+                    val_dataset.append(img)
+
+        train_dataset = list(np.asarray(train_dataset, dtype="float32") / 255.0)
+        val_dataset = list(np.asarray(val_dataset, dtype="float32") / 255.0)
+
         
-        train_dataset = train_dataset.map(lambda x, y: x).batch(batch_size, drop_remainder=True)
-        val_dataset = val_dataset.map(lambda x, y: x).batch(batch_size, drop_remainder=True)
+        train_dataset = tf.data.Dataset.from_tensor_slices(train_dataset).batch(batch_size, drop_remainder=True)
+        val_dataset = tf.data.Dataset.from_tensor_slices(val_dataset).batch(batch_size, drop_remainder=True)
 
         self.compile(
             optimizer=tfa.optimizers.AdamW(
@@ -399,7 +543,12 @@ class DiffusionStandardModel(tf.keras.Model):
         )
         # pixelwise mean absolute error is used as loss
         # calculate mean and variance of training dataset for normalization
-        self.normalizer.adapt(train_dataset)
+
+        # load dataset
+        flowers_dataset = prepare_dataset("train[:80%]+validation[:80%]+test[:80%]", image_size=self.image_size)
+        val_flowers_dataset = prepare_dataset("train[80%:]+validation[80%:]+test[80%:]", image_size=self.image_size)
+
+        self.normalizer.adapt(flowers_dataset)
 
         if plot_imgs:
             callbacks = [
@@ -408,13 +557,42 @@ class DiffusionStandardModel(tf.keras.Model):
             ]
         else:
             callbacks = []
+        
+        # plot model
+        
+        #self.network.summary()
+        
+        self.fit(
+            flowers_dataset,
+            epochs=num_epochs_flowers,
+            validation_data=val_flowers_dataset,
+            callbacks=callbacks,
+            shuffle=True
+        )
+
+        del flowers_dataset
+        del val_flowers_dataset
+
         # run training and plot generated images periodically
+        lr_reduce = ReduceLROnPlateau(
+                monitor="val_kid",
+                factor=0.2,
+                patience=8,
+                verbose=1,
+                mode="max",
+                min_lr=1e-9,
+            )
+        callbacks.append(lr_reduce)
+        
+        self.normalizer.adapt(train_dataset)
         self.fit(
             train_dataset,
             epochs=num_epochs,
             validation_data=val_dataset,
             callbacks=callbacks,
         )
+
+
         if plot_imgs:
             self.plot_images()
 

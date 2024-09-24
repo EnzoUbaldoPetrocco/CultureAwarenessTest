@@ -23,7 +23,6 @@ from datetime import datetime
 #import keras_cv
 from PIL import Image
 from IPython.display import Image as IImage
-from Model.diffusion.diffusion_standard import DiffusionStandardModel
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
@@ -44,7 +43,6 @@ class AdversarialStandard(GeneralModelClass):
         class_division=0,
         only_imb_imgs=0,
         save_discriminator=0,
-        diffusion = 0,
 
     ):
         """
@@ -74,7 +72,6 @@ class AdversarialStandard(GeneralModelClass):
         self.class_division = class_division
         self.only_imb_imgs=only_imb_imgs
         self.save_discriminator = save_discriminator
-        self.diffusion = diffusion
         if weights is not None:
             self.weights = weights
 
@@ -286,7 +283,7 @@ class AdversarialStandard(GeneralModelClass):
                 TS = self.ImbalancedTransformation(TS)
                 VS = self.ImbalancedTransformation(VS) 
         
-        if not self.only_imb_imgs:
+        if self.only_imb_imgs:
             TS0 = TS
             VS0 = VS
 
@@ -448,11 +445,15 @@ class AdversarialStandard(GeneralModelClass):
                     plt.show()
 
         self.model = None
-        if not self.only_imb_imgs:
-            TS = TS + TS0
-            VS = VS + VS0
+        if self.only_imb_imgs:
+            for i in range(len(TS[0])):
+                TS[0].append(TS0[0][i])
+                TS[1].append(TS0[1][i])
+            for i in range(len(VS[0])):
+                VS[0].append(VS0[0][i])
+                VS[1].append(VS0[1][i])
 
-        
+        tf.keras.backend.clear_session()
         self.ModelSelection(
             TS=TS,
             VS=VS,
@@ -664,6 +665,7 @@ class AdversarialStandard(GeneralModelClass):
                     )
                 )
             else:  # actual model
+                
                 train_generator = train_generator.map(
                     lambda img, y: (
                         data_augmentation(img, training=aug),
@@ -674,6 +676,7 @@ class AdversarialStandard(GeneralModelClass):
             train_generator = (
                 train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
             )
+            
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
 

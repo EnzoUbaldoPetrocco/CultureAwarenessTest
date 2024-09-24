@@ -69,6 +69,7 @@ test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [2, 1, 0]
 ks = [0]
+diffusion = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
@@ -111,7 +112,8 @@ for i in range(3):
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
-                                    class_division= cl_div
+                                    class_division= cl_div,
+                                    diffusion = diffusion
                                 )
                                 # NoAUg
                                 print(f"Testing->aug={0};adv={0}")
@@ -147,7 +149,8 @@ for i in range(3):
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,
-                                class_division= cl_div
+                                class_division= cl_div,
+                                diffusion = diffusion
                             )
                             # NoAUg
                             print(f"Testing->aug={0};adv={0}")
