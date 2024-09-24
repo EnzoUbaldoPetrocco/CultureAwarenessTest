@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 # data
-dataset_name = "oxford_flowers102"
+dataset_name = "imagenet2012_real"
 dataset_repetitions = 5
 num_epochs = 30  # train for at least 50 epochs for good results
 num_epochs_flowers = 50
