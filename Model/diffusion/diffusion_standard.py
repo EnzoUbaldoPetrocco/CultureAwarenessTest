@@ -40,11 +40,11 @@ max_signal_rate = 0.95
 # architecture
 embedding_dims = 32
 embedding_max_frequency = 1000.0
-widths = [32, 64, 96, 128]
-block_depth = 3
+widths = [32, 64, 96, 128, 256]
+block_depth = 2
 
 # optimization
-batch_size = 32
+batch_size = 64
 ema = 0.999
 transfer_learning_rate = 1e-3
 learning_rate = 1e-6
@@ -562,7 +562,7 @@ class DiffusionStandardModel(tf.keras.Model):
             lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",
                 factor=0.2,
-                patience=10,
+                patience=5,
                 verbose=1,
                 min_lr=1e-9,
             )
