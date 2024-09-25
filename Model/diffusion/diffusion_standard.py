@@ -27,7 +27,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 dataset_name = "scene_parse150"
 dataset_repetitions = 5
 num_epochs = 30  # train for at least 50 epochs for good results
-num_epochs_flowers = 40
+num_epochs_flowers = 60
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 5
@@ -44,9 +44,10 @@ widths = [32, 64, 96, 128]
 block_depth = 3
 
 # optimization
-batch_size = 64
+batch_size = 32
 ema = 0.999
-learning_rate = 1e-3
+transfer_learning_rate = 1e-3
+learning_rate = 1e-6
 weight_decay = 1e-4
 
 def preprocess_image(image_size = 128):
@@ -497,7 +498,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=False, get_pretrained=False): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -535,12 +536,7 @@ class DiffusionStandardModel(tf.keras.Model):
         train_dataset = tf.data.Dataset.from_tensor_slices(train_dataset).batch(batch_size, drop_remainder=True)
         val_dataset = tf.data.Dataset.from_tensor_slices(val_dataset).batch(batch_size, drop_remainder=True)
 
-        self.compile(
-            optimizer=tfa.optimizers.AdamW(
-                learning_rate=learning_rate, weight_decay=weight_decay
-            ),
-            loss=tf.keras.losses.mean_absolute_error,
-        )
+        
         # pixelwise mean absolute error is used as loss
         # calculate mean and variance of training dataset for normalization
 
@@ -565,12 +561,18 @@ class DiffusionStandardModel(tf.keras.Model):
 
             lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",
-                factor=0.5,
+                factor=0.2,
                 patience=10,
                 verbose=1,
                 min_lr=1e-9,
             )
             callbacks.append(lr_reduce)
+            self.compile(
+                    optimizer=tfa.optimizers.AdamW(
+                        learning_rate=transfer_learning_rate, weight_decay=weight_decay
+                    ),
+                    loss=tf.keras.losses.mean_absolute_error,
+                )
         
             self.fit(
                 flowers_dataset,
@@ -589,6 +591,15 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.network.save('./diffusion_pretrained.keras')
         else:
             self.network = tf.keras.models.load_model('./diffusion_pretrained.keras')
+            
+            print('Loaded pretrained model')
+            self.compile(
+                    optimizer=tfa.optimizers.AdamW(
+                        learning_rate=learning_rate, weight_decay=weight_decay
+                    ),
+                    loss=tf.keras.losses.mean_absolute_error,
+                )
+            
 
 
         # run training and plot generated images periodically
@@ -602,6 +613,10 @@ class DiffusionStandardModel(tf.keras.Model):
         callbacks.append(lr_reduce)
         
         self.normalizer.adapt(train_dataset)
+        if get_pretrained:
+            if plot_imgs:
+                print("Pretrained images generation")
+                self.plot_images()
         self.fit(
             train_dataset,
             epochs=num_epochs,
@@ -620,21 +635,3 @@ class DiffusionStandardModel(tf.keras.Model):
 
         return generated_images
         
-
-# Example of model initialization
-# model = DiffusionModel(image_size, widths, block_depth)
-
-
-# Example of model saving method
-# save the best model based on the validation KID metric
-""""checkpoint_path = "./checkpoints/diffusion_model.weights.h5"
-checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_path,
-    save_weights_only=True,
-    monitor="val_kid",
-    mode="min",
-    save_best_only=True,
-)"""
-
-
-
