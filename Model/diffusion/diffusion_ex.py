@@ -96,7 +96,7 @@ def prepare_dataset(split):
         .repeat(dataset_repetitions)
         .shuffle(10 * batch_size)
         .batch(batch_size, drop_remainder=True)
-        .prefetch(buffer_size=tf.data.AUTOTUNE)
+        .prefetch(buffer_size=tf.data.AUTOTUNE) 
     )
 
 
