@@ -588,9 +588,9 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks.pop()
 
             if save:
-                self.network.save('./diffusion_pretrained.keras')
+                self.network.save('diffusion_pretrained.h5')
         else:
-            self.network = tf.keras.models.load_model('./diffusion_pretrained.keras')
+            self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
             
             print('Loaded pretrained model')
             self.compile(
