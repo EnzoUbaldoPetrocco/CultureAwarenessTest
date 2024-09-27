@@ -25,12 +25,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # data
 dataset_name = "scene_parse150"
-dataset_repetitions = 5
+dataset_repetitions = 6
 num_epochs = 30  # train for at least 50 epochs for good results
 num_epochs_flowers = 60
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
-kid_diffusion_steps = 5
+kid_diffusion_steps = 6
 plot_diffusion_steps = 20
 
 # sampling
@@ -44,7 +44,7 @@ widths = [32, 64, 96, 128, 256]
 block_depth = 2
 
 # optimization
-batch_size = 64
+batch_size = 128
 ema = 0.999
 transfer_learning_rate = 1e-3
 learning_rate = 1e-6
@@ -473,7 +473,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.imshow(generated_images[index])
                 plt.axis("off")
         plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 3000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
         plt.show()
@@ -540,16 +540,21 @@ class DiffusionStandardModel(tf.keras.Model):
         # pixelwise mean absolute error is used as loss
         # calculate mean and variance of training dataset for normalization
 
-        # load dataset
-        #ds_builder = tfds.datasets.scene_parse150.Builder()
+        early = EarlyStopping(
+                monitor="val_kid",
+                min_delta=0.001,
+                patience=8,
+            )
         if plot_imgs:
             
             callbacks = [
                 tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
+                early
                 #checkpoint_callback,
             ]
         else:
-            callbacks = []
+           
+            callbacks = [early]
 
         
         
@@ -606,7 +611,7 @@ class DiffusionStandardModel(tf.keras.Model):
         lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",
                 factor=0.2,
-                patience=8,
+                patience=5,
                 verbose=1,
                 min_lr=1e-9,
             )
