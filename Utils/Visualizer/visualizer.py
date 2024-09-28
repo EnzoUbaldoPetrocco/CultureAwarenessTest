@@ -11,6 +11,7 @@ import pandas as pd
 from Utils.Results.Results import ResAcquisitionClass
 from Utils.FileManager.FileManager import FileManagerClass
 import functools
+import matplotlib.colors as mcolors
 
 taus = [0.1, 0.3, 0.5]
 basePath = "../Results/"
@@ -381,6 +382,7 @@ def graphic_lambdas_comparison(
     resacqobj: ResAcquisitionClass,
     basePath="../Results/",
     plot=False,
+    imb=0,
 ):
     for lamp in lamps:
         for culture in cultures:
@@ -786,55 +788,69 @@ class Res2TabClass:
         pt += str(percent) + "/"
 
         return pt
-    
-    def visualize(self, df, title='BLA', plot=True, save=False, path='./'):
-        TSs = df['TS']
-        errs = df['ERR']
-        cics = df['CIC']
+
+    def visualize(self, df, title="BLA", plot=True, save=False, path="./"):
+        j = 0
+        names = sorted(
+            mcolors.CSS4_COLORS, key=lambda c: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(c))))
+        TSs = df["TS"]
+        errs = df["ERR"]
+        cics = df["CIC"]
 
         NOAUG_X = errs[0]
         NOAUG_Y = cics[0]
-
-        plt.scatter(NOAUG_X, NOAUG_Y, color="k", label="NOAUG")
+        plt.scatter(NOAUG_X, NOAUG_Y, color=f"{names[j]}", label="NOAUG")
+        j = j + 16
 
         AUG_X = errs[1:12]
         AUG_Y = cics[1:12]
-
-        plt.plot(AUG_X, AUG_Y, color='b', label='AUG')
+        plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="AUG")
+        j = j + 16
 
         ADV_C0_X = errs[12:18]
         ADV_C0_Y = cics[12:18]
-
-        plt.plot(ADV_C0_X, ADV_C0_Y, color='g', label='ADV, CLSDIV=0')
+        plt.plot(ADV_C0_X, ADV_C0_Y, color=f"{names[j]}", label="ADV, CLSDIV=0")
+        j = j + 16
 
         ADV_C1_X = errs[18:24]
         ADV_C1_Y = cics[18:24]
+        plt.plot(ADV_C1_X, ADV_C1_Y, color=f"{names[j]}", label="ADV, CLSDIV=1")
+        j = j + 16
 
-        plt.plot(ADV_C1_X, ADV_C1_Y, color='y', label='ADV, CLSDIV=1')
+        for i, g in enumerate(np.logspace(-4, -1, 3)):
 
-        TOT_C0_X = errs[24:33]
-        TOT_C0_Y = cics[24:33]
+            TOT_C0_X = errs[24 + 3 * i : 27 + 3 * i]
+            TOT_C0_Y = cics[24 + 3 * i : 27 + 3 * i]
+            plt.plot(
+                TOT_C0_X,
+                TOT_C0_Y,
+                color=f"{names[j]}",
+                label=f"TOT, gaug={g}, CLSDIV=0",
+            )
+            j = j + 16
 
-        plt.plot(TOT_C0_X, TOT_C0_Y, color='c', label='TOT, CLSDIV=0')
-
-        TOT_C1_X = errs[33:42]
-        TOT_C1_Y = cics[33:42]
-
-        plt.plot(TOT_C1_X, TOT_C1_Y, color='m', label='TOT, CLSDIV=1')
-
+            TOT_C1_X = errs[33 + 3 * i : 36 + 3 * i]
+            TOT_C1_Y = cics[33 + 3 * i : 36 + 3 * i]
+            plt.plot(
+                TOT_C1_X,
+                TOT_C1_Y,
+                color=f"{names[j]}",
+                label=f"TOT, gaug={g}, CLSDIV=1",
+            )
+            j = j + 16
         # Naming the x-axis, y-axis and the whole graph
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
         plt.title(title)
 
         plt.xlim((0, 55))
-        plt.ylim((0, 18))
+        plt.ylim((0, 20))
 
         # Adding legend, which helps us recognize the curve according to it's color
         plt.legend()
 
         # To load the display window
-        
+
         if plot:
             plt.show()
 
@@ -843,8 +859,6 @@ class Res2TabClass:
 
         # print(path)
         plt.close()
-
-        
 
     def conversion(self):
         def get_name_column(lamp, culture, percent):
@@ -920,10 +934,10 @@ class Res2TabClass:
         adversary = [0, 1]
         g_augments = np.logspace(-4, -1, 11)
         g_augments_tot = np.logspace(-4, -1, 3)
-        epsilons = np.logspace(
-            -4, 0, 6
-        )
-        epsilons_tot = np.logspace(-4, -1, 3)  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
+        epsilons = np.logspace(-4, 0, 6)
+        epsilons_tot = np.logspace(
+            -4, -1, 3
+        )  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
         adversary = [0, 1]
         taugments = [0, 1]
         tadversaries = [0, 1]
@@ -942,7 +956,7 @@ class Res2TabClass:
 
                         df = pd.DataFrame(columns=columns)
                         for adv in adversary:
-                         for aug in augments:
+                            for aug in augments:
                                 if not aug:
                                     if not adv:
                                         pt = resacqobj.buildPath(
@@ -973,8 +987,8 @@ class Res2TabClass:
                                         df.loc[len(df)] = ls
                                     else:
                                         for class_division in [0, 1]:
-                                         for eps in epsilons:
-                                            
+                                            for eps in epsilons:
+
                                                 pt = resacqobj.buildPath(
                                                     basePath=basePath,
                                                     standard=1,
@@ -1032,16 +1046,14 @@ class Res2TabClass:
                                                 stdpt += p + "/"
                                             stdpt += "res.csv"
                                             stddf = pd.read_csv(stdpt)
-                                            trainName = (
-                                                f"AUG, g={g_augment}"
-                                            )
+                                            trainName = f"AUG, g={g_augment}"
                                             df.loc[len(df)] = self.convert2list(
                                                 trainName, stddf
                                             )
                                     else:
                                         for class_division in [0, 1]:
-                                         for g_augment in g_augments_tot:
-                                            for eps in epsilons_tot:
+                                            for g_augment in g_augments_tot:
+                                                for eps in epsilons_tot:
                                                     pt = resacqobj.buildPath(
                                                         basePath=basePath,
                                                         standard=1,
@@ -1090,20 +1102,20 @@ class Res2TabClass:
                         df.to_html(pt + "res.html")
 
                         if lamp:
-                            if culture==0:
+                            if culture == 0:
                                 title = f"Chinese"
-                            if culture==1:
+                            if culture == 1:
                                 title = f"French"
-                            if culture==2:
+                            if culture == 2:
                                 title = f"Turkish"
                         else:
-                            if culture==0:
+                            if culture == 0:
                                 title = f"Indian"
-                            if culture==1:
+                            if culture == 1:
                                 title = f"Japanese"
-                            if culture==2:
+                            if culture == 2:
                                 title = f"Scandinavian"
-                        
+
                         title += f", IMB={imb}"
                         self.visualize(df, title=title)
 
