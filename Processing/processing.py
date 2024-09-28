@@ -152,7 +152,10 @@ class ProcessingClass:
                     ]
                     images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = False)
                     for img in images:
-                        self.dataobj.X.append(np.asarray(cv2.resize(list(img), (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)), dtype=object) 
+                        img = np.asarray(img)
+                        img = cv2.resize(img,  (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)
+                        img = np.asarray(img, dtype=object)
+                        self.dataobj.X.append(img)
                         self.dataobj.y.append(j)
             else:
                 for j in range(2):
@@ -168,7 +171,10 @@ class ProcessingClass:
                     ]                    
                     images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = True)
                     for img in images:
-                        self.dataobj.X.append(np.asarray(cv2.resize(list(img), (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)), dtype=object)
+                        img = np.asarray(img)
+                        img = cv2.resize(img,  (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)
+                        img = np.asarray(img, dtype=object)
+                        self.dataobj.X.append(img)
                         lbl = list(np.zeros(self.n_cultures))
                         lbl.append(j)
                         self.dataobj.y.append(lbl)

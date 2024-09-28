@@ -27,7 +27,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 dataset_name = "scene_parse150"
 dataset_repetitions = 6
 num_epochs = 30  # train for at least 50 epochs for good results
-num_epochs_flowers = 60
+num_epochs_flowers = 35
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -44,7 +44,7 @@ widths = [32, 64, 96, 128, 256]
 block_depth = 2
 
 # optimization
-batch_size = 128
+batch_size = 64
 ema = 0.999
 transfer_learning_rate = 1e-3
 learning_rate = 1e-6
@@ -498,7 +498,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=False, get_pretrained=False): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
