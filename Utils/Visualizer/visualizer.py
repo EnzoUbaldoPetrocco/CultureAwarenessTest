@@ -800,22 +800,22 @@ class Res2TabClass:
         NOAUG_X = errs[0]
         NOAUG_Y = cics[0]
         plt.scatter(NOAUG_X, NOAUG_Y, color=f"{names[j]}", label="NOAUG")
-        j = j + 16
+        j = j + 4
 
         AUG_X = errs[1:12]
         AUG_Y = cics[1:12]
         plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="AUG")
-        j = j + 16
+        j = j + 3
 
         ADV_C0_X = errs[12:18]
         ADV_C0_Y = cics[12:18]
         plt.plot(ADV_C0_X, ADV_C0_Y, color=f"{names[j]}", label="ADV, CLSDIV=0")
-        j = j + 16
+        j = j + 8
 
         ADV_C1_X = errs[18:24]
         ADV_C1_Y = cics[18:24]
         plt.plot(ADV_C1_X, ADV_C1_Y, color=f"{names[j]}", label="ADV, CLSDIV=1")
-        j = j + 16
+        j = j + 20
 
         for i, g in enumerate(np.logspace(-4, -1, 3)):
 
@@ -825,9 +825,9 @@ class Res2TabClass:
                 TOT_C0_X,
                 TOT_C0_Y,
                 color=f"{names[j]}",
-                label=f"TOT, gaug={g}, CLSDIV=0",
+                label=f"TOT, gaug={g:.4f}, CLSDIV=0",
             )
-            j = j + 16
+            j = j + 4
 
             TOT_C1_X = errs[33 + 3 * i : 36 + 3 * i]
             TOT_C1_Y = cics[33 + 3 * i : 36 + 3 * i]
@@ -835,9 +835,9 @@ class Res2TabClass:
                 TOT_C1_X,
                 TOT_C1_Y,
                 color=f"{names[j]}",
-                label=f"TOT, gaug={g}, CLSDIV=1",
+                label=f"TOT, gaug={g:.4f}, CLSDIV=1",
             )
-            j = j + 16
+            j = j + 14
         # Naming the x-axis, y-axis and the whole graph
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
@@ -849,14 +849,12 @@ class Res2TabClass:
         # Adding legend, which helps us recognize the curve according to it's color
         plt.legend()
 
-        # To load the display window
-
         if plot:
             plt.show()
 
         if save:
             plt.savefig(path)
-
+        
         # print(path)
         plt.close()
 
