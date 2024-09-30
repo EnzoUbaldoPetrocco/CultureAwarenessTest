@@ -163,7 +163,7 @@ class AdversarialStandard(GeneralModelClass):
         return tf.clip_by_value(adversarial_img, 0, 255)
     
     @tf.function
-    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.02, num_iter=20):
+    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.00005, num_iter=50):
         """Parameters:
         - model: the target model to attack.
         - x: the input images (batch).
