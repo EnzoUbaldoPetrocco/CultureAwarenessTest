@@ -52,7 +52,7 @@ percents = [0.05]
 standard = 1
 # lamp = 1
 
-verbose_param = 0
+verbose_param = 1
 n = 1000
 bs = 2
 learning_rate = 5e-4
@@ -75,7 +75,7 @@ basePath = "./"
 # with tf.device("/CPU:0"):
 for i in range(4):
  for percent in percents:
-    for lamp in [0, 1]:
+    for lamp in [1, 0]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,

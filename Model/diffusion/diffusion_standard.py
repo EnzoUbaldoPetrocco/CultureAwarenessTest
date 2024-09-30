@@ -26,8 +26,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # data
 dataset_name = "scene_parse150"
 dataset_repetitions = 6
-num_epochs = 30  # train for at least 50 epochs for good results
-num_epochs_flowers = 35
+num_epochs = 75  # train for at least 50 epochs for good results
+num_epochs_flowers = 60
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -498,7 +498,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=False, get_pretrained=True): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -543,7 +543,7 @@ class DiffusionStandardModel(tf.keras.Model):
         early = EarlyStopping(
                 monitor="val_kid",
                 min_delta=0.001,
-                patience=8,
+                patience=20,
             )
         if plot_imgs:
             
@@ -642,5 +642,7 @@ class DiffusionStandardModel(tf.keras.Model):
             diffusion_steps=plot_diffusion_steps,
         )
 
+        del self.network
+        del self.ema_network
         return generated_images
         

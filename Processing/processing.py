@@ -135,9 +135,10 @@ class ProcessingClass:
         )
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
-            size = 64
+            size = 128
+            n_imgs = 250
             diff_model = DiffusionStandardModel(image_size=size)
-            init_shape = np.shape(self.dataobj.X[0])
+            init_shape = np.shape(self.dataobj.X[0])[0:2]
             if standard and (not adversarial) and (not imbalanced):
                 for j in range(2):
                     tempX = [
@@ -150,12 +151,10 @@ class ProcessingClass:
                         for i in range(len(self.dataobj.Xv))
                         if self.dataobj.yv[i] == j
                     ]
-                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = False)
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = False)
                     for img in images:
                         img = np.asarray(img)
-                        print(img)
-                        print(np.shape(img))
-                        img = cv2.resize(img,  (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)
+                        img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
                         img = np.asarray(img, dtype=object)
                         self.dataobj.X.append(img)
                         self.dataobj.y.append(j)
@@ -171,12 +170,10 @@ class ProcessingClass:
                         for i in range(len(self.dataobj.Xv))
                         if self.dataobj.yv[i][self.n_cultures] == j
                     ]                    
-                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = True)
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True)
                     for img in images:
                         img = np.asarray(img)
-                        print(img)
-                        print(np.shape(img))
-                        img = cv2.resize(img,  (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)
+                        img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
                         img = np.asarray(img, dtype=object)
                         self.dataobj.X.append(img)
                         lbl = list(np.zeros(self.n_cultures))
