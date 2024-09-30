@@ -807,13 +807,13 @@ class Res2TabClass:
         plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="AUG")
         j = j + 3
 
-        ADV_C0_X = errs[12:18]
-        ADV_C0_Y = cics[12:18]
+        ADV_C0_X = errs[12:17]
+        ADV_C0_Y = cics[12:17]
         plt.plot(ADV_C0_X, ADV_C0_Y, color=f"{names[j]}", label="ADV, CLSDIV=0")
         j = j + 8
 
-        ADV_C1_X = errs[18:24]
-        ADV_C1_Y = cics[18:24]
+        ADV_C1_X = errs[17:22]
+        ADV_C1_Y = cics[17:22]
         plt.plot(ADV_C1_X, ADV_C1_Y, color=f"{names[j]}", label="ADV, CLSDIV=1")
         j = j + 20
 
