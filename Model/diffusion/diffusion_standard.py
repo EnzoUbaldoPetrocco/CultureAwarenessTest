@@ -47,7 +47,7 @@ block_depth = 2
 batch_size = 64
 ema = 0.999
 transfer_learning_rate = 1e-3
-learning_rate = 1e-6
+learning_rate = 1e-3
 weight_decay = 1e-4
 
 def preprocess_image(image_size = 128):
@@ -498,7 +498,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=False, get_pretrained=True): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
