@@ -594,8 +594,12 @@ class DiffusionStandardModel(tf.keras.Model):
 
             if save:
                 self.network.save('diffusion_pretrained.h5')
+                self.ema_network.save('ema_diffusion_pretrained.h5')
+                #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
         else:
             self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
+            self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
+            #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
             
             print('Loaded pretrained model')
             self.compile(

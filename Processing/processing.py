@@ -151,8 +151,10 @@ class ProcessingClass:
                         if self.dataobj.yv[i] == j
                     ]
                     images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = False)
-                    for img in images:
+                    for bs in images:
+                     for img in bs:
                         img = np.asarray(img)
+                        print(img)
                         img = cv2.resize(img,  (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)
                         img = np.asarray(img, dtype=object)
                         self.dataobj.X.append(img)
@@ -170,8 +172,10 @@ class ProcessingClass:
                         if self.dataobj.yv[i][self.n_cultures] == j
                     ]                    
                     images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = 100, plot_imgs = True)
-                    for img in images:
+                    for bs in images:
+                     for img in bs:
                         img = np.asarray(img)
+                        print(img)
                         img = cv2.resize(img,  (init_shape, init_shape), interpolation = cv2.INTER_CUBIC)
                         img = np.asarray(img, dtype=object)
                         self.dataobj.X.append(img)
