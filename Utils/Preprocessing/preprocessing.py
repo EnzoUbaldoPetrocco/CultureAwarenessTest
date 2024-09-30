@@ -35,7 +35,7 @@ class Preprocessing:
 
 def main():
     prep = Preprocessing()
-    basePt = "../../../../FINALDS/"
+    basePt = "../../../../FINALDS/" 
     lampsize = 120
     carpetsize = 200 
 
