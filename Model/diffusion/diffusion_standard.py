@@ -27,7 +27,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 dataset_name = "scene_parse150"
 dataset_repetitions = 6
 num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 60
+num_epochs_flowers = 50
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -473,7 +473,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.imshow(generated_images[index])
                 plt.axis("off")
         plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer = fig.canvas.new_timer(interval = 3500) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
         plt.show()
@@ -498,7 +498,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=False, get_pretrained=True): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -543,7 +543,7 @@ class DiffusionStandardModel(tf.keras.Model):
         early = EarlyStopping(
                 monitor="val_kid",
                 min_delta=0.001,
-                patience=20,
+                patience=12,
             )
         if plot_imgs:
             
@@ -561,6 +561,9 @@ class DiffusionStandardModel(tf.keras.Model):
         if not get_pretrained:
             flowers_dataset = prepare_dataset("train[:80%]+test[:80%]", image_size=self.image_size)
             val_flowers_dataset = prepare_dataset("train[80%:]+test[80%:]", image_size=self.image_size)
+
+            flowers_dataset = tf.concat([train_dataset, flowers_dataset], axis=0)
+            val_flowers_dataset = tf.concat([val_dataset, val_flowers_dataset], axis=0)
 
             self.normalizer.adapt(flowers_dataset)
 

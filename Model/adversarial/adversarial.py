@@ -499,6 +499,10 @@ class AdversarialStandard(GeneralModelClass):
         if self.verbose_param:
             tf.get_logger().setLevel(4)
         best_loss = np.inf
+        best_bs = batches[0]
+        best_lr = lrs[0]
+        best_fine_lr = fine_lrs[0]
+        best_nDropout = nDropouts[0]
         for b in batches:
             for lr in lrs:
                 for fine_lr in fine_lrs:
