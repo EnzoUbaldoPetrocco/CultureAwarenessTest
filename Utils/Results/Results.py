@@ -539,9 +539,9 @@ class ResAcquisitionClass:
         g_augments = np.logspace(-4, -1, 11)
         g_augments_tot = np.logspace(-4, -1, 3)
         epsilons = np.logspace(
-            -4, 0, 6
+            -6, -1, 5
         )  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-        epsilons_tot = np.logspace(-4, -1, 3)
+        epsilons_tot = np.logspace(-6, -1, 3)
         adversary = [0, 1]
         # lambda_indeces = range(-1, 13)
         lambda_index = 0
