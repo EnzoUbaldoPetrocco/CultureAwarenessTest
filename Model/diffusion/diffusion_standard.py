@@ -71,11 +71,14 @@ def preprocess_image(image_size = 128):
     return preprocess_function
 
 
-def prepare_dataset(split,image_size = 128):
+def prepare_dataset(split,image_size = 128, add_to_ds = None):
     # the validation dataset is shuffled as well, because data order matters
     # for the KID estimation
     data = tfds.load(dataset_name, split=split, shuffle_files=False)
-    data = data.map(preprocess_image(image_size), num_parallel_calls=tf.data.AUTOTUNE)
+    data = tf.data.Dataset.from_tensor_slices(list(data.map(preprocess_image(image_size), num_parallel_calls=tf.data.AUTOTUNE)))
+
+    if add_to_ds!=None:
+        data = data.concatenate(add_to_ds)
     data = data.cache().repeat(dataset_repetitions).batch(batch_size, drop_remainder=True).prefetch(buffer_size=tf.data.AUTOTUNE)
     return data
 
@@ -529,13 +532,8 @@ class DiffusionStandardModel(tf.keras.Model):
                     img = tf.cast(img, "uint8")
                     val_dataset.append(img)
 
-        train_dataset = list(np.asarray(train_dataset, dtype="float32") / 255.0)
-        val_dataset = list(np.asarray(val_dataset, dtype="float32") / 255.0)
-
-        
-        train_dataset = tf.data.Dataset.from_tensor_slices(train_dataset).batch(batch_size, drop_remainder=True)
-        val_dataset = tf.data.Dataset.from_tensor_slices(val_dataset).batch(batch_size, drop_remainder=True)
-
+        train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
+        val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
         
         # pixelwise mean absolute error is used as loss
         # calculate mean and variance of training dataset for normalization
@@ -559,11 +557,9 @@ class DiffusionStandardModel(tf.keras.Model):
         
         
         if not get_pretrained:
-            flowers_dataset = prepare_dataset("train[:80%]+test[:80%]", image_size=self.image_size)
-            val_flowers_dataset = prepare_dataset("train[80%:]+test[80%:]", image_size=self.image_size)
+            flowers_dataset = prepare_dataset("train[:80%]+test[:80%]", image_size=self.image_size, add_to_ds=train_dataset)
+            val_flowers_dataset = prepare_dataset("train[80%:]+test[80%:]", image_size=self.image_size, add_to_ds=val_dataset)
 
-            flowers_dataset = tf.concat([train_dataset, flowers_dataset], axis=0)
-            val_flowers_dataset = tf.concat([val_dataset, val_flowers_dataset], axis=0)
 
             self.normalizer.adapt(flowers_dataset)
 
@@ -600,6 +596,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.ema_network.save('ema_diffusion_pretrained.h5')
                 #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
         else:
+            
             self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
             self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
             #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
@@ -612,7 +609,8 @@ class DiffusionStandardModel(tf.keras.Model):
                     loss=tf.keras.losses.mean_absolute_error,
                 )
             
-
+        train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
+        val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
 
         # run training and plot generated images periodically
         lr_reduce = ReduceLROnPlateau(
