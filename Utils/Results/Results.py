@@ -529,7 +529,7 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-        standards = [0, 1]
+        standards = [1]
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
