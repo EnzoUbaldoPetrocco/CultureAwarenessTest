@@ -561,6 +561,7 @@ class DiffusionStandardModel(tf.keras.Model):
             val_flowers_dataset = prepare_dataset("train[80%:]+test[80%:]", image_size=self.image_size, add_to_ds=val_dataset)
 
 
+
             self.normalizer.adapt(flowers_dataset)
 
             lr_reduce = ReduceLROnPlateau(
