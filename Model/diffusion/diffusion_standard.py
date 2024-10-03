@@ -40,7 +40,7 @@ max_signal_rate = 0.95
 # architecture
 embedding_dims = 32
 embedding_max_frequency = 1000.0
-widths = [32, 64, 96, 128, 256]
+widths = [32, 64, 96, 128]
 block_depth = 2
 
 # optimization
