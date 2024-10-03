@@ -179,6 +179,7 @@ class ProcessingClass:
                         lbl = list(np.zeros(self.n_cultures))
                         lbl.append(j)
                         self.dataobj.y.append(lbl)
+            del diff_model    
         if augment:
             with tf.device("/gpu:0"):
                 print("Training Augmentation...")
