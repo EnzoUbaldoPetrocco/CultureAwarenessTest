@@ -40,7 +40,7 @@ max_signal_rate = 0.95
 # architecture
 embedding_dims = 32
 embedding_max_frequency = 1000.0
-widths = [32, 64, 96, 128]
+widths = [32, 64,100, 128]
 block_depth = 2
 
 # optimization
@@ -290,6 +290,7 @@ def get_network(image_size, widths, block_depth):
         x = ResidualBlock(widths[-1])(x)
 
     for width in reversed(widths[:-1]):
+        print(f"width is {width}")
         x = UpBlock(width, block_depth)([x, skips])
 
     x = layers.Conv2D(3, kernel_size=1)(x)
