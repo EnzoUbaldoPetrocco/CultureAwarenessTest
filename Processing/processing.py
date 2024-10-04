@@ -135,7 +135,7 @@ class ProcessingClass:
         )
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
-            size = 128
+            size = 64
             n_imgs = 250
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
