@@ -71,7 +71,7 @@ def preprocess_image(image_size = 128):
     return preprocess_function
 
 
-def prepare_dataset(split,image_size = 128, add_to_ds = None):
+def prepare_dataset(split, image_size = 128, add_to_ds = None):
     # the validation dataset is shuffled as well, because data order matters
     # for the KID estimation
     data = tfds.load(dataset_name, split=split, shuffle_files=False)
@@ -200,10 +200,12 @@ def fix_shape_mismatch(x, skip):
             # Crop x to match the skip dimensions
             cropping = ((x.shape[1] - skip.shape[1]) // 2, (x.shape[2] - skip.shape[2]) // 2)
             x = layers.Cropping2D(((cropping, cropping)))(x)
+            return x
         else:
             # Pad x to match the skip dimensions
             padding = ((skip.shape[1] - x.shape[1]) // 2, (skip.shape[2] - x.shape[2]) // 2)
             x = layers.ZeroPadding2D(((padding, padding)))(x)
+            return x
     return x
 
 
