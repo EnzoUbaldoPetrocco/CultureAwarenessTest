@@ -70,6 +70,7 @@ test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [2, 1, 0]
 ks = [0]
+adversary = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
@@ -108,7 +109,7 @@ for i in range(4):
                                     n=n,
                                     augment=k % 2,
                                     gaug=g_aug,
-                                    adversary=1,
+                                    adversary=adversary,
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
@@ -145,7 +146,7 @@ for i in range(4):
                                 n=n,
                                 augment=k % 2,
                                 gaug=0,
-                                adversary=1,
+                                adversary=adversary,
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,

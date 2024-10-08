@@ -103,7 +103,8 @@ class ProcessingClass:
         adversarial=0,
         imbalanced=0,
         discriminator=0,
-        diffusion = 0
+        diffusion = 0,
+        aug = 0
     ):
         """
         This function prepares the data for training
@@ -136,7 +137,7 @@ class ProcessingClass:
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
             size = 100
-            n_imgs = 250
+            n_imgs = len(self.dataobj.X)
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
             if standard and (not adversarial) and (not imbalanced):
@@ -366,7 +367,8 @@ class ProcessingClass:
             imbalanced=imbalanced,
             discriminator=discriminator,
             diffusion = diffusion,
-            gaug = gaug
+            gaug = gaug,
+            aug = augment
         )
         self.model = None
         if discriminator:
