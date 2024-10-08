@@ -827,7 +827,7 @@ class Res2TabClass:
                 color=f"{names[j]}",
                 label=f"TOT, gaug={g:.4f}, CLSDIV=0",
             )
-            j = j + 5
+            j = j + 4
 
             TOT_C1_X = errs[33 + 3 * i : 36 + 3 * i]
             TOT_C1_Y = cics[33 + 3 * i : 36 + 3 * i]
@@ -837,7 +837,7 @@ class Res2TabClass:
                 color=f"{names[j]}",
                 label=f"TOT, gaug={g:.4f}, CLSDIV=1",
             )
-            j = j + 20
+            j = j + 21
         # Naming the x-axis, y-axis and the whole graph
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
