@@ -13,6 +13,7 @@ from keras import layers
 import numpy as np
 import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
+import math
 
 
 
@@ -24,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 # data
-dataset_name = "scene_parse150"
+dataset_name = "oxford_flowers102"
 dataset_repetitions = 6
 num_epochs = 75  # train for at least 50 epochs for good results
 num_epochs_flowers = 50
@@ -198,12 +199,18 @@ def fix_shape_mismatch(x, skip):
     if x.shape[1] != skip.shape[1] or x.shape[2] != skip.shape[2]:
         if x.shape[1] > skip.shape[1] or x.shape[2] > skip.shape[2]:
             # Crop x to match the skip dimensions
-            cropping = ((x.shape[1] - skip.shape[1]) // 2, (x.shape[2] - skip.shape[2]) // 2)
+            dim = (float(x.shape[1]) - float(skip.shape[1])) / 2.0
+            dim1 = math.ceil(dim)
+            dim2 = math.floor(dim)
+            cropping = (dim1, dim2)
             x = layers.Cropping2D(((cropping, cropping)))(x)
             return x
         else:
             # Pad x to match the skip dimensions
-            padding = ((skip.shape[1] - x.shape[1]) // 2, (skip.shape[2] - x.shape[2]) // 2)
+            dim = (float(skip.shape[1]) - float(x.shape[1])) / 2.0
+            dim1 = math.ceil(dim)
+            dim2 = math.floor(dim)
+            padding = (dim1, dim2)
             x = layers.ZeroPadding2D(((padding, padding)))(x)
             return x
     return x
