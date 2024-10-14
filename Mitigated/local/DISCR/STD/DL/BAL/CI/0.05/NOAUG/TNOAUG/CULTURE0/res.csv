@@ -8,3 +8,43 @@ Class 0,CM,198,1,1
 Class 1,CM,72,121,7
 Class 2,CM,129,1,70
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,195,5,0
+Class 1,CM,48,142,10
+Class 2,CM,93,2,105
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,0,92,108
+Class 1,CM,0,73,127
+Class 2,CM,0,10,190
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,199,1,0
+Class 1,CM,87,105,8
+Class 2,CM,111,5,84
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,195,5,0
+Class 1,CM,75,122,3
+Class 2,CM,139,2,59
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,200,0,0
+Class 1,CM,200,0,0
+Class 2,CM,200,0,0
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,180,13,7
+Class 1,CM,66,118,16
+Class 2,CM,77,7,116
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,192,2,6
+Class 1,CM,63,128,9
+Class 2,CM,101,1,98
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,176,19,5
+Class 1,CM,36,149,15
+Class 2,CM,61,7,132
+
