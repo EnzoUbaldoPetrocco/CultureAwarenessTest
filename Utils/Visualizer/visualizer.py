@@ -817,6 +817,7 @@ class Res2TabClass:
         plt.plot(ADV_C1_X, ADV_C1_Y, color=f"{names[j]}", label="ADV, CLSDIV=1")
         j = j + 19
 
+        """ 
         for i, g in enumerate(np.logspace(-4, -1, 3)):
 
             TOT_C0_X = errs[24 + 3 * i : 27 + 3 * i]
@@ -838,7 +839,7 @@ class Res2TabClass:
                 label=f"TOT, gaug={g:.4f}, CLSDIV=1",
             )
             j = j + 21
-        # Naming the x-axis, y-axis and the whole graph
+        # Naming the x-axis, y-axis and the whole graph"""
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
         plt.title(title)
