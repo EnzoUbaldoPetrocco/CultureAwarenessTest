@@ -436,7 +436,6 @@ class StandardModels4GradCam(GeneralModelClass):
         VS=None,
         adversary=0,
         eps=0.05,
-        mult=0.2,
         gradcam=False,
         out_dir="./",
         complete=0,

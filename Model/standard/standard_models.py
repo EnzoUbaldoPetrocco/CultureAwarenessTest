@@ -437,7 +437,6 @@ class StandardModels(GeneralModelClass):
         VS=None,
         adversary=0,
         eps=0.05,
-        mult=0.2,
         gradcam=False,
         out_dir="./",
         complete=0,
@@ -451,7 +450,6 @@ class StandardModels(GeneralModelClass):
         :param VS: validation set
         :param adversary: if enabled, adversarial training is enabled
         :param eps: if adversary enabled, step size of adversarial training
-        :param mult: if adversary enabled, multiplier of adversarial training
         :param gradcam: if enabled, gradcam callback is called
         :param out_dir: if gradcam enabled, output directory of gradcam heatmap
         :param complete: dummy argument

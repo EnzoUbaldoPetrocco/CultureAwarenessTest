@@ -86,6 +86,7 @@ for i in range(8):
         for imb in imbalances:
          for c in cs:
             for k in ks:
+             for g_aug in g_gaugs:
                     model = None
                     print(f"Training->aug={k%2};adv={floor(k/2)}")
                     procObj.process(
@@ -103,11 +104,8 @@ for i in range(8):
                         n=n,
                         augment=k % 2,
                         gaug=g_aug,
-                        adversary=1,
-                        eps=ep,
                         mult=mult,
                         imbalanced=imb,  
-                        class_division= cl_div,
                         discriminator=1,
                         diffusion = diffusion
                     )

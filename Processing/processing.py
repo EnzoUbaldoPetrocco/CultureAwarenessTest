@@ -520,7 +520,6 @@ class ProcessingClass:
             (self.dataobj.X, self.dataobj.y),
             (self.dataobj.Xv, self.dataobj.yv),
             eps=eps,
-            mult=mult,
             gradcam=gradcam,
             out_dir=self.basePath,
             complete=complete,
