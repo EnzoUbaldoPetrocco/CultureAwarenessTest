@@ -92,7 +92,7 @@ class GeneralModelClass:
         :return list confusion matrix
         """
         
-        if not discriminator:
+        if discriminator==0:
             yFq = self.test(Xt, out)
             if len(np.shape(yT)) > 1:
                 if type(yT) == list:
