@@ -434,7 +434,6 @@ class Discriminator(GeneralModelClass):
         aug=0,
         g=0.1,
         eps=0.3,
-        mult=0.2,
         gradcam=0,
         out_dir="./",
         complete=0,
@@ -445,7 +444,6 @@ class Discriminator(GeneralModelClass):
         :param VS: validation set
         :param adversary: if enabled, adversarial training is enabled
         :param eps: if adversary enabled, step size of adversarial training
-        :param mult: if adversary enabled, multiplier of adversarial training
         :param gradcam: if enabled, gradcam callback is called
         :param out_dir: if gradcam enabled, output directory of gradcam heatmap
         :param complete: dummy argument
@@ -457,7 +455,7 @@ class Discriminator(GeneralModelClass):
         elif self.type == "DL" or "RESNET":
             self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
             """self.DL_model_selection(
-                TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
+                TS, VS, adversary, eps, gradcam=gradcam, out_dir=out_dir
             )"""
         else:
             self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
