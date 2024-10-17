@@ -118,6 +118,7 @@ for i in range(8):
                         gaug=0,
                         adversary=0,
                         eps=test_eps,
+                        discriminator=1,
                     )
                     procObj.partial_clear(basePath)
         
