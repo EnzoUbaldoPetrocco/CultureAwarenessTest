@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 # data
-dataset_name = "oxford_flowers102"
+dataset_name = "places365_small"
 dataset_repetitions = 6
 num_epochs = 75  # train for at least 50 epochs for good results
 num_epochs_flowers = 50
@@ -45,7 +45,7 @@ widths = [32, 64,100, 128]
 block_depth = 2
 
 # optimization
-batch_size = 64
+batch_size = 32
 ema = 0.999
 transfer_learning_rate = 1e-3
 learning_rate = 1e-3
@@ -215,8 +215,6 @@ def fix_shape_mismatch(x, skip):
             return x
     return x
 
-
-
 def UpBlock(width, block_depth):
     def apply(x):
         x, skips = x
@@ -229,7 +227,6 @@ def UpBlock(width, block_depth):
         return x
 
     return apply
-
 
 def get_resnet50v2_network(image_size, widths, block_depth):
     """Creates a network using ResNet50V2 as the backbone."""
@@ -279,7 +276,6 @@ def get_resnet50v2_network(image_size, widths, block_depth):
 
     return tf.keras.Model([noisy_images, noise_variances], x, name="resnet_unet")
 
-
 def get_network(image_size, widths, block_depth):
 
     noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
@@ -299,7 +295,6 @@ def get_network(image_size, widths, block_depth):
         x = ResidualBlock(widths[-1])(x)
 
     for width in reversed(widths[:-1]):
-        print(f"width is {width}")
         x = UpBlock(width, block_depth)([x, skips])
 
     x = layers.Conv2D(3, kernel_size=1)(x)
@@ -486,7 +481,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.imshow(generated_images[index])
                 plt.axis("off")
         plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 3500) #creating a timer object and setting an interval of 3000 milliseconds
+        timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
         plt.show()
@@ -567,8 +562,8 @@ class DiffusionStandardModel(tf.keras.Model):
         
         
         if not get_pretrained:
-            flowers_dataset = prepare_dataset("train[:80%]+test[:80%]", image_size=self.image_size, add_to_ds=train_dataset)
-            val_flowers_dataset = prepare_dataset("train[80%:]+test[80%:]", image_size=self.image_size, add_to_ds=val_dataset)
+            flowers_dataset = prepare_dataset("train[:10%]+test[:10%]", image_size=self.image_size, add_to_ds=train_dataset)
+            val_flowers_dataset = prepare_dataset("train[90%:]+test[90%:]", image_size=self.image_size, add_to_ds=val_dataset)
 
 
 

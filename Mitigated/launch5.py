@@ -68,7 +68,7 @@ eps = np.logspace(-6, -1, 5)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [2, 1, 0]
-ks = [0,1]
+ks = [0]
 diffusion = 0
 
 basePath = "./"

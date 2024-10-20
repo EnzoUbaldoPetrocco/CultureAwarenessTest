@@ -64,17 +64,17 @@ imbalances = [0,1]
 
 g_gaugs = np.logspace(-4, -1, 3)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-eps = np.logspace(-6, -1, 3)
+eps = np.logspace(-6, -1, 5)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [2, 1, 0]
-ks = [1]
+ks = [0]
 diffusion = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
-for i in range(6):
- for percent in percents:
+
+for percent in percents:
     for lamp in [1, 0]:
         procObj = ProcessingClass(
             shallow=0,
@@ -87,6 +87,7 @@ for i in range(6):
          for c in cs:
             for k in ks:
                 for ep in eps:
+                  for i in range(3):
                     for cl_div in class_divisions:
                         print(f"CLS DIV = {cl_div}")
                         if k%2==1:

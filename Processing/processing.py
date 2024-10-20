@@ -152,7 +152,7 @@ class ProcessingClass:
                         for i in range(len(self.dataobj.Xv))
                         if self.dataobj.yv[i] == j
                     ]
-                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = False, aug=aug)
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug)
                     for img in images:
                         img = np.asarray(img)
                         img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
