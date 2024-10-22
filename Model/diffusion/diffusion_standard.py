@@ -562,8 +562,8 @@ class DiffusionStandardModel(tf.keras.Model):
         
         
         if not get_pretrained:
-            flowers_dataset = prepare_dataset("train[:10%]+test[:10%]", image_size=self.image_size, add_to_ds=train_dataset)
-            val_flowers_dataset = prepare_dataset("train[90%:]+test[90%:]", image_size=self.image_size, add_to_ds=val_dataset)
+            flowers_dataset = prepare_dataset("train[:5%]+test[:5%]", image_size=self.image_size, add_to_ds=train_dataset)
+            val_flowers_dataset = prepare_dataset("train[95%:]+test[95%:]", image_size=self.image_size, add_to_ds=val_dataset)
 
 
 
