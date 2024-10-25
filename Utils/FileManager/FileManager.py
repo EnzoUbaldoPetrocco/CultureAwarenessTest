@@ -7,8 +7,7 @@ import pandas as pd
 
 class FileManagerClass:
     """
-    FileManagerClass is a class useful for writing and reading
-    confusion matrices in files 
+    FileManagerClass reads/writes confusion matrices in files and creates directories
     """
     def __init__(self, name, create=True):
         """

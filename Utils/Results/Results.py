@@ -1,27 +1,35 @@
+"""
+    Results.py module analyze the results of the experiments and stores them in csv files
+"""
+
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
+import os
+import numpy as np
+import pandas as pd
 
 sys.path.insert(1, "../../")
-import numpy as np
-import os
+
 from Utils.FileManager.FileManager import FileManagerClass
-import pandas as pd
-import xarray as xr
 
 
 class ResultsClass:
+    """
+        ResultsClass gets as input a list of confusion matrices
+        and computes some metrics
+    """
     def __init__(self, c_cm_list) -> None:
         """
         This function uses the list of confusion matrices for creating ERRs and CICs
         :param c_cm_list: list of confusion matrices
         """
         self.pcms_list = []
-        self.meanFPs = []
-        self.meanFNs = []
-        self.meanErrors = []
-        self.meanFP_stds = []
-        self.meanFN_stds = []
+        self.mean_fps = []
+        self.mean_fns = []
+        self.mean_errors = []
+        self.mean_fp_stds = []
+        self.mean_fn_stds = []
         self.meanError_stds = []
         if len(c_cm_list) == 0:
             print("List empty")
@@ -29,11 +37,11 @@ class ResultsClass:
             for i in range(len(c_cm_list)):
                 pcm = self.get_pcms(c_cm_list[i])
                 self.pcms_list.append(pcm)
-                self.meanFPs.append(self.get_meanFP(pcm))
-                self.meanFNs.append(self.get_meanFN(pcm))
-                self.meanErrors.append(self.get_mean_error(pcm))
-                self.meanFP_stds.append(self.get_meanFP_std(pcm))
-                self.meanFN_stds.append(self.get_meanFN_std(pcm))
+                self.mean_fps.append(self.get_meanFP(pcm))
+                self.mean_fns.append(self.get_meanFN(pcm))
+                self.mean_errors.append(self.get_mean_error(pcm))
+                self.mean_fp_stds.append(self.get_meanFP_std(pcm))
+                self.mean_fn_stds.append(self.get_meanFN_std(pcm))
                 self.meanError_stds.append(self.get_mean_error_std(pcm))
 
             self.CIC = self.get_CIC(self.pcms_list)
@@ -53,15 +61,15 @@ class ResultsClass:
         if len(self.pcms_list) > 0:
             ls = []
             for i in range(3):
-                ls.append(convert_to_percentage(self.meanErrors[i]))
+                ls.append(convert_to_percentage(self.mean_errors[i]))
                 ls.append(convert_to_percentage(self.meanError_stds[i]))
 
-            ERR = convert_to_percentage(np.mean(self.meanErrors))
+            ERR = convert_to_percentage(np.mean(self.mean_errors))
             ls.append(ERR)
             ERRstd = convert_to_percentage(np.sum(self.meanError_stds))
             ls.append(ERRstd)
 
-            wERR = convert_to_percentage(np.average(self.meanErrors, weights=w))
+            wERR = convert_to_percentage(np.average(self.mean_errors, weights=w))
             ls.append(wERR)
             ls.append(ERRstd)
 
@@ -88,7 +96,7 @@ class ResultsClass:
         if len(self.pcms_list) > 0:
             for i in range(3):
                 print(
-                    f"For culture={i}: ERR={self.meanErrors[i]:.4f}"
+                    f"For culture={i}: ERR={self.mean_errors[i]:.4f}"
                     + "\u00B1"
                     + f"{self.meanError_stds[i]:.4f}"
                 )
@@ -326,7 +334,8 @@ class ResultsClass:
     # CIC
     def get_CIC(self, c_pcms):
         """
-        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric.
+        Given a list of percentage confusion matrices subdivided
+        in cultures it returns the CIC metric.
         With CIC = 1/|C| * sum |ERR^C-min(ERR^C)|
         :param c_pcms: list of percentage confusion matrices subdivided in cultures
         :return CIC
@@ -354,7 +363,8 @@ class ResultsClass:
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
         """
-        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric.
+        Given a list of percentage confusion matrices
+        subdivided in cultures it returns the CIC metric.
         With CIC standard deviation
         :param c_pcms: list of percentage confusion matrices subdivided in cultures
         :param n_cultures: number of cultures
@@ -429,7 +439,7 @@ class ResultsClass:
 class ResAcquisitionClass:
     def buildPath(
         self,
-        basePath,
+        base_path,
         standard,
         alg,
         lamp,
@@ -450,13 +460,13 @@ class ResAcquisitionClass:
         imbalanced=0,
     ):
         if standard:
-            basePath = basePath + "STD/" + alg
+            base_path = base_path + "STD/" + alg
         else:
-            basePath = basePath + "MIT/" + alg
+            base_path = base_path + "MIT/" + alg
         if imbalanced:
-            basePath = basePath + "/IMB/"
+            base_path = base_path + "/IMB/"
         else:
-            basePath = basePath + "/BAL/"
+            base_path = base_path + "/BAL/"
         if lamp:
             if culture == 0:
                 c = "/LC/"
@@ -475,7 +485,7 @@ class ResAcquisitionClass:
                 c = "/CS/"
             else:
                 c = "/CI/"
-        basePath = basePath + c + str(percent) + "/"
+        base_path = base_path + c + str(percent) + "/"
         if augment:
             if adversary:
                 aug = f"TOTAUG/g={g_augment}/eps={eps}"
@@ -495,9 +505,9 @@ class ResAcquisitionClass:
             else:
                 aug = "NOAUG/"
 
-        basePath = basePath + aug
+        base_path = base_path + aug
         if not standard:
-            basePath = basePath + str(lambda_index) + "/"
+            base_path = base_path + str(lambda_index) + "/"
         if taugment:
             if tadversary:
                 testaug = f"TTOTAUG/G_AUG={tgaug}/EPS={teps}/"
@@ -507,15 +517,15 @@ class ResAcquisitionClass:
             if tadversary:
                 testaug = f"TAVD/EPS={teps}/"
             else:
-                testaug = f"TNOAUG/"
+                testaug = "TNOAUG/"
         testaug = testaug + f"CULTURE{t_cult}/"
 
-        basePath = basePath + testaug
+        base_path = base_path + testaug
         if standard:
-            basePath = basePath + "res.csv"
+            base_path = base_path + "res.csv"
         else:
-            basePath = basePath + "out " + str(out) + ".csv"
-        return basePath
+            base_path = base_path + "out " + str(out) + ".csv"
+        return base_path
 
     def get_cm_list(self, path):
         try:
@@ -528,7 +538,7 @@ class ResAcquisitionClass:
             )
         return cm_list
 
-    def get_cm_structure(self, basePath):
+    def get_cm_structure(self, base_path):
         standards = [1]
         alg = "DL"
         lamps = [0, 1]
@@ -583,7 +593,7 @@ class ResAcquisitionClass:
                                                                                 t_cults
                                                                             ):
                                                                                 path = self.buildPath(
-                                                                                    basePath,
+                                                                                    base_path,
                                                                                     standard,
                                                                                     alg,
                                                                                     lamp,
@@ -679,7 +689,7 @@ class ResAcquisitionClass:
                                                                                 t_cults
                                                                             ):
                                                                                 path = self.buildPath(
-                                                                                    basePath,
+                                                                                    base_path,
                                                                                     standard,
                                                                                     alg,
                                                                                     lamp,
@@ -770,7 +780,7 @@ class ResAcquisitionClass:
                                                                         t_cult
                                                                     ) in t_cults:
                                                                         path = self.buildPath(
-                                                                            basePath,
+                                                                            base_path,
                                                                             standard,
                                                                             alg,
                                                                             lamp,
@@ -842,7 +852,7 @@ class ResAcquisitionClass:
                                                                         t_cult
                                                                     ) in t_cults:
                                                                         path = self.buildPath(
-                                                                            basePath,
+                                                                            base_path,
                                                                             standard,
                                                                             alg,
                                                                             lamp,
@@ -925,7 +935,7 @@ class ResAcquisitionClass:
                                                                             t_cult
                                                                         ) in t_cults:
                                                                             path = self.buildPath(
-                                                                                basePath,
+                                                                                base_path,
                                                                                 standard,
                                                                                 alg,
                                                                                 lamp,
@@ -1014,7 +1024,7 @@ class ResAcquisitionClass:
                                                                             t_cult
                                                                         ) in t_cults:
                                                                             path = self.buildPath(
-                                                                                basePath,
+                                                                                base_path,
                                                                                 standard,
                                                                                 alg,
                                                                                 lamp,
@@ -1099,7 +1109,7 @@ class ResAcquisitionClass:
                                                                 tcultsl = []
                                                                 for t_cult in t_cults:
                                                                     path = self.buildPath(
-                                                                        basePath,
+                                                                        base_path,
                                                                         standard,
                                                                         alg,
                                                                         lamp,
@@ -1159,7 +1169,7 @@ class ResAcquisitionClass:
                                                                 tcultsl = []
                                                                 for t_cult in t_cults:
                                                                     path = self.buildPath(
-                                                                        basePath,
+                                                                        base_path,
                                                                         standard,
                                                                         alg,
                                                                         lamp,
@@ -1224,8 +1234,8 @@ def mkdir(dir):
 
 def main():
     rac = ResAcquisitionClass()
-    basepath = "../../Mitigated/"
-    rac.get_cm_structure(basepath)
+    base_path = "../../Mitigated/"
+    rac.get_cm_structure(base_path)
 
 
 if __name__ == "__main__":

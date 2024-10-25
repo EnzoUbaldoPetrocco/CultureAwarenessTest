@@ -1,70 +1,69 @@
+"""Module providing resized LAMP and CARPET datasets."""
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
-sys.path.insert(1, "../../")
-
-
-import os
 import pathlib
 import cv2
-import random
-import time
-import tensorflow as tf
-import numpy as np
-from cleverhans.tf2.utils import optimize_linear
-from matplotlib import pyplot as plt
+
+sys.path.insert(1, "../../")
+
 from Utils.FileManager.FileManager import FileManagerClass
 
 class Preprocessing:
+    """
+    Preprocessing resizes the data to have the same size starting from original dataset
+    """
+
     def create_ds(self, img_path, svpath, size):
-        
+        """
+            This method gets images path and saves them with another size in svpath.
+        """
         # create dir
-        fileobj = FileManagerClass(svpath)
+        FileManagerClass(svpath)
         # get images from root
         types = ("*.png", "*.jpg", "*.jpeg")
         paths = []
         for typ in types:
             paths.extend(pathlib.Path(img_path).glob(typ))
         for i, pt in enumerate(paths):
-            im = cv2.imread(str(pt)) 
-            #print(np.shape(im))
-            # get resize them
-            im = cv2.resize(im, (size, size), 
-               interpolation = cv2.INTER_CUBIC)
-            # save them with label
-            cv2.imwrite(svpath + f"im{i}.jpg", im)  
+            im = cv2.imread(str(pt))
+            im = cv2.resize(im, (size, size), interpolation=cv2.INTER_CUBIC)
+            cv2.imwrite(svpath + f"im{i}.jpg", im)
+
 
 def main():
+    """
+        Main function initialize all the paths of the datasets for building the datasets
+    """
     prep = Preprocessing()
-    basePt = "../../../../FINALDS/" 
+    base_pt = "../../../../FINALDS/"
     lampsize = 120
-    carpetsize = 200 
+    carpetsize = 200
 
-    chinoff = basePt + "originals/lamps/chinese/off/"
-    chinon = basePt + "originals/lamps/chinese/on/"
-    frenchoff = basePt + "originals/lamps/french/off/"
-    frenchon = basePt + "originals/lamps/french/on/"
-    turkoff = basePt + "originals/lamps/turkish/off/"
-    turkon = basePt + "originals/lamps/turkish/on/"
-    indoff = basePt + "originals/carpets/indian/without/"    
-    indon = basePt + "originals/carpets/indian/with/"
-    japoff = basePt + "originals/carpets/japanese/without/"
-    japon = basePt + "originals/carpets/japanese/with/"
-    scanoff = basePt + "originals/carpets/scandinavian/without/"
-    scanon = basePt + "originals/carpets/scandinavian/with/"
+    chinoff = base_pt + "originals/lamps/chinese/off/"
+    chinon = base_pt + "originals/lamps/chinese/on/"
+    frenchoff = base_pt + "originals/lamps/french/off/"
+    frenchon = base_pt + "originals/lamps/french/on/"
+    turkoff = base_pt + "originals/lamps/turkish/off/"
+    turkon = base_pt + "originals/lamps/turkish/on/"
+    indoff = base_pt + "originals/carpets/indian/without/"
+    indon = base_pt + "originals/carpets/indian/with/"
+    japoff = base_pt + "originals/carpets/japanese/without/"
+    japon = base_pt + "originals/carpets/japanese/with/"
+    scanoff = base_pt + "originals/carpets/scandinavian/without/"
+    scanon = base_pt + "originals/carpets/scandinavian/with/"
 
-    svchinoff = basePt + "/lamps/chinese/"
-    svchinon = basePt + "/lamps/chinese/"
-    svfrenchoff = basePt + "/lamps/french/"
-    svfrenchon = basePt + "/lamps/french/"
-    svturkoff = basePt + "/lamps/turkish/"
-    svturkon = basePt + "/lamps/turkish/"
-    svindoff = basePt + "/carpets_stretched/indian/"    
-    svindon = basePt + "/carpets_stretched/indian/"
-    svjapoff = basePt + "/carpets_stretched/japanese/"
-    svjapon = basePt + "/carpets_stretched/japanese/"
-    svscanoff = basePt + "/carpets_stretched/scandinavian/"
-    svscanon = basePt + "/carpets_stretched/scandinavian/"
-
+    svchinoff = base_pt + "/lamps/chinese/"
+    svchinon = base_pt + "/lamps/chinese/"
+    svfrenchoff = base_pt + "/lamps/french/"
+    svfrenchon = base_pt + "/lamps/french/"
+    svturkoff = base_pt + "/lamps/turkish/"
+    svturkon = base_pt + "/lamps/turkish/"
+    svindoff = base_pt + "/carpets_stretched/indian/"
+    svindon = base_pt + "/carpets_stretched/indian/"
+    svjapoff = base_pt + "/carpets_stretched/japanese/"
+    svjapon = base_pt + "/carpets_stretched/japanese/"
+    svscanoff = base_pt + "/carpets_stretched/scandinavian/"
+    svscanon = base_pt + "/carpets_stretched/scandinavian/"
 
     prep.create_ds(chinoff, svchinoff + f"{lampsize}/RGB/off/", lampsize)
     prep.create_ds(chinon, svchinon + f"{lampsize}/RGB/on/", lampsize)
@@ -82,4 +81,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-            
