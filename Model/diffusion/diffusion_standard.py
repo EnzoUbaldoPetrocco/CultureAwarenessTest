@@ -485,6 +485,7 @@ class DiffusionStandardModel(tf.keras.Model):
         timer.add_callback(close_event)
         timer.start()
         plt.show()
+        plt.save("./Samples.jpg")
         plt.close()
 
     def plot_dataset(self, ds, num_rows=3, num_cols=6):
