@@ -609,12 +609,12 @@ class DiffusionStandardModel(tf.keras.Model):
             #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
             
             print('Loaded pretrained model')
-            self.compile(
-                    optimizer=tfa.optimizers.AdamW(
-                        learning_rate=learning_rate, weight_decay=weight_decay
-                    ),
-                    loss=tf.keras.losses.mean_absolute_error,
-                )
+        self.compile(
+                optimizer=tfa.optimizers.AdamW(
+                    learning_rate=learning_rate, weight_decay=weight_decay
+                ),
+                loss=tf.keras.losses.mean_absolute_error,
+            )
             
         train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
         val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
