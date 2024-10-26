@@ -1,3 +1,6 @@
+"""
+    This script is used for managing file write and read procedures
+"""
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
 import csv
@@ -18,21 +21,21 @@ class FileManagerClass:
         not exist
         """
         self.name = name
-        dir = os.path.dirname(name)
+        direc= os.path.dirname(name)
         if create:
-            self.mkdir(dir)
+            self.mkdir(direc)
 
-    def mkdir(self, dir):
+    def mkdir(self, direc):
         """
         makes the directory if this path does not exists
         :param dir: directory path
         """
         try:
-            if not os.path.exists(dir):
-                print(f"Making directory: {str(dir)}")
-                os.makedirs(dir)
+            if not os.path.exists(direc):
+                print(f"Making directory: {str(direc)}")
+                os.makedirs(direc)
         except Exception as e:
-            print(f"{dir} Not created")
+            print(f"{direc} Not created for exception {e}")
 
     def readrows(self):
         """
@@ -44,7 +47,7 @@ class FileManagerClass:
             with open(self.name, "r") as file:
                 csvreader = csv.reader(file)
                 for row in csvreader:
-                    csvlist.append(row)                
+                    csvlist.append(row)
                 file.close()
         except:
             pass
@@ -69,13 +72,13 @@ class FileManagerClass:
         except Exception as e:
             print(f"Error in writing file {self.name} due to Exception:\n{e}")
 
-    def writecm(self, cm, discriminator=0):
+    def writecm(self, cm, discriminator=0, n_classes = 3):
         """
         writecm creates a row from confusion matrix
         :param cm: confusion matrix to be stored
         """
         if discriminator:
-            class_labels = ['Class 0', 'Class 1', 'Class 2']
+            class_labels = [f'Class {i}' for i in range(n_classes)]
             # Convert confusion matrices to pandas DataFrames
             row = pd.DataFrame(cm, columns=class_labels, index=class_labels)
             # Add a label to identify the matrix
@@ -99,4 +102,4 @@ class FileManagerClass:
             cms.append(cm)
             del cm
         return cms
-
+    
