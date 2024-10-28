@@ -28,3 +28,33 @@ Class 0,CM,0,200,0
 Class 1,CM,0,200,0
 Class 2,CM,0,197,3
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,23,167,10
+Class 1,CM,0,199,1
+Class 2,CM,2,92,106
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,3,78,119
+Class 1,CM,0,153,47
+Class 2,CM,0,12,188
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,40,140,20
+Class 1,CM,0,196,4
+Class 2,CM,1,94,105
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,33,121,46
+Class 1,CM,1,189,10
+Class 2,CM,3,40,157
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,2,197,1
+Class 1,CM,0,199,1
+Class 2,CM,0,181,19
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,44,150,6
+Class 1,CM,0,199,1
+Class 2,CM,15,107,78
+
