@@ -73,16 +73,17 @@ diffusion = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
-for i in range(8):
- for percent in percents:
-    for lamp in [ 0, 1]:
-        procObj = ProcessingClass(
+
+for percent in percents:
+ for lamp in [ 0, 1]:
+    procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
             gpu=False,
             memory_limit=memory_limit,
             basePath=basePath,
         )
+    for i in range(5):
         for imb in imbalances:
          for c in cs:
             for k in ks:
