@@ -74,7 +74,7 @@ adversary = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
-for i in range(4):
+for i in range(8):
  for percent in percents:
     for lamp in [1, 0]:
         procObj = ProcessingClass(
