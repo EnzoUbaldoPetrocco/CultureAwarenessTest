@@ -11,7 +11,6 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras import layers
 #from tf.keras import ops
 import numpy as np
-import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 import math
 
@@ -579,7 +578,7 @@ class DiffusionStandardModel(tf.keras.Model):
             )
             callbacks.append(lr_reduce)
             self.compile(
-                    optimizer=tfa.optimizers.AdamW(
+                    optimizer=tf.keras.optimizers.optimizers.AdamW(
                         learning_rate=transfer_learning_rate, weight_decay=weight_decay
                     ),
                     loss=tf.keras.losses.mean_absolute_error,
@@ -610,7 +609,7 @@ class DiffusionStandardModel(tf.keras.Model):
             
             print('Loaded pretrained model')
         self.compile(
-                optimizer=tfa.optimizers.AdamW(
+                optimizer=tf.keras.optimizers.optimizers.AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
