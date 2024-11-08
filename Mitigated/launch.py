@@ -75,7 +75,7 @@ basePath = "./"
 # with tf.device("/CPU:0"):
 
 for percent in percents:
-    for lamp in [1, 0]:
+    for lamp in [0]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
@@ -87,7 +87,7 @@ for percent in percents:
          for c in cs:
             for k in ks:
                 for ep in eps:
-                  for i in range(6):
+                  for i in range(2):
                     for cl_div in class_divisions:
                         print(f"CLS DIV = {cl_div}")
                         if k%2==1:
