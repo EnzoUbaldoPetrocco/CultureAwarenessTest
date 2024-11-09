@@ -8,3 +8,8 @@ Class 0,CM,0,0,200
 Class 1,CM,0,0,200
 Class 2,CM,0,0,200
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,32,48,120
+Class 1,CM,0,128,72
+Class 2,CM,0,0,200
+
