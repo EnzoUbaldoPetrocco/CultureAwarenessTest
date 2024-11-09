@@ -480,6 +480,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.subplot(num_rows, num_cols, index + 1)
                 plt.imshow(generated_images[index])
                 plt.axis("off")
+                plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
         timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
