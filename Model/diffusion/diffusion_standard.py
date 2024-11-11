@@ -11,7 +11,7 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras import layers
 #from tf.keras import ops
 import numpy as np
-#import tensorflow_addons as tfa
+import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 import math
 
@@ -27,10 +27,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # data
 dataset_name = "places365_small"
 dataset_repetitions = 6
-num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 50
+num_epochs = 50  # train for at least 50 epochs for good results
+num_epochs_flowers = 30
 # KID = Kernel Inception Distance, see related section
-kid_image_size = 75
+kid_image_size = 50
 kid_diffusion_steps = 6
 plot_diffusion_steps = 20
 
@@ -48,7 +48,7 @@ block_depth = 2
 batch_size = 32
 ema = 0.999
 transfer_learning_rate = 1e-3
-learning_rate = 1e-3
+learning_rate = 1e-5
 weight_decay = 1e-4
 
 def preprocess_image(image_size = 128):
@@ -480,13 +480,13 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.subplot(num_rows, num_cols, index + 1)
                 plt.imshow(generated_images[index])
                 plt.axis("off")
-                plt.imsave(f"./Sample{index}", generated_images[index])
+                #plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
         timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
+        plt.savefig("./Sample.png")
         plt.show()
-        plt.imsave("./Samples.jpg")
         plt.close()
 
     def plot_dataset(self, ds, num_rows=3, num_cols=6):
@@ -580,7 +580,7 @@ class DiffusionStandardModel(tf.keras.Model):
             )
             callbacks.append(lr_reduce)
             self.compile(
-                    optimizer=tf.keras.optimizers.AdamW(
+                    optimizer=tfa.optimizers.AdamW(
                         learning_rate=transfer_learning_rate, weight_decay=weight_decay
                     ),
                     loss=tf.keras.losses.mean_absolute_error,
@@ -611,7 +611,7 @@ class DiffusionStandardModel(tf.keras.Model):
             
             print('Loaded pretrained model')
         self.compile(
-                optimizer=tf.keras.optimizers.AdamW(
+                optimizer=tfa.optimizers.AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
