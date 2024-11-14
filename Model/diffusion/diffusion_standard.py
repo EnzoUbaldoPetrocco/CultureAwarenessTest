@@ -30,7 +30,7 @@ dataset_repetitions = 6
 num_epochs = 50  # train for at least 50 epochs for good results
 num_epochs_flowers = 30
 # KID = Kernel Inception Distance, see related section
-kid_image_size = 50
+kid_image_size = 75
 kid_diffusion_steps = 6
 plot_diffusion_steps = 20
 
@@ -48,7 +48,7 @@ block_depth = 2
 batch_size = 32
 ema = 0.999
 transfer_learning_rate = 1e-3
-learning_rate = 1e-5
+learning_rate = 2e-5
 weight_decay = 1e-4
 
 def preprocess_image(image_size = 128):

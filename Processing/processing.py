@@ -481,14 +481,14 @@ class ProcessingClass:
             else:
                 c = "/CI/"
         self.basePath = self.basePath + c + str(percent) + "/"
+        if diffusion: 
+            aug = self.basePath + "DIFFUSION/"
         if augment:
             if adversary:
                 if only_imb_imgs:
                     aug = f"ADD_TOTAUG/g={gaug}/eps={eps}/"
                 else:
                     aug = f"TOTAUG/g={gaug}/eps={eps}/"
-                if diffusion:
-                    aug = aug + "DIFFUSION"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:
@@ -502,13 +502,12 @@ class ProcessingClass:
                     aug = f"ADD_AVD/eps={eps}/"
                 else:
                     aug = f"AVD/eps={eps}/"
-                if diffusion:
-                    aug = aug + "DIFFUSION"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:
                     aug = aug + "/NOCLSDIV/"
             else:
+
                 aug = "NOAUG/"
 
         self.basePath = self.basePath + aug
