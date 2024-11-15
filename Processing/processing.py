@@ -482,7 +482,7 @@ class ProcessingClass:
                 c = "/CI/"
         self.basePath = self.basePath + c + str(percent) + "/"
         if diffusion: 
-            aug = self.basePath + "DIFFUSION/"
+            self.basePath = self.basePath + "DIFFUSION/"
         if augment:
             if adversary:
                 if only_imb_imgs:

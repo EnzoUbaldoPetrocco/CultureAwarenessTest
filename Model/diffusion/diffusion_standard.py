@@ -26,7 +26,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # data
 dataset_name = "places365_small"
-dataset_repetitions = 6
+dataset_repetitions = 5
 num_epochs = 50  # train for at least 50 epochs for good results
 num_epochs_flowers = 30
 # KID = Kernel Inception Distance, see related section
@@ -45,7 +45,8 @@ widths = [32, 64,100, 128]
 block_depth = 2
 
 # optimization
-batch_size = 32
+batch_size = 64
+batch_size_finetune = 8
 ema = 0.999
 transfer_learning_rate = 1e-3
 learning_rate = 2e-5
@@ -617,8 +618,8 @@ class DiffusionStandardModel(tf.keras.Model):
                 loss=tf.keras.losses.mean_absolute_error,
             )
             
-        train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
-        val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
+        train_dataset = train_dataset.batch(batch_size_finetune, drop_remainder=True)
+        val_dataset = val_dataset.batch(batch_size_finetune, drop_remainder=True)
 
         # run training and plot generated images periodically
         lr_reduce = ReduceLROnPlateau(
