@@ -11,15 +11,12 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras import layers
 #from tf.keras import ops
 import numpy as np
-#import tensorflow_addons as tfa
+import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 import math
 
 
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
@@ -27,8 +24,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # data
 dataset_name = "places365_small"
 dataset_repetitions = 6
-num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 50
+num_epochs = 50  # train for at least 50 epochs for good results
+num_epochs_flowers = 30
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -45,10 +42,11 @@ widths = [32, 64,100, 128]
 block_depth = 2
 
 # optimization
-batch_size = 32
+batch_size = 64
+batch_size_finetune = 8
 ema = 0.999
 transfer_learning_rate = 1e-3
-learning_rate = 1e-3
+learning_rate = 2e-5
 weight_decay = 1e-4
 
 def preprocess_image(image_size = 128):
@@ -480,12 +478,13 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.subplot(num_rows, num_cols, index + 1)
                 plt.imshow(generated_images[index])
                 plt.axis("off")
+                #plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
         timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
+        plt.savefig("./Sample.png")
         plt.show()
-        plt.imsave("./Samples.jpg")
         plt.close()
 
     def plot_dataset(self, ds, num_rows=3, num_cols=6):
@@ -525,7 +524,7 @@ class DiffusionStandardModel(tf.keras.Model):
                         layers.Rescaling(255.0),
                     ]
                 )
-            for i in range(1):
+            for i in range(2):
                 aug_images = data_augmentation(train_dataset)
                 val_aug_images = data_augmentation(val_dataset)
                 for img in aug_images:
@@ -538,48 +537,53 @@ class DiffusionStandardModel(tf.keras.Model):
                     img = tf.cast(img, "uint8")
                     val_dataset.append(img)
 
+            del data_augmentation
+
+
         train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
         val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
         
         # pixelwise mean absolute error is used as loss
         # calculate mean and variance of training dataset for normalization
 
-        early = EarlyStopping(
-                monitor="val_kid",
-                min_delta=0.001,
-                patience=12,
-            )
-        if plot_imgs:
-            
-            callbacks = [
-                tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
-                early
-                #checkpoint_callback,
-            ]
-        else:
-           
-            callbacks = [early]
+        
 
         
         
         if not get_pretrained:
-            flowers_dataset = prepare_dataset("train[:1%]+test[:1%]", image_size=self.image_size, add_to_ds=train_dataset)
-            val_flowers_dataset = prepare_dataset("train[99%:]+test[99%:]", image_size=self.image_size, add_to_ds=val_dataset)
+            early = EarlyStopping(
+                monitor="val_kid",
+                min_delta=0.001,
+                patience=8,
+            )
+            lr_reduce = ReduceLROnPlateau(
+                monitor="val_kid",
+                factor=0.1,
+                patience=5,
+                verbose=1,
+                min_lr=1e-9,
+            )
+            if plot_imgs:
+                
+                callbacks = [
+                    tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
+                    early,
+                    lr_reduce
+                    #checkpoint_callback,
+                ]
+            else:
+                callbacks = [early, lr_reduce]
+
+            flowers_dataset = prepare_dataset("train[:1.5%]+test[:1.5%]", image_size=self.image_size)
+            val_flowers_dataset = prepare_dataset("train[99%:]+test[99%:]", image_size=self.image_size)
 
 
 
             self.normalizer.adapt(flowers_dataset)
 
-            lr_reduce = ReduceLROnPlateau(
-                monitor="val_kid",
-                factor=0.2,
-                patience=5,
-                verbose=1,
-                min_lr=1e-9,
-            )
-            callbacks.append(lr_reduce)
+            
             self.compile(
-                    optimizer=tf.keras.optimizers.AdamW(
+                    optimizer=tfa.optimizers.AdamW(
                         learning_rate=transfer_learning_rate, weight_decay=weight_decay
                     ),
                     loss=tf.keras.losses.mean_absolute_error,
@@ -596,7 +600,6 @@ class DiffusionStandardModel(tf.keras.Model):
             del flowers_dataset
             del val_flowers_dataset
 
-            callbacks.pop()
 
             if save:
                 self.network.save('diffusion_pretrained.h5')
@@ -610,30 +613,47 @@ class DiffusionStandardModel(tf.keras.Model):
             
             print('Loaded pretrained model')
         self.compile(
-                optimizer=tf.keras.optimizers.AdamW(
+                optimizer=tfa.optimizers.AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
             )
             
-        train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
-        val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
+        train_dataset = train_dataset.batch(batch_size_finetune, drop_remainder=True)
+        val_dataset = val_dataset.batch(batch_size_finetune, drop_remainder=True)
 
         # run training and plot generated images periodically
+        early = EarlyStopping(
+                monitor="val_kid",
+                min_delta=0.001,
+                patience=8,
+        )
         lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",
                 factor=0.2,
-                patience=5,
+                patience=6,
                 verbose=1,
                 min_lr=1e-9,
             )
-        callbacks.append(lr_reduce)
+        if plot_imgs:
+            
+            callbacks = [
+                tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
+                early,
+                lr_reduce
+                #checkpoint_callback,
+            ]
+        else:
+            callbacks = [early, lr_reduce]
+        
         
         self.normalizer.adapt(train_dataset)
         if get_pretrained:
             if plot_imgs:
                 print("Pretrained images generation")
                 self.plot_images()
+
+
         self.fit(
             train_dataset,
             epochs=num_epochs,

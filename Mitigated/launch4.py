@@ -20,12 +20,12 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 10000
+memory_limit = 28000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -69,8 +69,10 @@ eps = np.logspace(-4, 0, 6)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [2, 1, 0]
-ks = [0]
+ks = [1]
 adversary = 0
+
+g_aug = g_gaugs[0]
 
 basePath = "./"
 # with tf.device("/CPU:0"):
@@ -89,9 +91,7 @@ for i in range(8):
             for k in ks:
                 for ep in eps:
                     for cl_div in class_divisions:
-                        print(f"CLS DIV = {cl_div}")
-                        if k%2==1:
-                            for g_aug in g_gaugs:
+                                print(f"CLS DIV = {cl_div}")
                                 model = None
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
@@ -125,43 +125,8 @@ for i in range(8):
                                     gaug=0,
                                     adversary=0,
                                     eps=test_eps,
+                                    
                                 )
                                 procObj.partial_clear(basePath)
                     
-                        else:
-                            model = None
-                            print(f"Training->aug={k%2};adv={floor(k/2)}")
-                            procObj.process(
-                                standard=standard,
-                                type="DL",
-                                verbose_param=verbose_param,
-                                learning_rate=learning_rate,
-                                epochs=epochs,
-                                batch_size=bs,
-                                lambda_index=0,
-                                culture=c,
-                                percent=percent,
-                                val_split=val_split,
-                                test_split=test_split,
-                                n=n,
-                                augment=k % 2,
-                                gaug=0,
-                                adversary=adversary,
-                                eps=ep,
-                                mult=mult,
-                                imbalanced=imb,
-                                class_division= cl_div,
-                                diffusion = diffusion
-                            )
-                            # NoAUg
-                            print(f"Testing->aug={0};adv={0}")
-                            procObj.test(
-                                standard=standard,
-                                culture=c,
-                                augment=0,
-                                gaug=0,
-                                adversary=0,
-                                eps=test_eps,
-                            )
-                            procObj.partial_clear(basePath)
-                    
+                        

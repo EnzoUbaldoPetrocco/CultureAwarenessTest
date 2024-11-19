@@ -20,12 +20,12 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 8000
+memory_limit = 9000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -60,7 +60,7 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 class_divisions = [0,1]
-imbalances = [0,1]
+imbalances = [1]
 
 g_gaugs = np.logspace(-4, 0, 6)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
@@ -87,7 +87,7 @@ for percent in percents:
          for c in cs:
             for k in ks:
                 for ep in eps:
-                  for i in range(2):
+                  for i in range(3):
                     for cl_div in class_divisions:
                         print(f"CLS DIV = {cl_div}")
                         if k%2==1:

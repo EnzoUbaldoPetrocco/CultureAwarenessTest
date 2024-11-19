@@ -21,9 +21,6 @@ import os
 import gc
 import cv2
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 
 class ProcessingClass:
@@ -134,6 +131,24 @@ class ProcessingClass:
             imbalanced=imbalanced,
 
         )
+        if augment:
+            with tf.device("/gpu:0"):
+                print("Training Augmentation...")
+                prepObj = PreprocessingClass()
+                X_augmented = prepObj.classical_augmentation(
+                    X=self.dataobj.X, g=gaug, 
+                )
+                Xv_augmented = prepObj.classical_augmentation(
+                    X=self.dataobj.Xv, g=gaug
+                )
+
+            self.dataobj.X.extend(X_augmented)
+            self.dataobj.Xv.extend(Xv_augmented)
+            self.dataobj.y.extend(self.dataobj.y)
+            self.dataobj.yv.extend(self.dataobj.yv)
+            del X_augmented
+            del Xv_augmented
+            del prepObj
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
             size = 100
@@ -181,24 +196,7 @@ class ProcessingClass:
                         lbl.append(j)
                         self.dataobj.y.append(lbl)
             del diff_model    
-        if augment:
-            with tf.device("/gpu:0"):
-                print("Training Augmentation...")
-                prepObj = PreprocessingClass()
-                X_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.X, g=gaug, 
-                )
-                Xv_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.Xv, g=gaug
-                )
-
-            self.dataobj.X.extend(X_augmented)
-            self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y)
-            self.dataobj.yv.extend(self.dataobj.yv)
-            del X_augmented
-            del Xv_augmented
-            del prepObj
+        
 
     def prepare_test(
         self,
@@ -481,14 +479,14 @@ class ProcessingClass:
             else:
                 c = "/CI/"
         self.basePath = self.basePath + c + str(percent) + "/"
+        if diffusion: 
+            self.basePath = self.basePath + "DIFFUSION/"
         if augment:
             if adversary:
                 if only_imb_imgs:
                     aug = f"ADD_TOTAUG/g={gaug}/eps={eps}/"
                 else:
                     aug = f"TOTAUG/g={gaug}/eps={eps}/"
-                if diffusion:
-                    aug = aug + "DIFFUSION"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:
@@ -502,13 +500,12 @@ class ProcessingClass:
                     aug = f"ADD_AVD/eps={eps}/"
                 else:
                     aug = f"AVD/eps={eps}/"
-                if diffusion:
-                    aug = aug + "DIFFUSION"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:
                     aug = aug + "/NOCLSDIV/"
             else:
+
                 aug = "NOAUG/"
 
         self.basePath = self.basePath + aug
