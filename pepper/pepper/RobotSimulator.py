@@ -1,20 +1,15 @@
 #!/usr/bin/env python3.10
 import rclpy
 from rclpy.node import Node
-import json
 import requests
-import base64
-import cv2
 import os
 from pathlib import Path
 import random
 import time
-from PIL import Image
-from io import BytesIO
 from matplotlib import pyplot as plt
 from functools import wraps
 import socket
-ip = "130.251.13.139"
+#ip = "130.251.13.139"
 ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
 
@@ -23,6 +18,29 @@ url = "http://" + ip + ":5000"
 #url = "http://130.251.13.139:5000"
 
 random.seed(time.time())
+
+import requests
+
+def upload_image(target_url, file_path):
+    try:
+        # Open the image file in binary mode
+        with open(file_path, 'rb') as file:
+            # Prepare the files payload for multipart form data
+            files = {'image': (file_path.split('/')[-1], file, 'image/jpeg')}
+            
+            # Make the POST request
+            res = requests.post(target_url, files=files)
+            
+            # Print response details
+            print("Response Code:", res.status_code)
+            print("Response Text:", res.text)
+            return res
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+
 
 
 class RobotSimulator(Node):
@@ -35,29 +53,21 @@ class RobotSimulator(Node):
     def init_ds(self):
         rt = "/home/rice/enzo/FINALDS"
         
-        lamps_paths = [
-            rt + "/lamps/chinese/120/RGB",
-            rt + "/lamps/french/120/RGB",
-            rt + "/lamps/turkish/120/RGB",
-        ]
-
         carpet_paths = [
             rt + "/carpets_stretched/indian/200/RGB",
             rt + "/carpets_stretched/japanese/200/RGB",
             rt + "/carpets_stretched/scandinavian/200/RGB",
         ]
 
+        self.init_spec_dataset(carpet_paths)
 
-        self.init_spec_dataset(lamps_paths, 1)
-        self.init_spec_dataset(carpet_paths, 0)
-
-    def init_spec_dataset(self, paths, lamp):
+    def init_spec_dataset(self, paths):
         self.dataset = []
         for j, path in enumerate(paths):
             labels = self.get_labels(path)
             imgs_per_culture = []
             for i, label in enumerate(labels):
-                images = self.get_images(path + "/" + label)
+                images = self.get_images_paths(path + "/" + label)
                 X = []
                 for k in range(len(images)):
                     X.append([images[k], [j, i]])
@@ -69,10 +79,7 @@ class RobotSimulator(Node):
                 del X
             self.dataset.append(imgs_per_culture)
 
-        if lamp:
-            self.lamp_ds = self.dataset
-        else:
-            self.carpet_ds = self.dataset
+        self.carpet_ds = self.dataset
 
         self.dataset = None
 
@@ -101,48 +108,28 @@ class RobotSimulator(Node):
         :param path: directory in which search for images
         :param n: maximum number of images
 
-        :return list of images
+        :return list of paths
         """
-        images = []
         types = ("*.png", "*.jpg", "*.jpeg")
         paths = []
         for typ in types:
             paths.extend(Path(path).glob(typ))
         paths = paths[0 : min(len(paths), n)]
-        for i in paths:
-            im = cv2.imread(str(i)) 
-            if rescale:
-                im = im  /255
-            im = im[..., ::-1]
-            images.append(im)
-        return images
+        return paths
 
     def send_random_image(self):
-        img = self.rnd_get_image()
-        img = Image.fromarray(img)
-        size = img.size
-        buffered = BytesIO()
-        img.save(buffered, format="JPEG")
-        img = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-        msg = {"image": img, "shape": str(size)}
-        msg = {"image": None, "shape": str(size)}
-        req = json.dumps(msg)
-        headers = {'content_type': 'application/json'}
-        print(req)
+        file_path = self.rnd_get_image(target_url)
+        target_url = f"http://{ip}:5000/upload"  # Flask server endpoint
+        
+        res = upload_image(target_url, file_path)
         print(f"Posting at this url: {url+'/image'}")
-        res = requests.post(url+'/image',json=req,  headers=headers)
         if res.status_code==200:
             print(res)
         else:
             print(f"ERROR: {res.status_code} ")
 
     def rnd_get_image(self):
-        lamp = random.randint(0,1)
-        if lamp:
-            img, label =  self.lamp_ds[random.randint(0, len(self.lamp_ds)-1)][random.randint(0, len(self.lamp_ds[0])-1)][random.randint(0, len(self.lamp_ds[0][0])-1)]
-        else:
-            img, label =  self.carpet_ds[random.randint(0, len(self.carpet_ds)-1)][random.randint(0, len(self.carpet_ds[0])-1)][random.randint(0, len(self.carpet_ds[0][0])-1)]
+        img, label =  self.carpet_ds[random.randint(0, len(self.carpet_ds)-1)][random.randint(0, len(self.carpet_ds[0])-1)][random.randint(0, len(self.carpet_ds[0][0])-1)]
         return img
     
     
@@ -150,8 +137,11 @@ class RobotSimulator(Node):
 def main(args=None):
     rclpy.init(args=args)
     robot = RobotSimulator()
+    
     rclpy.spin(robot)
     rclpy.shutdown()
+    
+    
 
 if __name__ == '__main__':
     main()
