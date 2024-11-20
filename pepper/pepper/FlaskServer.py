@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.10
 import base64
+import time
 import rclpy
 from rclpy.node import Node
 from flask import Flask, make_response
@@ -102,7 +103,7 @@ def move():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    
+    t_start = time.time()
     if 'image' not in request.files:
         return jsonify({"error": "No image file uploaded"}), 400
 
@@ -127,12 +128,15 @@ def predict():
                 "prediction": prediction[cultural_info],
                 "current_command": current_command
                 }
+                t_stop = time.time()
+                deltaT = t_stop - t_start
                 line = {
                     "prediction": prediction[cultural_info],
                     "probabilities": list(prediction),
                     "cultural_info" : cultural_info,
                     "filepath": filepath,
-                    "label":None
+                    "label":None,
+                    "deltaT": deltaT
                 }
             else:
                 cultural_probs = discriminator_model.predict(image)
@@ -140,23 +144,29 @@ def predict():
                 "prediction": np.dot(prediction, cultural_probs),
                 "current_command": current_command
                 }
+                t_stop = time.time()
+                deltaT = t_stop - t_start
                 line = {
                     "prediction": np.dot(prediction, cultural_probs),
                     "probabilities": list(prediction),
                     "cultural_info" : list(cultural_probs),
                     "filepath": filepath,
-                    "label":None
+                    "label":None,
+                    "deltaT": deltaT
                 }
         else:
             res = {
             "prediction": prediction,
             "current_command": current_command
             }
+            t_stop = time.time()
+            deltaT = t_stop - t_start
             line = {
                 "prediction": prediction,
                 "probability": int(prediction),
                 "filepath": filepath,
-                "label":None
+                "label":None,
+                "deltaT": deltaT
             }
     else:
         prediction = np.random.random()
@@ -164,11 +174,14 @@ def predict():
         "prediction": prediction,
         "current_command": current_command
         }
+        t_stop = time.time()
+        deltaT = t_stop - t_start
         line = {
             "prediction": prediction,
             "probability": int(prediction),
             "filepath": filepath,
-            "label":None
+            "label":None,
+            "deltaT": deltaT
         }
     
     append_to_json_file(res_file, line)

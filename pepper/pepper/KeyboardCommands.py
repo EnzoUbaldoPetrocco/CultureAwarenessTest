@@ -4,9 +4,12 @@ from rclpy.node import Node
 from pynput import keyboard
 from std_msgs.msg import String
 import requests
+import socket
 
 # Flask Server Configuration
-FLASK_SERVER_URL = "http://130.251.13.117:5000"
+ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+
+FLASK_SERVER_URL = f"http://{ip}:5000"
 FLASK_SERVER_URL += "/move"
 
 AVAILABLE_KEYS = ['up', 'down', 'left', 'right', 'w', 's', 'a', 'd']
@@ -27,16 +30,16 @@ class KeyboardCommands(Node):
 
     def on_press(self, key :keyboard.Key):
         try:
-            if key.name in AVAILABLE_KEYS:
+            if key.char in AVAILABLE_KEYS:
                 print('Command key {0} pressed'.format(
-                    key.name))                
-                if key.name == 'up':
+                    key.char))                
+                if key.char == 'w':
                     self.send_command_to_flask('front')
-                elif key.char == 'down':
+                elif key.char == 's':
                     self.send_command_to_flask('back')
-                elif key.char == 'left':
+                elif key.char == 'a':
                     self.send_command_to_flask('left')
-                elif key.char == 'right':
+                elif key.char == 'd':
                     self.send_command_to_flask('right')
         except AttributeError:
             print('special key {0} pressed'.format(
@@ -44,14 +47,8 @@ class KeyboardCommands(Node):
             self.send_command_to_flask('stop')
 
     def on_release(self,key:keyboard.Key):
-        try:
-            print('special key {0} released'.format(
-                key))
-            self.send_command_to_flask('stop')
-        except AttributeError:
-            print('special key {0} released'.format(
-                key))
-            self.send_command_to_flask('stop')
+        self.send_command_to_flask('stop')
+        
 
 def main(args=None):
     rclpy.init(args=args)

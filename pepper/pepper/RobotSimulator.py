@@ -8,6 +8,7 @@ import random
 import time
 from matplotlib import pyplot as plt
 from functools import wraps
+import json
 import socket
 #ip = "130.251.218.63"
 ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
@@ -19,6 +20,8 @@ url = "http://" + ip + ":5000"
 
 random.seed(time.time())
 
+frequency = 3
+
 import requests
 
 def upload_image(target_url, file_path):
@@ -29,10 +32,8 @@ def upload_image(target_url, file_path):
             files = {'image': (str(file_path).split('/')[-1], file, 'image/jpeg')}
             
             # Make the POST request
-            print(f"files is {files}")
             res = requests.post(target_url, files=files)
-            print(res)
-            
+
             # Print response details
             print("Response Code:", res.status_code)
             print("Response Text:", res.text)
@@ -43,14 +44,12 @@ def upload_image(target_url, file_path):
 
 
 
-
-
 class RobotSimulator(Node):
     def __init__(self):
         super().__init__("RobotSimulator")
         self.init_ds()
         
-        self.timer = self.create_timer(1, self.send_random_image)
+        self.timer = self.create_timer(frequency, self.send_random_image)
 
     def init_ds(self):
         rt = "/home/enzo/Desktop/FINALDS"
@@ -122,14 +121,14 @@ class RobotSimulator(Node):
     def send_random_image(self):
         file_path = self.rnd_get_image()
         target_url = f"http://{ip}:5000/predict"  # Flask server endpoint
-        print(f"file path is {file_path}")
         
         res = upload_image(target_url, file_path)
-        print(f"Posting at this url: {target_url}")
         if res.status_code==200:
             print(res)
         else:
             print(f"ERROR: {res.status_code} ")
+
+        print(json.loads(res.text))
 
     def rnd_get_image(self):
         img, label =  self.carpet_ds[random.randint(0, len(self.carpet_ds)-1)][random.randint(0, len(self.carpet_ds[0])-1)][random.randint(0, len(self.carpet_ds[0][0])-1)]
