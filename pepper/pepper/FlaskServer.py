@@ -26,27 +26,57 @@ def allowed_file(filename):
 
 ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
-# Mock models (Replace with actual model loading logic)
-culturally_aware_model = None #tf.keras.models.load_model('culturally_aware_model.h5')
-culturally_unaware_model = None #tf.keras.models.load_model('culturally_unaware_model.h5')
-discriminator_model = None #tf.keras.models.load_model('discriminator.h5')
-discriminator = False #Using discriminator or nothing
+#Initialization parameters:
+img_culture = "Unknown"
 sim_with_models = False
 cultural_info = None # Cultural info can be 0,1,2 
+CC = False
 
+# Mock models (Replace with actual model loading logic)
 if sim_with_models:
         # Select the appropriate model based on cultural information
-        if cultural_info:
-            model = culturally_aware_model
+        if not CC:
+            model = None #tf.keras.models.load_model('simple_model.h5')
         else:
-            model = culturally_unaware_model
+            model = None #tf.keras.models.load_model('culturally_aware_model.h5')
+            if cultural_info!=None:
+                discriminator_model = None #tf.keras.models.load_model('discriminator.h5')
+                
 else:
     model = None
 
 
-#Initialization parameters:
-major_culture = "Indian"
-img_culture = "Unknown"
+import json
+
+def append_to_json_file(file_path, new_data):
+    try:
+        # Step 1: Read the existing JSON data
+        with open(file_path, 'r') as file:
+            data = json.load(file)  # Load existing data
+        
+        # Step 2: Ensure it's a list (or appropriate structure)
+        if isinstance(data, list):
+            data.append(new_data)  # Append the new dictionary
+        else:
+            raise ValueError("The JSON root must be a list to append data.")
+        
+        # Step 3: Write the updated JSON data back to the file
+        with open(file_path, 'w') as file:
+            json.dump(data, file, indent=4)
+        
+        print("Data appended successfully!")
+    
+    except FileNotFoundError:
+        # If the file does not exist, create it with the new data
+        with open(file_path, 'w') as file:
+            json.dump([new_data], file, indent=4)
+        print("File not found. Created a new JSON file with the provided data.")
+    
+    except json.JSONDecodeError:
+        print("Error: The file is not a valid JSON.")
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 # Movement Command received from the Keyboard Node via ROS
@@ -72,8 +102,7 @@ def move():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    data = request.json
-
+    
     if 'image' not in request.files:
         return jsonify({"error": "No image file uploaded"}), 400
 
@@ -87,37 +116,62 @@ def predict():
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     image.save(filepath)
 
-    image = np.array(data['image'])  # Assuming image is received as a list
-
-
-    if sim_with_models:
-        # Select the appropriate model based on cultural information
-        if cultural_info:
-            prediction = model.predict(image)
-            # Use the discriminator to decide the model to use and apply weighted voting
-            if discriminator:
-                cultural_probs = discriminator_model.predict(image)
-                prediction = np.dot(prediction, cultural_probs)
-            else:
-                prediction = prediction[cultural_info]
-        else:
-            prediction = model.predict(image)
-    else:
-        prediction = np.random.random()
+    image = np.asarray(image) 
         
     # Return the prediction and the command
-    res = {
-        "prediction": prediction.tolist(),
-        "probability": int(prediction),
+    if sim_with_models:
+        prediction = model.predict(image)
+        if CC:
+            if cultural_info!=None:
+                res = {
+                "prediction": prediction[cultural_info],
+                "current_command": current_command
+                }
+                line = {
+                    "prediction": prediction[cultural_info],
+                    "probabilities": list(prediction),
+                    "cultural_info" : cultural_info,
+                    "filepath": filepath,
+                    "label":None
+                }
+            else:
+                cultural_probs = discriminator_model.predict(image)
+                res = {
+                "prediction": np.dot(prediction, cultural_probs),
+                "current_command": current_command
+                }
+                line = {
+                    "prediction": np.dot(prediction, cultural_probs),
+                    "probabilities": list(prediction),
+                    "cultural_info" : list(cultural_probs),
+                    "filepath": filepath,
+                    "label":None
+                }
+        else:
+            res = {
+            "prediction": prediction,
+            "current_command": current_command
+            }
+            line = {
+                "prediction": prediction,
+                "probability": int(prediction),
+                "filepath": filepath,
+                "label":None
+            }
+    else:
+        prediction = np.random.random()
+        res = {
+        "prediction": prediction,
         "current_command": current_command
-    }
-    line = {
-        "prediction": prediction.tolist(),
-        "probability": int(prediction),
-        "filepath": filepath
-    }
-    with open(res_file, "w") as json_file:
-        json.dump(line, json_file)
+        }
+        line = {
+            "prediction": prediction,
+            "probability": int(prediction),
+            "filepath": filepath,
+            "label":None
+        }
+    
+    append_to_json_file(res_file, line)
 
     return jsonify(res)
 

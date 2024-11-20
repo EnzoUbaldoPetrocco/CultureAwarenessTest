@@ -9,7 +9,7 @@ import time
 from matplotlib import pyplot as plt
 from functools import wraps
 import socket
-#ip = "130.251.13.139"
+#ip = "130.251.218.63"
 ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
 
@@ -26,10 +26,12 @@ def upload_image(target_url, file_path):
         # Open the image file in binary mode
         with open(file_path, 'rb') as file:
             # Prepare the files payload for multipart form data
-            files = {'image': (file_path.split('/')[-1], file, 'image/jpeg')}
+            files = {'image': (str(file_path).split('/')[-1], file, 'image/jpeg')}
             
             # Make the POST request
+            print(f"files is {files}")
             res = requests.post(target_url, files=files)
+            print(res)
             
             # Print response details
             print("Response Code:", res.status_code)
@@ -51,7 +53,7 @@ class RobotSimulator(Node):
         self.timer = self.create_timer(1, self.send_random_image)
 
     def init_ds(self):
-        rt = "/home/rice/enzo/FINALDS"
+        rt = "/home/enzo/Desktop/FINALDS"
         
         carpet_paths = [
             rt + "/carpets_stretched/indian/200/RGB",
@@ -101,7 +103,7 @@ class RobotSimulator(Node):
                 dir_list.append(d)
         return dir_list
 
-    def get_images(self, path, n=1000, rescale=False):
+    def get_images_paths(self, path, n=1000, rescale=False):
         """
         get_images returns min(n, #images contained in a directory)
 
@@ -118,11 +120,12 @@ class RobotSimulator(Node):
         return paths
 
     def send_random_image(self):
-        file_path = self.rnd_get_image(target_url)
-        target_url = f"http://{ip}:5000/upload"  # Flask server endpoint
+        file_path = self.rnd_get_image()
+        target_url = f"http://{ip}:5000/predict"  # Flask server endpoint
+        print(f"file path is {file_path}")
         
         res = upload_image(target_url, file_path)
-        print(f"Posting at this url: {url+'/image'}")
+        print(f"Posting at this url: {target_url}")
         if res.status_code==200:
             print(res)
         else:
