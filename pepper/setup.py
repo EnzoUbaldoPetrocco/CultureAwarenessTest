@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'navel'
+package_name = 'pepper'
 
 setup(
     name=package_name,
@@ -20,11 +20,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-        "controller = navel.Controller:main",
-            "keyboardCommands = navel.KeyboardCommands:main",
-            "flaskServer = navel.FlaskServer:main",
-            "modelInference = navel.ModelInference:main",
-            "robotSimulator = navel.RobotSimulator:main"
+        "controller = pepper.Controller:main",
+            "keyboardCommands = pepper.KeyboardCommands:main",
+            "flaskServer = pepper.FlaskServer:main",
+            "modelInference = pepper.ModelInference:main",
+            "robotSimulator = pepper.RobotSimulator:main"
         ],
     },
 )
