@@ -14,6 +14,7 @@ import numpy as np
 import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 import math
+from keras.models import Model
 
 
 
@@ -25,7 +26,7 @@ import math
 dataset_name = "places365_small"
 dataset_repetitions = 6
 num_epochs = 50  # train for at least 50 epochs for good results
-num_epochs_flowers = 30
+num_epochs_flowers = 25
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -38,16 +39,98 @@ max_signal_rate = 0.95
 # architecture
 embedding_dims = 32
 embedding_max_frequency = 1000.0
-widths = [32, 64,100, 128]
+widths = [32, 64, 100, 128]
 block_depth = 2
 
 # optimization
 batch_size = 64
-batch_size_finetune = 8
 ema = 0.999
 transfer_learning_rate = 1e-3
-learning_rate = 2e-5
+learning_rate = 1e-3
 weight_decay = 1e-4
+
+attention_type = "self"
+
+def AttentionBlock(width):
+    def apply(x):
+        query = layers.Conv2D(width, kernel_size=1)(x)
+        key = layers.Conv2D(width, kernel_size=1)(x)
+        value = layers.Conv2D(width, kernel_size=1)(x)
+        
+        # Compute attention
+        attention_scores = tf.keras.layers.Attention()([query, key])
+        attention_output = layers.Multiply()([attention_scores, value])
+        
+        # Residual connection
+        return layers.Add()([x, attention_output])
+    
+    return apply
+
+def SelfAttentionBlock(channels):
+    """Self-Attention Block to enhance feature representation."""
+    def apply(x):
+        # Compute query, key, and value
+        query = layers.Conv2D(channels // 8, kernel_size=1)(x)
+        key = layers.Conv2D(channels // 8, kernel_size=1)(x)
+        value = layers.Conv2D(channels, kernel_size=1)(x)
+
+        # Calculate attention scores
+        attention_scores = tf.nn.softmax(tf.matmul(
+            tf.reshape(query, [tf.shape(x)[0], -1, channels // 8]),  # Flatten spatial dimensions
+            tf.reshape(key, [tf.shape(x)[0], -1, channels // 8]), transpose_b=True
+        ))
+
+        # Compute attention-weighted output
+        attention_output = tf.matmul(attention_scores, 
+                                      tf.reshape(value, [tf.shape(x)[0], -1, channels]))
+        attention_output = tf.reshape(attention_output, tf.shape(x))
+        return layers.Add()([x, attention_output])  # Residual connection
+
+    return apply
+
+
+def SEBlock(channels, reduction=16):
+    """Squeeze-and-Excitation Block for channel attention."""
+    def apply(x):
+        # Squeeze
+        squeeze = layers.GlobalAveragePooling2D()(x)
+        squeeze = layers.Dense(channels // reduction, activation="relu")(squeeze)
+        squeeze = layers.Dense(channels, activation="sigmoid")(squeeze)
+
+        # Scale
+        scale = layers.Reshape((1, 1, channels))(squeeze)
+        return layers.Multiply()([x, scale])
+
+    return apply
+
+
+def TransformerBlock(channels, num_heads=4, ff_dim=256):
+    """Transformer Block with Multi-Head Attention and Feedforward layers."""
+    def apply(x):
+        # Layer Normalization
+        x_norm = layers.LayerNormalization()(x)
+
+        # Multi-Head Self-Attention
+        attention_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=channels)(x_norm, x_norm)
+        attention_output = layers.Add()([x, attention_output])  # Residual connection
+
+        # Feedforward
+        ff_output = layers.Dense(ff_dim, activation="relu")(attention_output)
+        ff_output = layers.Dense(channels)(ff_output)
+        return layers.Add()([attention_output, ff_output])  # Residual connection
+
+    return apply
+
+
+
+class NullWriter:
+    def write(self, _): pass
+
+def suppress_output():
+    sys.stdout = NullWriter()
+
+def restore_output():
+    sys.stdout = sys.__stdout__
 
 def preprocess_image(image_size = 128):
     def  preprocess_function(data):
@@ -165,32 +248,45 @@ def sinusoidal_embedding(x):
     return embeddings
 
 
-def ResidualBlock(width):
+def ResidualBlock(width, activation="relu", normalization="batch"):
     def apply(x):
-        input_width = x.shape[3]
-        if input_width == width:
-            residual = x
-        else:
-            residual = layers.Conv2D(width, kernel_size=1)(x)
-        x = layers.BatchNormalization(center=False, scale=False)(x)
-        x = layers.Conv2D(width, kernel_size=3, padding="same", activation="relu")(x)
+        input_width = x.shape[-1]
+        residual = x if input_width == width else layers.Conv2D(width, kernel_size=1)(x)
+
+        if normalization == "batch":
+            x = layers.BatchNormalization()(x)
+        elif normalization == "layer":
+            x = layers.LayerNormalization()(x)
+
+        x = layers.Activation(activation)(x)
         x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
+        x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
+
         x = layers.Add()([x, residual])
         return x
 
     return apply
 
 
-def DownBlock(width, block_depth):
+def DownBlock(width, block_depth, pool_type="average", dropout_rate=0.1):
     def apply(x):
         x, skips = x
         for _ in range(block_depth):
             x = ResidualBlock(width)(x)
             skips.append(x)
-        x = layers.AveragePooling2D(pool_size=2)(x)
+
+        if pool_type == "average":
+            x = layers.AveragePooling2D(pool_size=2)(x)
+        elif pool_type == "max":
+            x = layers.MaxPooling2D(pool_size=2)(x)
+
+        if dropout_rate:
+            x = layers.Dropout(dropout_rate)(x)
+
         return x
 
     return apply
+
 
 def fix_shape_mismatch(x, skip):
     """Adjust the shapes of the feature maps by either cropping or padding."""
@@ -213,72 +309,28 @@ def fix_shape_mismatch(x, skip):
             return x
     return x
 
-def UpBlock(width, block_depth):
+def UpBlock(width, block_depth, attention_type="SE", dropout_rate=0.1):
     def apply(x):
         x, skips = x
-        x = layers.UpSampling2D(size=(2,2), interpolation="bilinear")(x)
+        x = layers.UpSampling2D(size=2, interpolation="bilinear")(x)
         for _ in range(block_depth):
             skip = skips.pop()
             x = fix_shape_mismatch(x, skip)
             x = layers.Concatenate()([x, skip])
             x = ResidualBlock(width)(x)
+            if dropout_rate:
+                x = layers.Dropout(dropout_rate)(x)
         return x
 
     return apply
 
-def get_resnet50v2_network(image_size, widths, block_depth):
-    """Creates a network using ResNet50V2 as the backbone."""
-    
-    noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
-    noise_variances = tf.keras.Input(shape=(1, 1, 1))
 
-    # Sinusoidal embedding for noise variances
-    e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
-    e = layers.UpSampling2D(size=image_size // 4, interpolation="nearest")(e)
-
-    # Load pretrained ResNet50V2 model without the top layers
-    base_model = tf.keras.applications.ResNet50V2(
-        include_top=False, 
-        input_shape=(image_size, image_size, 3), 
-        weights='imagenet'
-    )
-    base_model.trainable = False
-
-    # Get the output of the base model
-    resnet_output = base_model(noisy_images)
-
-
-    # Upsample the ResNet output to match the spatial dimensions of the embedding
-    resnet_output = tf.keras.layers.Flatten()(resnet_output)
-    resnet_dense = layers.Dense(e.shape[1]*e.shape[2]*e.shape[3])(resnet_output)
-    reshaped_resnet_output = tf.keras.layers.Reshape(target_shape=e.shape[1:4])(resnet_dense)
-
-    # Concatenate the upsampled ResNet output with the sinusoidal embedding
-    
-    x = layers.Concatenate()([reshaped_resnet_output, e])
-
-    skips = []
-    for width in widths[:-1]:
-        x = DownBlock(width, block_depth)([x, skips])
-
-
-    for _ in range(block_depth):
-        x = ResidualBlock(widths[-1])(x)
-
-    for width in reversed(widths[:-1]):
-        x = UpBlock(width, block_depth)([x, skips])
-
-    x = layers.UpSampling2D(size=image_size // x.shape[1], interpolation='bilinear')(x)
-    x = layers.Conv2D(3, kernel_size=1)(x)
-    
-
-    return tf.keras.Model([noisy_images, noise_variances], x, name="resnet_unet")
-
-def get_network(image_size, widths, block_depth):
+def get_network(image_size, widths, block_depth, attention_type="self", pool_type="average", dropout_rate=0.1):
 
     noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
     noise_variances = tf.keras.Input(shape=(1, 1, 1))
 
+    # Sinusoidal embedding
     e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
 
@@ -286,18 +338,26 @@ def get_network(image_size, widths, block_depth):
     x = layers.Concatenate()([x, e])
 
     skips = []
+    # Downsampling path
     for width in widths[:-1]:
-        x = DownBlock(width, block_depth)([x, skips])
+        x = DownBlock(width, block_depth, pool_type=pool_type, dropout_rate=dropout_rate)([x, skips])
 
-    for _ in range(block_depth):
+    # Bottleneck with attention
+    for i in range(block_depth):
+        if i == block_depth // 2:  # Add attention at the midpoint
+            if attention_type == "self":
+                x = SelfAttentionBlock(widths[-1])(x)
+            elif attention_type == "transformer":
+                x = TransformerBlock(widths[-1])(x)
         x = ResidualBlock(widths[-1])(x)
 
+    # Upsampling path
     for width in reversed(widths[:-1]):
-        x = UpBlock(width, block_depth)([x, skips])
+        x = UpBlock(width, block_depth, attention_type=attention_type, dropout_rate=dropout_rate)([x, skips])
 
     x = layers.Conv2D(3, kernel_size=1)(x)
 
-    return tf.keras.Model([noisy_images, noise_variances], x, name="residual_unet")
+    return tf.keras.Model([noisy_images, noise_variances], x, name="attention_residual_unet")
 
 #@tf.keras.saving.register_tf.keras_serializable()
 class DiffusionStandardModel(tf.keras.Model):
@@ -480,7 +540,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.axis("off")
                 #plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer = fig.canvas.new_timer(interval = 3000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
         plt.savefig("./Sample.png")
@@ -512,44 +572,7 @@ class DiffusionStandardModel(tf.keras.Model):
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
 
-        if aug:
-            data_augmentation = keras.Sequential(
-                    [
-                        layers.Rescaling(1.0/255.0),
-                        layers.RandomFlip("horizontal_and_vertical"),
-                        layers.RandomRotation(0.01),
-                        layers.GaussianNoise(0.01),
-                        tf.keras.layers.RandomBrightness(0.01),
-                        layers.RandomZoom(0.01, 0.01),
-                        layers.Rescaling(255.0),
-                    ]
-                )
-            for i in range(2):
-                aug_images = data_augmentation(train_dataset)
-                val_aug_images = data_augmentation(val_dataset)
-                for img in aug_images:
-                    img = tf.clip_by_value(img, 0, 255)
-                    img = tf.cast(img, "uint8")
-                    train_dataset.append(img)
-
-                for img in val_aug_images:
-                    img = tf.clip_by_value(img, 0, 255)
-                    img = tf.cast(img, "uint8")
-                    val_dataset.append(img)
-
-            del data_augmentation
-
-
-        train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
-        val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
-        
-        # pixelwise mean absolute error is used as loss
-        # calculate mean and variance of training dataset for normalization
-
-        
-
-        
-        
+            
         if not get_pretrained:
             early = EarlyStopping(
                 monitor="val_kid",
@@ -578,7 +601,8 @@ class DiffusionStandardModel(tf.keras.Model):
             val_flowers_dataset = prepare_dataset("train[99%:]+test[99%:]", image_size=self.image_size)
 
 
-
+            # pixelwise mean absolute error is used as loss
+            # calculate mean and variance of training dataset for normalization
             self.normalizer.adapt(flowers_dataset)
 
             
@@ -606,27 +630,72 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.ema_network.save('ema_diffusion_pretrained.h5')
                 #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
         else:
-            
             self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
             self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
             #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
-            
             print('Loaded pretrained model')
+
         self.compile(
                 optimizer=tfa.optimizers.AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
             )
+
+        self.network.summary()
+        tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
+        #self.ema_network.summary()
+        for layer in self.network.layers[0:int(len(self.network.layers)/2)-2]:
+            layer.trainable = False
+            print(layer.name)
+        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)-2]:
+            layer.trainable = False
+
+        #self.network.summary()
+        #self.ema_network.summary()
+        
+
+        if aug:
+            suppress_output()
+            data_augmentation = keras.Sequential(
+                    [
+                        layers.Rescaling(1.0/255.0),
+                        layers.RandomFlip("horizontal_and_vertical"),
+                        layers.RandomRotation(0.05),
+                        layers.GaussianNoise(0.05),
+                        tf.keras.layers.RandomBrightness(0.05),
+                        layers.RandomZoom(0.01, 0.01),
+                        layers.Rescaling(255.0),
+                    ]
+                )
+                
+            for i in range(1):
+                aug_images = data_augmentation(train_dataset)
+                val_aug_images = data_augmentation(val_dataset)
+                for img in aug_images:
+                    img = tf.clip_by_value(img, 0, 255)
+                    img = tf.cast(img, "uint8")
+                    train_dataset.append(img)
+
+                for img in val_aug_images:
+                    img = tf.clip_by_value(img, 0, 255)
+                    img = tf.cast(img, "uint8")
+                    val_dataset.append(img)
+            restore_output()
+            del data_augmentation
+
+
+        train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
+        val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
             
-        train_dataset = train_dataset.batch(batch_size_finetune, drop_remainder=True)
-        val_dataset = val_dataset.batch(batch_size_finetune, drop_remainder=True)
+        train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
+        val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
 
         # run training and plot generated images periodically
         early = EarlyStopping(
                 monitor="val_kid",
                 min_delta=0.001,
-                patience=8,
+                patience=15,
         )
         lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",

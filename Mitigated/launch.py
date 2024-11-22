@@ -62,16 +62,16 @@ epochs = 15
 class_divisions = [0,1]
 imbalances = [1]
 
-g_gaugs = np.logspace(-4, 0, 6)
+g_gaugs = np.logspace(-3, -1, 3)
 test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-eps = np.logspace(-6, -1, 5)
+eps = np.logspace(-6, -1, 3)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
 cs = [2, 1, 0]
-ks = [0]
+ks = [1]
 diffusion = 0
 
-basePath = "./"
+basePath = "./rew/"
 # with tf.device("/CPU:0"):
 
 for percent in percents:
@@ -87,7 +87,7 @@ for percent in percents:
          for c in cs:
             for k in ks:
                 for ep in eps:
-                  for i in range(3):
+                  for i in range(4):
                     for cl_div in class_divisions:
                         print(f"CLS DIV = {cl_div}")
                         if k%2==1:
