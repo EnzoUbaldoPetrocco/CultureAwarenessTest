@@ -114,8 +114,19 @@ def predict():
     filename = secure_filename(image.filename)
 
     # Save the file
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    image.save(filepath)
+    try:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image.save(filepath)
+    except FileNotFoundError:
+        # If the directory doesn't exist, handle it here
+        print(f"Error: The file {filepath} does not exist.")
+        
+        # You can create the directory and the file if needed
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            print(f"Creating directory: {app.config['UPLOAD_FOLDER']}")
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+
+        image.save(filepath)
 
     image = np.asarray(image) 
         
