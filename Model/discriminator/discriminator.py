@@ -400,7 +400,7 @@ class Discriminator(GeneralModelClass):
                 # run_eagerly=True
             )
             if self.reweighting:
-                class_weights = dict(enumerate(self.weights))
+                class_weights = dict(enumerate(np.ones(self-n_cultures)/self.weights))
             else:
                 classweights = dict(enumerate(np.ones(self.n_cultures)))
 
