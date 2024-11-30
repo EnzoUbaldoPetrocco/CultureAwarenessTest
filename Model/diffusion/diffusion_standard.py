@@ -27,7 +27,7 @@ import sys
 dataset_name = "places365_small"
 dataset_repetitions = 6
 num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 40
+num_epochs_flowers = 2
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -568,11 +568,12 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False, lamp=False, culture=0, category=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, lamp=False, culture=0, category=0): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
+        
         if aug:
             suppress_output()
             data_augmentation = keras.Sequential(
@@ -626,19 +627,21 @@ class DiffusionStandardModel(tf.keras.Model):
                 ]
             else:
                 callbacks = [early, lr_reduce]
-            for i in range(4):
+            
+            tf_lr = transfer_learning_rate
+            for i in range(5):
                 flowers_dataset = prepare_dataset(f"train[{3.2*(i)}:{3.2*(i+1)}%]+test[{3.2*(i)}:{3.2*(i+1)}%]", image_size=self.image_size)
-                val_flowers_dataset = prepare_dataset(f"train[{100-(1.2)*(i+1)}%:{100-(1.2)*(i)}]+test[{100-(1.2)*(i+1)}%:{100-(1.2)*(i)}]", image_size=self.image_size)
+                val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
 
 
                 # pixelwise mean absolute error is used as loss
                 # calculate mean and variance of training dataset for normalization
                 self.normalizer.adapt(flowers_dataset)
-
+                
                 
                 self.compile(
                         optimizer=tfa.optimizers.AdamW(
-                            learning_rate=transfer_learning_rate, weight_decay=weight_decay
+                            learning_rate=tf_lr, weight_decay=weight_decay
                         ),
                         loss=tf.keras.losses.mean_absolute_error,
                     )
@@ -651,6 +654,7 @@ class DiffusionStandardModel(tf.keras.Model):
                     callbacks=callbacks,
                     shuffle=True
                 )
+                tf_lr = tf_lr / 1.1
 
                 del flowers_dataset
                 del val_flowers_dataset
