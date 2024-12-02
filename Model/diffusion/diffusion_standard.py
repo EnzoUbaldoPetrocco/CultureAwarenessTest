@@ -11,12 +11,30 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras import layers
 #from tf.keras import ops
 import numpy as np
-import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 import math
 from keras.models import Model
 import sys
 
+class AdamW(tf.keras.optimizers.Adam):
+    def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
+        # Initialize Adam optimizer with the same parameters
+        super(AdamW, self).__init__(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon, **kwargs)
+        self.weight_decay = weight_decay  # Store weight decay value
+
+    def apply_gradients(self, grads_and_vars, name=None, experimental_aggregate_gradients=True):
+        # Apply the weight decay to the weights before applying the gradients
+        grads_and_vars = [
+            (grad + self.weight_decay * var, var) if grad is not None else (None, var)
+            for grad, var in grads_and_vars
+        ]
+        # Call the super class's method to apply the modified gradients
+        return super(AdamW, self).apply_gradients(grads_and_vars, name, experimental_aggregate_gradients)
+
+    def get_config(self):
+        config = super(AdamW, self).get_config()
+        config.update({'weight_decay': self.weight_decay})
+        return config
 
 
 
