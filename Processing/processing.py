@@ -437,6 +437,7 @@ class ProcessingClass:
                     n_cultures=n_cultures,
                     imbalanced=imbalanced,
                     diffusion=diffusion,
+                    weights=weights
                 )
 
         self.model.standard = standard

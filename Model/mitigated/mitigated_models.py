@@ -18,8 +18,26 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import math
 import random
 from datetime import datetime
+from keras.regularizers import Regularizer
+import pickle
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
+
+class CustomReg(Regularizer):
+        def __init__(self, lamb, n_cultures):
+            self.lamb = lamb
+            self.n_cultures = n_cultures
+
+        def __call__(self, x):
+            sum = tf.constant(0.0, dtype="float32")
+
+            mean = tf.reduce_mean(x, axis=1)
+            for i in range(self.n_cultures):
+                sum += tf.math.square(tf.norm(x[:, i] - mean))
+
+            res = (self.lamb) * sum
+            return res
+
 
 
 class MitigatedModels(GeneralModelClass):
@@ -82,6 +100,7 @@ class MitigatedModels(GeneralModelClass):
         cic = float(self.computeCIC(losses))
         return cic
 
+    
     def custom_loss(self):
         """
         This function implements the loss and the regularizer of the mitigation stratyegy
@@ -112,8 +131,26 @@ class MitigatedModels(GeneralModelClass):
             return acc
 
         return accuracy
+    
+    def ImbalancedTransformation(self, TS):
+        newX = []
+        newY = []
+        X = TS[0]
+        Y = TS[1]
+        for i in range(len(X)):
+            img = X[i]
+            label = Y[i]
+            label = label[0:self.n_cultures]
+            label = np.argmax(label)
 
-    @tf.function
+            for j in range(int(1/self.weights[label])): # I use the inverse of the total proportion for augmenting the dataset
+                
+                newX.append(img) 
+                newY.append(Y[i])
+        del TS
+        return (newX, newY)
+
+    #@tf.function
     def regularizer(self, w):
         sum = tf.constant(0.0, dtype="float32")
 
@@ -173,8 +210,8 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        batches=[2],
+        lrs=[1e-2, 1e-3, 1e-4],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -188,7 +225,7 @@ class MitigatedModels(GeneralModelClass):
         cics = []
         
 
-        lambdas = np.logspace(-4, 2, 15)
+        lambdas = np.logspace(-4, 1, 6)
         for lmb in lambdas:
             self.lamb = lmb
             for b in batches:
@@ -244,28 +281,28 @@ class MitigatedModels(GeneralModelClass):
         )
 
         self.lamb = best_lmb
-        with tf.device("/gpu:0"):
-            print(
-                f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}, best lambda={best_lmb}, best CIC={best_CIC}"
-            )
-            TS = TS + VS
-            self.DL(
-                TS,
-                None,
-                aug,
-                show_imgs,
-                best_bs,
-                best_lr,
-                best_fine_lr,
-                epochs,
-                fine_epochs,
-                best_nDropout,
-                val=False,
-                g=g,
-            )
+        print(
+            f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}, best lambda={best_lmb}, best CIC={best_CIC}"
+        )
+        TS = TS + VS
+        self.DL(
+            TS,
+            None,
+            aug,
+            show_imgs,
+            best_bs,
+            best_lr,
+            best_fine_lr,
+            epochs,
+            fine_epochs,
+            best_nDropout,
+            val=False,
+            g=g,
+        )
 
         if save:
                 self.save(path)
+  
 
     def DL(
         self,
@@ -283,9 +320,9 @@ class MitigatedModels(GeneralModelClass):
         val=True,
         
     ):
-        with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
             n = np.shape(TS[0])
+            tf.keras.backend.clear_session()
 
             if show_imgs:
                 # DISPLAY IMAGES
@@ -318,21 +355,30 @@ class MitigatedModels(GeneralModelClass):
                 ]
             )
 
+            def preprocess(img, aug):
+                return data_augmentation(img, training=aug)
+            
+
+            
+            if self.imbalanced:
+                #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')
+                TS = self.ImbalancedTransformation(TS)
+                #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
+                
+            
             # Apply data augmentation to the training dataset
             train_datagen = ImageDataGenerator(
-                preprocessing_function=lambda img: data_augmentation(img, training=aug)
+                preprocessing_function=lambda img: preprocess(img, aug)
             )
-            X = tf.constant(TS[0], dtype="float32")
-            y = tf.constant(TS[1], dtype="float32")
-            train_generator = train_datagen.flow(x=X, y=y, batch_size=32)
+            train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
+
             validation_generator = None
             if val:
                 val_datagen = ImageDataGenerator()
                 Xv = tf.constant(VS[0], dtype="float32")
                 yv = tf.constant(VS[1], dtype="float32")
-                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=32)
+                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
 
-            
 
             # DIVIDE IN BATCHES
             if aug:
@@ -355,6 +401,7 @@ class MitigatedModels(GeneralModelClass):
                             plt.axis("off")
                         plt.show()
 
+
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
@@ -372,7 +419,7 @@ class MitigatedModels(GeneralModelClass):
             # outputs: `(inputs * scale) + offset`
             scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
             if aug:
-                x = data_augmentation(inputs)  # Apply random data augmentation
+                #x = data_augmentation(inputs)  # Apply random data augmentation
                 x = scale_layer(x)
             else:
                 x = scale_layer(inputs)
@@ -385,8 +432,8 @@ class MitigatedModels(GeneralModelClass):
             x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
             outputs = keras.layers.Dense(
                 self.n_cultures,
-                # kernel_initializer="ones",
-                kernel_regularizer=self.regularizer,
+                #kernel_initializer="random_normal",
+                kernel_regularizer=CustomReg(self.lamb, self.n_cultures),
                 activation='sigmoid',
             )(x)
             # outputs = keras.layers.Dense(n_cultures)(x)
@@ -408,14 +455,17 @@ class MitigatedModels(GeneralModelClass):
             )
             callbacks = [early, lr_reduce]
 
+            print('zio pera')
+
             # self.model.summary()
             # MODEL TRAINING
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
                 loss=self.custom_loss(),
                 metrics=[self.custom_accuracy()],
-                run_eagerly=True,
             )
+
+            print('zio perotto')
 
             # ws = np.linalg.norm(self.model.layers[-1].weights)
             self.model.fit(
@@ -427,6 +477,8 @@ class MitigatedModels(GeneralModelClass):
             )
             # ws2 = np.linalg.norm(self.model.layers[-1].weights)
             # print(f"Same = {ws2==ws}")
+
+            tf.keras.backend.clear_session()
 
             # FINE TUNING
             base_model.trainable = True
