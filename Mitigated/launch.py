@@ -67,7 +67,7 @@ test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 eps = np.logspace(-6, -1, 3)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
-cs = [2, 1, 0]
+cs = [ 0, 1, 2]
 ks = [1]
 diffusion = 0
 

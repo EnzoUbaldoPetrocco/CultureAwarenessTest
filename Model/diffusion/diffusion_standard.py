@@ -658,7 +658,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 
                 
                 self.compile(
-                        optimizer=tfa.optimizers.AdamW(
+                        optimizer=AdamW(
                             learning_rate=tf_lr, weight_decay=weight_decay
                         ),
                         loss=tf.keras.losses.mean_absolute_error,
@@ -689,7 +689,7 @@ class DiffusionStandardModel(tf.keras.Model):
             print('Loaded pretrained model')
 
         self.compile(
-                optimizer=tfa.optimizers.AdamW(
+                optimizer=AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
@@ -764,7 +764,7 @@ class DiffusionStandardModel(tf.keras.Model):
 
         # Fine tuning
         self.compile(
-                optimizer=tfa.optimizers.AdamW(
+                optimizer=AdamW(
                     learning_rate=learning_rate/100, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
