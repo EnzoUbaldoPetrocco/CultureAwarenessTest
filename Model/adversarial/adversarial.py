@@ -27,6 +27,15 @@ from IPython.display import Image as IImage
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
+class NullWriter:
+    def write(self, _): pass
+
+def suppress_output():
+    sys.stdout = NullWriter()
+
+def restore_output():
+    sys.stdout = sys.__stdout__
+
 
 class AdversarialStandard(GeneralModelClass):
     def __init__(
@@ -72,6 +81,7 @@ class AdversarialStandard(GeneralModelClass):
         self.class_division = class_division
         self.only_imb_imgs=only_imb_imgs
         self.save_discriminator = save_discriminator
+        self.reweighting = False
         if weights is not None:
             self.weights = weights
 
@@ -277,6 +287,8 @@ class AdversarialStandard(GeneralModelClass):
         eps=0.1,
         text_adv=0,
     ):
+        if aug:
+            self.reweighting = True
         eps = tf.cast(eps, np.float32)
         class_division = self.class_division
         if self.imbalanced:
@@ -660,7 +672,7 @@ class AdversarialStandard(GeneralModelClass):
             validation_generator = None
             train_generator = tf.data.Dataset.from_tensor_slices(TS)
             # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
-
+            suppress_output()
             if adv:  # adversarial model
                 train_generator = train_generator.map(
                     lambda img, y: (
@@ -703,7 +715,7 @@ class AdversarialStandard(GeneralModelClass):
                     .batch(batch_size)
                     .prefetch(buffer_size=10)
                 )
-
+            restore_output()
             # DIVIDE IN BATCHES
             if aug:
                 if show_imgs:
@@ -762,6 +774,13 @@ class AdversarialStandard(GeneralModelClass):
                 bcemetric = keras.losses.BinaryCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.BinaryAccuracy()
 
+            if self.reweighting:
+                class_weights = dict(enumerate(np.ones(self.n_cultures)/self.weights))
+            else:
+                class_weights = dict(enumerate(np.ones(self.n_cultures)))
+
+            print(f"Class weights are: {class_weights}")
+
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
                 factor=0.2,
@@ -794,6 +813,7 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                class_weight=class_weights
             )
 
             # FINE TUNING
@@ -813,207 +833,11 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                class_weight=class_weights
             )
             tf.keras.backend.clear_session()
             return history.history[monitor_val][-1]
 
-    # @tf.function
-    def train_loop(
-        self,
-        model,
-        epochs,
-        train_dataset,
-        val_dataset,
-        loss_fn,
-        optimizer: keras.optimizers.Adam,
-        batch_size,
-        train_acc_metric: keras.metrics.BinaryAccuracy,
-        val_acc_metric: keras.metrics.BinaryAccuracy,
-        bcemetric: keras.metrics.BinaryCrossentropy,
-        monitor_val,
-        val,
-        val_bcemetric: keras.metrics.BinaryCrossentropy = None,
-        n=0,
-        adv=0,
-        adversarial_model=None,
-        eps=0,
-    ):
-
-        @tf.function
-        def create_adversarial_pattern(model, input_image, input_label):
-            with tf.device("/gpu:0"):
-                with tf.GradientTape() as tape:
-                    tape.watch(input_image)
-                    prediction = model(input_image)
-                    loss = tf.keras.losses.categorical_crossentropy(
-                        input_label, prediction
-                    )
-
-                gradient = tape.gradient(loss, input_image)
-                signed_grad = tf.sign(gradient)
-                return signed_grad
-
-        # Create adversarial samples
-        @tf.function
-        def generate_adversarial_samples(model, images, labels, shape, epsilon=0.1):
-            with tf.device("/gpu:0"):
-                adversarial_images = []
-                for img, lbl in zip(images, labels):
-                    img = tf.convert_to_tensor(img.reshape((1, shape[0], shape[1], 3)))
-                    lbl = tf.convert_to_tensor(lbl.reshape((1, self.n_cultures)))
-                    perturbations = create_adversarial_pattern(model, img, lbl)
-                    adversarial_img = img + epsilon * perturbations
-                    adversarial_img = tf.clip_by_value(adversarial_img, 0, 1)
-                    adversarial_images.append(adversarial_img.numpy())
-                return tf.convert_to_tensor(adversarial_images)
-
-        @tf.function
-        def train_step(x, y):
-            with tf.GradientTape() as tape:
-                logits = model(x, training=True)
-                loss_value = loss_fn(y, logits)
-            grads = tape.gradient(loss_value, model.trainable_weights)
-            optimizer.apply_gradients(zip(grads, model.trainable_weights))
-            train_acc_metric.update_state(y, logits)
-            bcemetric.update_state(y, logits)
-
-        @tf.function
-        def test_step(x, y):
-            val_logits = model(x, training=False)
-            val_acc_metric.update_state(y, val_logits)
-            val_bcemetric.update_state(y, val_logits)
-
-        # implement reduce learning rate on pleateu
-        rlrop = {
-            "factor": 0.2,
-            "patience": 5,
-            "min_lr": 1e-9,
-            "max_val": np.inf,
-            "prec_step": None,
-        }
-
-        # implemet early_stopping
-        es = {
-            "min_delta": 0.001,
-            "patience": 10,
-            "max_val": np.inf,
-            "prec_step": None,
-        }
-
-        # print(f"model.trainable_weights are {model.trainable_weights}")
-        values = {
-            "loss": tf.constant(0.0, dtype=float),
-            "val_loss": tf.constant(0.0, dtype=float),
-        }
-        for epoch in range(epochs):
-
-            sys.stdout.write("\r")
-            tf.get_logger().info(f"Epoch: {epoch}")
-            pbt = tf.keras.utils.Progbar(n)
-            start_time = time.time()
-            values["loss"] = tf.constant(0.0, dtype=float)
-            # Iterate over the batches of the dataset.
-            step = 0
-            for x_batch_train, y_batch_train in train_dataset:
-                if adv:
-                    x_batch_train = generate_adversarial_samples(
-                        adversarial_model,
-                        x_batch_train,
-                        y_batch_train,
-                        x_batch_train.shape,
-                        epsilon=eps,
-                    )
-
-                train_step(x_batch_train, y_batch_train)
-                # print(f"loss value is {loss_value}")
-
-                pbt.add(
-                    x_batch_train.shape[0],
-                    values=[
-                        ("loss", bcemetric.result()),
-                        ("acc", train_acc_metric.result()),
-                    ],
-                )
-                step += 1
-
-            # Display metrics at the end of each epoch.
-            train_acc = train_acc_metric.result()
-            # Reset training metrics at the end of each epoch
-            train_acc_metric.reset_states()
-
-            loss = bcemetric.result()
-            values["loss"] = loss
-            bcemetric.reset_states()
-
-            values["val_loss"] = tf.constant(0.0, dtype=float)
-            # Run a validation loop at the end of each epoch.
-            if val:
-                for x_batch_val, y_batch_val in val_dataset:
-                    test_step(x_batch_val, y_batch_val)
-
-                val_acc = val_acc_metric.result()
-                val_acc_metric.reset_states()
-
-                val_loss = val_bcemetric.result()
-                values["val_loss"] = val_loss
-                val_bcemetric.reset_states()
-
-                # tf.get_logger().info("Validation acc: %.4f" , float(val_acc))
-                pbt.add(
-                    n - x_batch_train.shape[0] * step + 1,
-                    values=[
-                        ("Time", time.time() - start_time),
-                        ("loss", val_bcemetric.result()),
-                        ("acc", train_acc),
-                        ("val_loss", values["val_loss"]),
-                        ("val_acc", val_acc),
-                        ("lr", model.optimizer.lr),
-                    ],
-                )
-            # tf.get_logger().info("Time taken: %.2fs" , time.time() - start_time)
-            else:
-                pbt.add(
-                    n - x_batch_train.shape[0] * step + 1,
-                    values=[
-                        ("Time", time.time() - start_time),
-                        ("loss", val_bcemetric.result()),
-                        ("acc", train_acc),
-                        ("lr", model.optimizer.lr),
-                    ],
-                )
-            sys.stdout.write("\r")
-
-            train_dataset = train_dataset.shuffle(batch_size)
-            if val:
-                val_dataset = val_dataset.shuffle(batch_size)
-
-            # At the end of the epoch I have to call my callbacks
-            if rlrop["max_val"] < values[monitor_val]:
-                rlrop["prec_step"] += 1
-            else:
-                rlrop["prec_step"] = 0
-                rlrop["max_val"] = values[monitor_val]
-
-            if es["max_val"] < values[monitor_val]:
-                es["prec_step"] += 1
-            else:
-                es["prec_step"] = 0
-                es["max_val"] = values[monitor_val]
-
-            if rlrop["prec_step"] > rlrop["patience"]:
-                newlr = max(rlrop["factor"] * model.optimizer.lr, rlrop["min_lr"])
-                tf.keras.backend.set_value(model.optimizer.lr, newlr)
-                sys.stdout.write("\r")
-                tf.get_logger().info(f"Reducing Learning rate to: {newlr:.9f}")
-                sys.stdout.write("\r")
-
-            if es["prec_step"] > es["patience"]:
-                sys.stdout.write("\r")
-                tf.get_logger().info(f"Early stopping")
-                sys.stdout.write("\r")
-                break
-
-        return values["loss"], values["val_loss"]
 
     def fit(
         self,

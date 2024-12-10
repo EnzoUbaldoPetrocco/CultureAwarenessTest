@@ -69,6 +69,7 @@ class Discriminator(GeneralModelClass):
         self.weights = np.ones(self.n_cultures)
         self.class_division = class_division
         self.save_discriminator = save_discriminator
+        self.reweighting = False
         if weights is not None:
             self.weights = weights
 
@@ -100,6 +101,8 @@ class Discriminator(GeneralModelClass):
         path="./",
         eps=0.1,
     ):
+        if aug:
+            self.reweighting = True
         class_division = self.class_division
 
         if self.imbalanced:
@@ -396,6 +399,10 @@ class Discriminator(GeneralModelClass):
                 metrics=[train_acc_metric],
                 # run_eagerly=True
             )
+            if self.reweighting:
+                class_weights = dict(enumerate(np.ones(self-n_cultures)/self.weights))
+            else:
+                classweights = dict(enumerate(np.ones(self.n_cultures)))
 
             self.model.fit(
                 train_generator,
@@ -403,6 +410,7 @@ class Discriminator(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                class_weight=class_weights
             )
 
             # FINE TUNING
@@ -422,6 +430,7 @@ class Discriminator(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                class_weight=class_weights
             )
             tf.keras.backend.clear_session()
             return history.history[monitor_val][-1]
