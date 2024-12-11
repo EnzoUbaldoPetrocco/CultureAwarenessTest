@@ -155,17 +155,18 @@ class ProcessingClass:
             n_imgs = len(self.dataobj.X)
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
-            if standard and (not adversarial) and (not imbalanced):
+
+            if standard or (not adversarial) or (not imbalanced):
                 for j in range(2):
                     tempX = [
                         cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
                         for i in range(len(self.dataobj.X))
-                        if self.dataobj.y[i]== j
+                        if self.dataobj.y[i][1]== j
                     ]
                     tempXv = [
                         cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
                         for i in range(len(self.dataobj.Xv))
-                        if self.dataobj.yv[i] == j
+                        if self.dataobj.yv[i][1] == j
                     ]
                     images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j)
                     for img in images:
@@ -173,7 +174,7 @@ class ProcessingClass:
                         img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
                         img = np.asarray(img, dtype=object)
                         self.dataobj.X.append(img)
-                        self.dataobj.y.append(j)
+                        self.dataobj.y.append([self.n_cultures, j]) # I invent another culture
             else:
                 for j in range(2):
                     tempX = [
@@ -192,7 +193,7 @@ class ProcessingClass:
                         img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
                         img = np.asarray(img, dtype=object)
                         self.dataobj.X.append(img)
-                        lbl = list(np.zeros(self.n_cultures))
+                        lbl = list(np.zeros(self.n_cultures)) # Generated images are equidistant from the cultures
                         lbl.append(j)
                         self.dataobj.y.append(lbl)
             del diff_model    

@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 28000
+memory_limit = 30000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -60,25 +60,21 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 class_divisions = [0,1]
-imbalances = [0,1]
+imbalances = [1,0]
 diffusion = 1
 
 g_gaugs = np.logspace(-4, 0, 6)
-test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-eps = np.logspace(-4, 0, 6)
-test_eps = [0.0005, 0.001, 0.005]
-mult = 0.25
-cs = [0, 1, 2]
-ks = [1]
-adversary = 0
-
 g_aug = g_gaugs[0]
+mult = 0.25
+cs = [ 1, 2, 0]
+ks = [1]
+
 
 basePath = "./"
 # with tf.device("/CPU:0"):
 for i in range(8):
  for percent in percents:
-    for lamp in [1, 0]:
+    for lamp in [0, 1]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
@@ -89,9 +85,6 @@ for i in range(8):
         for imb in imbalances:
          for c in cs:
             for k in ks:
-                for ep in eps:
-                    for cl_div in class_divisions:
-                                print(f"CLS DIV = {cl_div}")
                                 model = None
                                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                                 procObj.process(
@@ -109,11 +102,9 @@ for i in range(8):
                                     n=n,
                                     augment=k % 2,
                                     gaug=g_aug,
-                                    adversary=adversary,
-                                    eps=ep,
+                                    adversary=0,
                                     mult=mult,
-                                    imbalanced=imb,  
-                                    class_division= cl_div,
+                                    imbalanced=imb, 
                                     diffusion = diffusion
                                 )
                                 # NoAUg

@@ -241,7 +241,8 @@ class StandardModels(GeneralModelClass):
         for i in range(len(X)):
             img = X[i]
             label = Y[i]
-            for i in range(int(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
+            if label[0]<len(self.weights):
+             for i in range(int(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
                 im = np.asarray(data_augmentation(img, training=aug), dtype=object)
                 newX.append(im) # I do not need culture for training 
                 newY.append(label[1])

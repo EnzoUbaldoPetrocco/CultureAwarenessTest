@@ -695,7 +695,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 loss=tf.keras.losses.mean_absolute_error,
             )
 
-        self.network.summary()
+        #self.network.summary()
         #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
         #self.ema_network.summary()
 
