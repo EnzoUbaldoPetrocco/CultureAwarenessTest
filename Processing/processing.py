@@ -156,7 +156,7 @@ class ProcessingClass:
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
 
-            if standard and ((not adversarial) or (not imbalanced)):
+            if standard and (not adversarial) :
                 for j in range(2):
                     tempX = [
                         cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
