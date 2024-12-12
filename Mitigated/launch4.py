@@ -60,7 +60,7 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 class_divisions = [0,1]
-imbalances = [1,0]
+imbalances = [0, 1]
 diffusion = 1
 
 g_gaugs = np.logspace(-4, 0, 6)
@@ -115,8 +115,6 @@ for i in range(8):
                                     augment=0,
                                     gaug=0,
                                     adversary=0,
-                                    eps=test_eps,
-                                    
                                 )
                                 procObj.partial_clear(basePath)
                     
