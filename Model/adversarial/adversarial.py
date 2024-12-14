@@ -52,6 +52,7 @@ class AdversarialStandard(GeneralModelClass):
         class_division=0,
         only_imb_imgs=0,
         save_discriminator=0,
+        add_adv_samples=0,
 
     ):
         """
@@ -82,6 +83,7 @@ class AdversarialStandard(GeneralModelClass):
         self.only_imb_imgs=only_imb_imgs
         self.save_discriminator = save_discriminator
         self.reweighting = False
+        self.add_adv_samples = add_adv_samples
         if weights is not None:
             self.weights = weights
 
@@ -299,7 +301,6 @@ class AdversarialStandard(GeneralModelClass):
             TS0 = TS
             VS0 = VS
 
-
         epsilons = np.logspace(-3, 0, 5)
         images = []
         for i in range(4):
@@ -359,18 +360,36 @@ class AdversarialStandard(GeneralModelClass):
                     self.model.save(path=path + f'/class_discriminator={i}')
                 self.model = None
             gc.collect()
-            (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)):
-                img = imgs[i]
-                y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-            gc.collect()
-            (imgs, ys) = VS[0], VS[1]
-            for i in range(len(imgs)):
-                img = imgs[i]
-                y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-            gc.collect()
+            if not self.add_adv_samples:
+                (imgs, ys) = TS[0], TS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                gc.collect()
+                (imgs, ys) = VS[0], VS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                gc.collect()
+            else:
+                (imgs, ys) = TS[0], TS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                    TS[0].append(img)
+                    TS[1].append(y)
+                gc.collect()
+                (imgs, ys) = VS[0], VS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                    VS[0].append(img)
+                    VS[1].append(y)
+                gc.collect()
             if show_imgs:
                 for ep in epsilons:
                     plt.figure(figsize=(10, 10))
@@ -419,20 +438,34 @@ class AdversarialStandard(GeneralModelClass):
 
             if self.save_discriminator:
                     self.model.save(path=path + f'/class_discriminator={i}')
+            if not self.add_adv_samples:
+                (imgs, ys) = TS[0], TS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
+                
+                (imgs, ys) = VS[0], VS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
+            else:
+                (imgs, ys) = TS[0], TS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
+                    TS[0].append(img)
+                    TS[1].append(y)
 
-            (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)):
-                img = imgs[i]
-                y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
-                
-            
-            (imgs, ys) = VS[0], VS[1]
-            for i in range(len(imgs)):
-                img = imgs[i]
-                y = ys[i]
-                imgs[i] = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
-                
+                (imgs, ys) = VS[0], VS[1]
+                for i in range(len(imgs)):
+                    img = imgs[i]
+                    y = ys[i]
+                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
+                    VS[0].append(img)
+                    VS[1].append(y)
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
             if show_imgs:
