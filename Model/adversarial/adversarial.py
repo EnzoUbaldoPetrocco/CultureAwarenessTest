@@ -287,8 +287,8 @@ class AdversarialStandard(GeneralModelClass):
         eps=0.1,
         text_adv=0,
     ):
-        if aug:
-            self.reweighting = True
+        #if aug:
+        #    self.reweighting = True
         eps = tf.cast(eps, np.float32)
         class_division = self.class_division
         if self.imbalanced:
@@ -774,12 +774,12 @@ class AdversarialStandard(GeneralModelClass):
                 bcemetric = keras.losses.BinaryCrossentropy(from_logits=True)
                 train_acc_metric = keras.metrics.BinaryAccuracy()
 
-            if self.reweighting:
-                class_weights = dict(enumerate(np.ones(self.n_cultures)/self.weights))
-            else:
-                class_weights = dict(enumerate(np.ones(self.n_cultures)))
+            #if self.reweighting:
+            #    class_weights = dict(enumerate(np.ones(self.n_cultures)/self.weights))
+            #else:
+            #    class_weights = dict(enumerate(np.ones(self.n_cultures)))
 
-            print(f"Class weights are: {class_weights}")
+            #print(f"Class weights are: {class_weights}")
 
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
@@ -813,7 +813,7 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
-                class_weight=class_weights
+                #class_weight=class_weights
             )
 
             # FINE TUNING
@@ -833,7 +833,7 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
-                class_weight=class_weights
+                #class_weight=class_weights
             )
             tf.keras.backend.clear_session()
             return history.history[monitor_val][-1]
