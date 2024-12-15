@@ -576,7 +576,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, lamp=False, culture=0, category=0, imb=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False, lamp=False, culture=0, category=0, imb=0): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -634,24 +634,22 @@ class DiffusionStandardModel(tf.keras.Model):
                 callbacks = [early, lr_reduce]
             
             tf_lr = transfer_learning_rate
-            for i in range(5):
-                flowers_dataset = prepare_dataset(f"train[{3.2*(i)}:{3.2*(i+1)}%]+test[{3.2*(i)}:{3.2*(i+1)}%]", image_size=self.image_size)
-                val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
-
-
+            
+            for i in range(20):
+                flowers_dataset = prepare_dataset(f"train[{1.0*(i)}:{1.0*(i+1)}%]+test[{1.0*(i)}:{1.0*(i+1)}%]", image_size=self.image_size)
+                val_flowers_dataset = prepare_dataset(f"train[{100-(0.2)*(i+1)}%:{100-(0.2)*(i)}]+test[{100-(0.2)*(i+1)}%:{100-(0.2)*(i)}]", image_size=self.image_size)
                 # pixelwise mean absolute error is used as loss
                 # calculate mean and variance of training dataset for normalization
                 self.normalizer.adapt(flowers_dataset)
                 
-                
                 self.compile(
-                        optimizer=AdamW(
+                        optimizer=tf.keras.optimizers.AdamW(
                             learning_rate=tf_lr, weight_decay=weight_decay
                         ),
-                        loss=tf.keras.losses.mean_absolute_error,
+                        loss=keras.losses.mean_absolute_error,
                     )
                 
-                self.img_name = "./PretrainedNetGeneration.png"
+                self.img_name = "./newtf/PretrainedNetGeneration.png"
                 self.fit(
                     flowers_dataset,
                     epochs=num_epochs_flowers,
@@ -659,27 +657,27 @@ class DiffusionStandardModel(tf.keras.Model):
                     callbacks=callbacks,
                     shuffle=True
                 )
-                tf_lr = tf_lr / 1.1
+                tf_lr = tf_lr / 1.05
 
                 del flowers_dataset
                 del val_flowers_dataset
 
 
                 if save:
-                    self.network.save('diffusion_pretrained.h5')
-                    self.ema_network.save('ema_diffusion_pretrained.h5')
+                    self.network.save('newtf/diffusion_pretrained.h5')
+                    self.ema_network.save('newtf/ema_diffusion_pretrained.h5')
                     #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
         else:
-            self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
-            self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
+            self.network = tf.keras.models.load_model('newtf/diffusion_pretrained.h5')
+            self.ema_network = tf.keras.models.load_model('newtf/ema_diffusion_pretrained.h5')
             #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
             print('Loaded pretrained model')
 
         self.compile(
-                optimizer=AdamW(
+                optimizer=tf.keras.optimizers.AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
-                loss=tf.keras.losses.mean_absolute_error,
+                loss=keras.losses.mean_absolute_error,
             )
 
         #self.network.summary()
@@ -734,9 +732,9 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.plot_images()
 
         if lamp:
-            self.img_name = f"./Lamps{culture}_{category}_imb={imb}.png"
+            self.img_name = f"./newtf/Lamps{culture}_{category}_imb={imb}.png"
         else:
-            self.img_name = f"./Carpets{culture}_{category}_imb={imb}.png"
+            self.img_name = f"./newtf/Carpets{culture}_{category}_imb={imb}.png"
         self.fit(
             train_dataset,
             epochs=num_epochs,
@@ -751,10 +749,10 @@ class DiffusionStandardModel(tf.keras.Model):
 
         # Fine tuning
         self.compile(
-                optimizer=AdamW(
+                optimizer=tf.keras.optimizers.AdamW(
                     learning_rate=learning_rate/100, weight_decay=weight_decay
                 ),
-                loss=tf.keras.losses.mean_absolute_error,
+                loss=keras.losses.mean_absolute_error,
             )
 
         self.fit(
