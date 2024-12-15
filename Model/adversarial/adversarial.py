@@ -391,6 +391,11 @@ class AdversarialStandard(GeneralModelClass):
                     VS[1].append(y)
                 gc.collect()
             if show_imgs:
+                epsilons = np.logspace(-3, 0, 5)
+                images = []
+                for i in range(4):
+                    idx = np.random.randint(0, len(TS[0]))
+                    images.append((TS[0][idx], TS[1][idx]))
                 for ep in epsilons:
                     plt.figure(figsize=(10, 10))
                     c = 1
@@ -749,26 +754,7 @@ class AdversarialStandard(GeneralModelClass):
                     .prefetch(buffer_size=10)
                 )
             restore_output()
-            # DIVIDE IN BATCHES
-            if aug:
-                if show_imgs:
-                    # DISPLAY IMAGES
-                    # AUGMENTATION
-                    idx = np.random.randint(0, len(TS) - 1)
-                    images = []
-                    images.append((TS[0][idx], TS[1][idx]))
-                    for ims, labels in images:
-                        plt.figure(figsize=(10, 10))
-                        for i in range(9):
-                            ax = plt.subplot(3, 3, i + 1)
 
-                            augmented_image = data_augmentation(
-                                tf.expand_dims(ims, 0), training=True
-                            )
-                            plt.imshow(augmented_image[0].numpy().astype("int32"))
-                            plt.title(int(labels))
-                            plt.axis("off")
-                        plt.show()
 
             adversarial_model = None
 
