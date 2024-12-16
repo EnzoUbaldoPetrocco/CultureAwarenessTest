@@ -120,6 +120,8 @@ class MitigatedModels(GeneralModelClass):
             squared_norms = tf.reduce_sum(tf.square(diff))
             reg = lamb * squared_norms
             ls = tf.add(reg, bc)
+            #print(f"reg is {reg}")
+            #print(f"bc is {bc}")
             del bc, weights, mean_weights, diff, squared_norms, reg
             return ls
         return loss
@@ -218,7 +220,7 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[4],
+        batches=[32],
         lrs=[1e-2, 1e-3, 1e-4],
         fine_lrs=[1e-5],
         epochs=30,
@@ -372,7 +374,7 @@ class MitigatedModels(GeneralModelClass):
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
                      
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
-            train_generator = tf.data.Dataset.from_tensor_slices((TS[0], TS[1])).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype="float32"), tf.constant(TS[1], dtype="float32"))).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
             del TS
 
@@ -380,7 +382,7 @@ class MitigatedModels(GeneralModelClass):
             if val:
                 #val_datagen = ImageDataGenerator()
                 #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
-                validation_generator = tf.data.Dataset.from_tensor_slices((VS[0], VS[1])).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype="float32"), tf.constant(VS[1], dtype="float32"))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
                 
                 del VS
 
@@ -435,10 +437,10 @@ class MitigatedModels(GeneralModelClass):
             x = base_model(x, training=False)
                 
             #x = keras.layers.Conv2D(filters=4, kernel_size=(3,3), strides=(1,1), padding='same')(x)
-            print(x.shape)
+            
             y = keras.layers.GlobalAveragePooling2D()(x)
 
-            print(y.shape)
+            
             y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
             y = keras.layers.Flatten()(y)
             output = keras.layers.Dense(3, activation='sigmoid', name=f'pred_dense_layer')(y)
@@ -447,7 +449,7 @@ class MitigatedModels(GeneralModelClass):
 
             self.model.summary()
 
-            print(self.model.layers)
+            
 
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
@@ -476,16 +478,16 @@ class MitigatedModels(GeneralModelClass):
                 #run_eagerly=True
             )
 
-            # ws = np.linalg.norm(self.model.layers[-1].weights)
+            #ws = np.linalg.norm(self.model.layers[-1].weights[0])
             self.model.fit(
                 train_generator,
-                epochs=epochs,
+                epochs=1,
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
             )
-            # ws2 = np.linalg.norm(self.model.layers[-1].weights)
-            # print(f"Same = {ws2==ws}")
+            #ws2 = np.linalg.norm(self.model.layers[-1].weights[0])
+            #print(f"Same = {ws2==ws}")
 
             tf.keras.backend.clear_session()
 
