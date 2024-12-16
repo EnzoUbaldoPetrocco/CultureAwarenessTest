@@ -217,8 +217,8 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[4],
-        lrs=[1e-2, 1e-3, 1e-4],
+        batches=[8],
+        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
         epochs=30,
         fine_epochs=10,
@@ -232,7 +232,7 @@ class MitigatedModels(GeneralModelClass):
         cics = []
         
 
-        lambdas = np.logspace(-4, 1, 6)
+        lambdas = np.logspace(-6, 1, 6)
         for lmb in lambdas:
             self.lamb = lmb
             for b in batches:
@@ -371,7 +371,7 @@ class MitigatedModels(GeneralModelClass):
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
                      
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
-            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype="float32"), tf.constant(TS[1], dtype="float32"))).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+            train_generator = tf.data.Dataset.from_tensor_slices((TS[0], TS[1])).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
             del TS
 
@@ -379,7 +379,7 @@ class MitigatedModels(GeneralModelClass):
             if val:
                 #val_datagen = ImageDataGenerator()
                 #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
-                validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype="float32"), tf.constant(VS[1], dtype="float32"))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                validation_generator = tf.data.Dataset.from_tensor_slices((VS[0], VS[1])).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
                 
                 del VS
 
