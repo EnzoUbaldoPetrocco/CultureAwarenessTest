@@ -22,6 +22,8 @@ from keras.regularizers import Regularizer
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
+#tf.keras.backend.set_floatx('float32')
+
 class CustomReg(Regularizer):
         def __init__(self, lamb, n_cultures):
             self.lamb = lamb
@@ -35,8 +37,6 @@ class CustomReg(Regularizer):
             res = (self.lamb) * reg
 
             return res
-
-
 
 class MitigatedModels(GeneralModelClass):
     def __init__(
@@ -148,12 +148,11 @@ class MitigatedModels(GeneralModelClass):
             img = X[i]
             label = Y[i]
             label = label[0:self.n_cultures]
-            label = np.argmax(label)
-
-            for j in range(int(1/self.weights[label])): # I use the inverse of the total proportion for augmenting the dataset
-                
-                newX.append(img) 
-                newY.append(Y[i])
+            if np.sum(label)>0:
+                label = np.argmax(label)
+                for j in range(int(1/self.weights[label])): # I use the inverse of the total proportion for augmenting the dataset
+                    newX.append(img) 
+                    newY.append(Y[i])
         del TS
         return (newX, newY)
 
@@ -231,6 +230,8 @@ class MitigatedModels(GeneralModelClass):
         losses = []
         cics = []
         
+        TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
+        VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
         lambdas = np.logspace(-6, 1, 6)
         for lmb in lambdas:
@@ -371,7 +372,7 @@ class MitigatedModels(GeneralModelClass):
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
                      
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
-            train_generator = tf.data.Dataset.from_tensor_slices((TS[0], TS[1])).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
             del TS
 
@@ -379,7 +380,7 @@ class MitigatedModels(GeneralModelClass):
             if val:
                 #val_datagen = ImageDataGenerator()
                 #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
-                validation_generator = tf.data.Dataset.from_tensor_slices((VS[0], VS[1])).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
                 
                 del VS
 
