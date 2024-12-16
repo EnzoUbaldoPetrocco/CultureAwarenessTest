@@ -107,27 +107,35 @@ class MitigatedModels(GeneralModelClass):
         :param out: related to the corresponding output to be optimized
         :return loss function
         """
-
-        @tf.function
+        n_cultures = self.n_cultures
+        lamb = self.lamb
+        #@tf.function
         def loss(y_true, y_pred):
-            pred = tf.linalg.matmul(
-                y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True
-            )
-            pred = tf.linalg.tensor_diag_part(pred)
-            ls = tf.keras.losses.binary_crossentropy(y_true[:, self.n_cultures], pred)
-            return ls
+            
+            bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures], tf.einsum('ij,ij->i', y_true[:, 0:n_cultures], y_pred))
 
+            weights = tf.concat([self.model.layers[-1].trainable_variables[0], tf.reshape(self.model.layers[-1].trainable_variables[1] ,  [1, -1])], axis=0)
+            mean_weights = tf.reshape(tf.reduce_mean(weights, axis=1),  [-1, 1])
+            diff = tf.subtract(weights, mean_weights)
+            squared_norms = tf.reduce_sum(tf.square(diff))
+            reg = lamb * squared_norms
+            ls = tf.add(reg, bc)
+            del bc, weights, mean_weights, diff, squared_norms, reg
+            return ls
         return loss
 
     def custom_accuracy(self):
-        @tf.function
+        #self.prev_accs = tf.ones(self.n_cultures)
+        n_cultures = self.n_cultures
+        #@tf.function
         def accuracy(y_true, y_pred):
-            pred = tf.linalg.matmul(
-                y_pred, y_true[:, 0 : self.n_cultures], transpose_b=True
-            )
-            pred = tf.linalg.tensor_diag_part(pred)
-
-            acc = tf.keras.metrics.binary_accuracy(y_true[:, self.n_cultures], pred, threshold=0.5)
+            ## accuracy metric 
+            yc = y_true[:, 0:n_cultures]  # Assume yc is of shape [batch_size, n_cultures]
+            yt = y_true[:, n_cultures]    # Assume yt is of shape [batch_size, 1]
+            # Get indices where yc has the maximum value (class with highest probability)
+            preds = tf.einsum('ij,ij->i', yc, y_pred)
+            acc = tf.keras.metrics.binary_accuracy(yt, preds)
+            
             return acc
 
         return accuracy
@@ -210,7 +218,7 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[2],
+        batches=[4],
         lrs=[1e-2, 1e-3, 1e-4],
         fine_lrs=[1e-5],
         epochs=30,
@@ -355,30 +363,28 @@ class MitigatedModels(GeneralModelClass):
                 ]
             )
 
-            def preprocess(img, aug):
-                return data_augmentation(img, training=aug)
-            
-
-            
+            def preprocess(img, label):
+                return data_augmentation(img, training=aug), label
+                        
             if self.imbalanced:
                 #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')
                 TS = self.ImbalancedTransformation(TS)
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
-                
+                     
+            #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
+            train_generator = tf.data.Dataset.from_tensor_slices((TS[0], TS[1])).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
-            # Apply data augmentation to the training dataset
-            train_datagen = ImageDataGenerator(
-                preprocessing_function=lambda img: preprocess(img, aug)
-            )
-            train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
+            del TS
 
             validation_generator = None
             if val:
-                val_datagen = ImageDataGenerator()
-                Xv = tf.constant(VS[0], dtype="float32")
-                yv = tf.constant(VS[1], dtype="float32")
-                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
+                #val_datagen = ImageDataGenerator()
+                #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
+                validation_generator = tf.data.Dataset.from_tensor_slices((VS[0], VS[1])).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                
+                del VS
 
+            tf.keras.backend.clear_session()            
 
             # DIVIDE IN BATCHES
             if aug:
@@ -400,7 +406,6 @@ class MitigatedModels(GeneralModelClass):
                             plt.title(int(labels))
                             plt.axis("off")
                         plt.show()
-
 
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
@@ -428,16 +433,21 @@ class MitigatedModels(GeneralModelClass):
             # when we unfreeze the base model for fine-tuning, so we make sure that the
             # base_model is running in inference mode here.
             x = base_model(x, training=False)
-            x = keras.layers.GlobalAveragePooling2D()(x)
-            x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-            outputs = keras.layers.Dense(
-                self.n_cultures,
-                #kernel_initializer="random_normal",
-                kernel_regularizer=CustomReg(self.lamb, self.n_cultures),
-                activation='sigmoid',
-            )(x)
-            # outputs = keras.layers.Dense(n_cultures)(x)
-            self.model = keras.Model(inputs, outputs)
+                
+            #x = keras.layers.Conv2D(filters=4, kernel_size=(3,3), strides=(1,1), padding='same')(x)
+            print(x.shape)
+            y = keras.layers.GlobalAveragePooling2D()(x)
+
+            print(y.shape)
+            y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
+            y = keras.layers.Flatten()(y)
+            output = keras.layers.Dense(3, activation='sigmoid', name=f'pred_dense_layer')(y)
+            
+            self.model = keras.Model(inputs, output)
+
+            self.model.summary()
+
+            print(self.model.layers)
 
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,
@@ -455,17 +465,16 @@ class MitigatedModels(GeneralModelClass):
             )
             callbacks = [early, lr_reduce]
 
-            print('zio pera')
+            # Enable eager execution explicitly (if not already enabled)
+            #tf.config.run_functions_eagerly(True)
 
-            # self.model.summary()
-            # MODEL TRAINING
+            
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
-                loss=self.custom_loss(),
+                loss=[self.custom_loss()],
                 metrics=[self.custom_accuracy()],
+                #run_eagerly=True
             )
-
-            print('zio perotto')
 
             # ws = np.linalg.norm(self.model.layers[-1].weights)
             self.model.fit(
@@ -486,8 +495,9 @@ class MitigatedModels(GeneralModelClass):
 
             self.model.compile(
                 optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-                loss=self.custom_loss(),
+                loss=[self.custom_loss()],
                 metrics=[self.custom_accuracy()],
+                run_eagerly=True
             )
 
             history = self.model.fit(

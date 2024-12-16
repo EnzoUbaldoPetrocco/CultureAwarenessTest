@@ -24,8 +24,7 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # tf.config.set_soft_device_placement(True)
 
-policy = mixed_precision.Policy('float32')
-mixed_precision.set_global_policy(policy)
+"""
 
 # Set memory growth for the GPU
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -41,8 +40,9 @@ if physical_devices:
 else:
     print("No GPU devices found.")
 
-memory_limit = 7000
+
 """
+memory_limit = 7000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -62,7 +62,7 @@ if gpus:
         # Virtual devices must be set before GPUs have been initialized
         print(e)
 else:
-    print("no gpus")"""
+    print("no gpus")
 
 
 percents = [0.05]
