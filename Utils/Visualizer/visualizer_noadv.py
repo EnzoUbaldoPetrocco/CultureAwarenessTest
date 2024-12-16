@@ -453,33 +453,33 @@ class Res2TabClass:
         NOAUG_X = errs[0]
         NOAUG_Y = cics[0]
 
-        plt.scatter(NOAUG_X, NOAUG_Y, color="k", label="NOAUG, OS=False")
+        plt.scatter(NOAUG_X, NOAUG_Y, color="k", label="Baseline")
 
         AUG_X = errs[1:12]
         AUG_Y = cics[1:12]
 
-        plt.plot(AUG_X, AUG_Y, color="b", label="AUG, OS=False")
+        plt.plot(AUG_X, AUG_Y, color="b", label="DA, No OS")
 
         NOAUG_X = errs[12]
         NOAUG_Y = cics[12]
 
-        plt.scatter(NOAUG_X, NOAUG_Y, color="r", label="NOAUG, OS=True")
+        plt.scatter(NOAUG_X, NOAUG_Y, color="r", label="No DA, OS")
 
         AUG_X = errs[13:25]
         AUG_Y = cics[13:25]
 
-        plt.plot(AUG_X, AUG_Y, color="y", label="AUG, OS=True")
+        plt.plot(AUG_X, AUG_Y, color="y", label="DA, OS")
 
         # Naming the x-axis, y-axis and the whole graph
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
         plt.title(title)
 
-        plt.xlim((0, 55))
-        plt.ylim((0, 18))
+        plt.xlim((0, 28))
+        plt.ylim((0, 15))
 
         # Adding legend, which helps us recognize the curve according to it's color
-        plt.legend()
+        plt.legend(fontsize=14)
 
         # To load the display window
 

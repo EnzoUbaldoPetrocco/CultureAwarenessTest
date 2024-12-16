@@ -20,12 +20,12 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 8000
+memory_limit = 4000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -48,7 +48,7 @@ else:
     print("no gpus")
 
 
-percents = [0.05]
+percents = [0.2]
 standard = 1
 # lamp = 1
 
@@ -60,22 +60,21 @@ val_split = 0.2
 test_split = 0.1
 epochs = 15
 class_divisions = [0,1]
-imbalances = [0,1]
+imbalances = [0, 1]
 
-g_gaugs = np.logspace(-4, 0, 6)
-test_g_augs = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-eps = np.logspace(-6, -1, 5)
-test_eps = [0.0005, 0.001, 0.005]
+g_gaugs = np.logspace(-3, -1, 3)
+eps = np.logspace(-6, -1, 3)
 mult = 0.25
 cs = [2, 1, 0]
-ks = [0]
+ks = [0, 1]
+adversarial = [0, 1]
 diffusion = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
 
 for percent in percents:
-    for lamp in [0]:
+    for lamp in [1, 0]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
@@ -86,8 +85,10 @@ for percent in percents:
         for imb in imbalances:
          for c in cs:
             for k in ks:
+             for adv in adversarial:
+              if adv+k<2:
                 for ep in eps:
-                  for i in range(2):
+                  #for i in range(2):
                     for cl_div in class_divisions:
                         print(f"CLS DIV = {cl_div}")
                         if k%2==1:
@@ -109,7 +110,7 @@ for percent in percents:
                                     n=n,
                                     augment=k % 2,
                                     gaug=g_aug,
-                                    adversary=1,
+                                    adversary=adv,
                                     eps=ep,
                                     mult=mult,
                                     imbalanced=imb,  
@@ -124,7 +125,7 @@ for percent in percents:
                                     augment=0,
                                     gaug=0,
                                     adversary=0,
-                                    eps=test_eps,
+                                    eps=0,
                                 )
                                 procObj.partial_clear(basePath)
                     
@@ -146,7 +147,7 @@ for percent in percents:
                                 n=n,
                                 augment=k % 2,
                                 gaug=0,
-                                adversary=1,
+                                adversary=adv,
                                 eps=ep,
                                 mult=mult,
                                 imbalanced=imb,
@@ -161,7 +162,7 @@ for percent in percents:
                                 augment=0,
                                 gaug=0,
                                 adversary=0,
-                                eps=test_eps,
+                                eps=0,
                             )
                             procObj.partial_clear(basePath)
                     

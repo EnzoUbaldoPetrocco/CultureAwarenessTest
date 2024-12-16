@@ -3,7 +3,17 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../")
-from Model.diffusion.diffusion_standard import DiffusionStandardModel
+import tensorflow as tf
+tf_version = tf.__version__
+# Split version string into major, minor, and patch numbers
+version_tuple = tuple(map(int, tf_version.split(".")))
+
+# Check if the version is less than 2.15
+if version_tuple[1] < 15:
+    from Model.diffusion.diffusion_standard import DiffusionStandardModel
+else:
+    from Model.diffusion.diffusion_standard_new_tf import DiffusionStandardModel
+
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
@@ -16,14 +26,11 @@ from Utils.Data.deep_paths import DeepStrings
 from Utils.Data.shallow_paths import ShallowStrings
 from Utils.Data.Data import PreprocessingClass
 import numpy as np
-import tensorflow as tf
+
 import os
 import gc
 import cv2
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 
 class ProcessingClass:
@@ -134,53 +141,6 @@ class ProcessingClass:
             imbalanced=imbalanced,
 
         )
-        if diffusion==1 and not discriminator:
-            print(f"Diffusion")
-            size = 100
-            n_imgs = len(self.dataobj.X)
-            diff_model = DiffusionStandardModel(image_size=size)
-            init_shape = np.shape(self.dataobj.X[0])[0:2]
-            if standard and (not adversarial) and (not imbalanced):
-                for j in range(2):
-                    tempX = [
-                        cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                        for i in range(len(self.dataobj.X))
-                        if self.dataobj.y[i]== j
-                    ]
-                    tempXv = [
-                        cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                        for i in range(len(self.dataobj.Xv))
-                        if self.dataobj.yv[i] == j
-                    ]
-                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug)
-                    for img in images:
-                        img = np.asarray(img)
-                        img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                        img = np.asarray(img, dtype=object)
-                        self.dataobj.X.append(img)
-                        self.dataobj.y.append(j)
-            else:
-                for j in range(2):
-                    tempX = [
-                        cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                        for i in range(len(self.dataobj.X))
-                        if self.dataobj.y[i][self.n_cultures]== j
-                    ]
-                    tempXv = [
-                        cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                        for i in range(len(self.dataobj.Xv))
-                        if self.dataobj.yv[i][self.n_cultures] == j
-                    ]                    
-                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True)
-                    for img in images:
-                        img = np.asarray(img)
-                        img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                        img = np.asarray(img, dtype=object)
-                        self.dataobj.X.append(img)
-                        lbl = list(np.zeros(self.n_cultures))
-                        lbl.append(j)
-                        self.dataobj.y.append(lbl)
-            del diff_model    
         if augment:
             with tf.device("/gpu:0"):
                 print("Training Augmentation...")
@@ -199,6 +159,81 @@ class ProcessingClass:
             del X_augmented
             del Xv_augmented
             del prepObj
+        if diffusion==1 and not discriminator:
+            print(f"Diffusion")
+            size = 100
+            n_imgs = len(self.dataobj.X)
+            diff_model = DiffusionStandardModel(image_size=size)
+            init_shape = np.shape(self.dataobj.X[0])[0:2]
+
+            if standard and (not adversarial) :
+                if imbalanced:
+                    for j in range(2):
+                        
+                        tempX = [
+                            cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
+                            for i in range(len(self.dataobj.X))
+                            if self.dataobj.y[i][1]== j
+                        ]
+                        tempXv = [
+                            cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
+                            for i in range(len(self.dataobj.Xv))
+                            if self.dataobj.yv[i][1] == j
+                        ]
+                        images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
+                        for img in images:
+                            img = np.asarray(img)
+                            img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
+                            img = np.asarray(img, dtype=object)
+                            self.dataobj.X.append(img)
+                            self.dataobj.y.append([self.n_cultures, j]) # I have to invent another culture
+                else:
+                    for j in range(2):
+                        
+                        tempX = [
+                            cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
+                            for i in range(len(self.dataobj.X))
+                            if self.dataobj.y[i]== j
+                        ]
+                        tempXv = [
+                            cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
+                            for i in range(len(self.dataobj.Xv))
+                            if self.dataobj.yv[i] == j
+                        ]
+                        images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
+                        for img in images:
+                            img = np.asarray(img)
+                            img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
+                            img = np.asarray(img, dtype=object)
+                            self.dataobj.X.append(img)
+                            self.dataobj.y.append(j)
+
+            else:
+                for j in range(2):
+                    print(f"second cycle")
+                    for i in range(len(self.dataobj.X)):
+                        print(self.dataobj.y[i])
+                    tempX = [
+                        cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
+                        for i in range(len(self.dataobj.X))
+                        if self.dataobj.y[i][self.n_cultures]== j
+                    ]
+                    tempXv = [
+                        cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
+                        for i in range(len(self.dataobj.Xv))
+                        if self.dataobj.yv[i][self.n_cultures] == j
+                    ]                    
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
+                    for img in images:
+                        img = np.asarray(img)
+                        img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
+                        img = np.asarray(img, dtype=object)
+                        self.dataobj.X.append(img)
+                        lbl = list(np.zeros(self.n_cultures)) # Generated images are equidistant from the cultures
+                        lbl.append(j)
+                        self.dataobj.y.append(lbl)
+            del diff_model    
+        
 
     def prepare_test(
         self,
@@ -320,6 +355,7 @@ class ProcessingClass:
         class_division=0,
         only_imb_imgs=0,
         diffusion=0,
+        add_adv_samples=0,
     ):
         """
         process function prepares the data and fit the model
@@ -399,6 +435,7 @@ class ProcessingClass:
                         imbalanced=imbalanced,
                         class_division=class_division,
                         only_imb_imgs=only_imb_imgs,
+                        add_adv_samples=add_adv_samples
                     )
                 else:
                     if gradcam:
@@ -439,6 +476,7 @@ class ProcessingClass:
                     n_cultures=n_cultures,
                     imbalanced=imbalanced,
                     diffusion=diffusion,
+                    weights=weights
                 )
 
         self.model.standard = standard
@@ -481,14 +519,23 @@ class ProcessingClass:
             else:
                 c = "/CI/"
         self.basePath = self.basePath + c + str(percent) + "/"
+        if diffusion: 
+            self.basePath = self.basePath + "DIFFUSION/"
         if augment:
-            if adversary:
+            if adversary and not add_adv_samples:
                 if only_imb_imgs:
                     aug = f"ADD_TOTAUG/g={gaug}/eps={eps}/"
                 else:
                     aug = f"TOTAUG/g={gaug}/eps={eps}/"
-                if diffusion:
-                    aug = aug + "DIFFUSION"
+                if class_division:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
+            elif adversary and add_adv_samples:
+                if only_imb_imgs:
+                    aug = f"ADD_TOTAUGADDADV/g={gaug}/eps={eps}/"
+                else:
+                    aug = f"TOTAUG_ADDADV/g={gaug}/eps={eps}/"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:
@@ -497,13 +544,20 @@ class ProcessingClass:
             else:
                 aug = f"STDAUG/g={gaug}/"
         else:
-            if adversary:
+            if adversary and not add_adv_samples:
                 if only_imb_imgs:
                     aug = f"ADD_AVD/eps={eps}/"
                 else:
                     aug = f"AVD/eps={eps}/"
-                if diffusion:
-                    aug = aug + "DIFFUSION"
+                if class_division:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
+            elif adversary and add_adv_samples:
+                if only_imb_imgs:
+                    aug = f"ADD_AVD_ADDADV/eps={eps}/"
+                else:
+                    aug = f"AVDADDADV/eps={eps}/"
                 if class_division:
                     aug = aug + "/CLSDIV/"
                 else:

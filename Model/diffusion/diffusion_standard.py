@@ -11,15 +11,32 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras import layers
 #from tf.keras import ops
 import numpy as np
-import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 import math
+from keras.models import Model
+import sys
+
+class AdamW(tf.keras.optimizers.Adam):
+    def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
+        # Initialize Adam optimizer with the same parameters
+        super(AdamW, self).__init__(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon, **kwargs)
+        self.weight_decay = weight_decay  # Store weight decay value
+
+    def apply_gradients(self, grads_and_vars, name=None, experimental_aggregate_gradients=True):
+        # Apply the weight decay to the weights before applying the gradients
+        grads_and_vars = [
+            (grad + self.weight_decay * var, var) if grad is not None else (None, var)
+            for grad, var in grads_and_vars
+        ]
+        # Call the super class's method to apply the modified gradients
+        return super(AdamW, self).apply_gradients(grads_and_vars, name, experimental_aggregate_gradients)
+
+    def get_config(self):
+        config = super(AdamW, self).get_config()
+        config.update({'weight_decay': self.weight_decay})
+        return config
 
 
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
@@ -28,7 +45,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 dataset_name = "places365_small"
 dataset_repetitions = 6
 num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 50
+num_epochs_flowers = 2
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
 kid_diffusion_steps = 6
@@ -41,15 +58,98 @@ max_signal_rate = 0.95
 # architecture
 embedding_dims = 32
 embedding_max_frequency = 1000.0
-widths = [32, 64,100, 128]
+widths = [32, 64, 100, 128]
 block_depth = 2
 
 # optimization
-batch_size = 32
+batch_size = 64
 ema = 0.999
 transfer_learning_rate = 1e-3
 learning_rate = 1e-3
 weight_decay = 1e-4
+
+attention_type = "self"
+
+def AttentionBlock(width):
+    def apply(x):
+        query = layers.Conv2D(width, kernel_size=1)(x)
+        key = layers.Conv2D(width, kernel_size=1)(x)
+        value = layers.Conv2D(width, kernel_size=1)(x)
+        
+        # Compute attention
+        attention_scores = tf.keras.layers.Attention()([query, key])
+        attention_output = layers.Multiply()([attention_scores, value])
+        
+        # Residual connection
+        return layers.Add()([x, attention_output])
+    
+    return apply
+
+def SelfAttentionBlock(channels):
+    """Self-Attention Block to enhance feature representation."""
+    def apply(x):
+        # Compute query, key, and value
+        query = layers.Conv2D(channels // 8, kernel_size=1)(x)
+        key = layers.Conv2D(channels // 8, kernel_size=1)(x)
+        value = layers.Conv2D(channels, kernel_size=1)(x)
+
+        # Calculate attention scores
+        attention_scores = tf.nn.softmax(tf.matmul(
+            tf.reshape(query, [tf.shape(x)[0], -1, channels // 8]),  # Flatten spatial dimensions
+            tf.reshape(key, [tf.shape(x)[0], -1, channels // 8]), transpose_b=True
+        ))
+
+        # Compute attention-weighted output
+        attention_output = tf.matmul(attention_scores, 
+                                      tf.reshape(value, [tf.shape(x)[0], -1, channels]))
+        attention_output = tf.reshape(attention_output, tf.shape(x))
+        return layers.Add()([x, attention_output])  # Residual connection
+
+    return apply
+
+
+def SEBlock(channels, reduction=16):
+    """Squeeze-and-Excitation Block for channel attention."""
+    def apply(x):
+        # Squeeze
+        squeeze = layers.GlobalAveragePooling2D()(x)
+        squeeze = layers.Dense(channels // reduction, activation="relu")(squeeze)
+        squeeze = layers.Dense(channels, activation="sigmoid")(squeeze)
+
+        # Scale
+        scale = layers.Reshape((1, 1, channels))(squeeze)
+        return layers.Multiply()([x, scale])
+
+    return apply
+
+
+def TransformerBlock(channels, num_heads=4, ff_dim=256):
+    """Transformer Block with Multi-Head Attention and Feedforward layers."""
+    def apply(x):
+        # Layer Normalization
+        x_norm = layers.LayerNormalization()(x)
+
+        # Multi-Head Self-Attention
+        attention_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=channels)(x_norm, x_norm)
+        attention_output = layers.Add()([x, attention_output])  # Residual connection
+
+        # Feedforward
+        ff_output = layers.Dense(ff_dim, activation="relu")(attention_output)
+        ff_output = layers.Dense(channels, name="transformer_dense")(ff_output)
+        return layers.Add()([attention_output, ff_output])  # Residual connection
+
+    return apply
+
+
+
+class NullWriter:
+    def write(self, _): pass
+
+def suppress_output():
+    sys.stdout = NullWriter()
+
+def restore_output():
+    sys.stdout = sys.__stdout__
 
 def preprocess_image(image_size = 128):
     def  preprocess_function(data):
@@ -167,32 +267,45 @@ def sinusoidal_embedding(x):
     return embeddings
 
 
-def ResidualBlock(width):
+def ResidualBlock(width, activation="relu", normalization="batch"):
     def apply(x):
-        input_width = x.shape[3]
-        if input_width == width:
-            residual = x
-        else:
-            residual = layers.Conv2D(width, kernel_size=1)(x)
-        x = layers.BatchNormalization(center=False, scale=False)(x)
-        x = layers.Conv2D(width, kernel_size=3, padding="same", activation="relu")(x)
+        input_width = x.shape[-1]
+        residual = x if input_width == width else layers.Conv2D(width, kernel_size=1)(x)
+
+        if normalization == "batch":
+            x = layers.BatchNormalization()(x)
+        elif normalization == "layer":
+            x = layers.LayerNormalization()(x)
+
+        x = layers.Activation(activation)(x)
         x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
+        x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
+
         x = layers.Add()([x, residual])
         return x
 
     return apply
 
 
-def DownBlock(width, block_depth):
+def DownBlock(width, block_depth, pool_type="average", dropout_rate=0.1):
     def apply(x):
         x, skips = x
         for _ in range(block_depth):
             x = ResidualBlock(width)(x)
             skips.append(x)
-        x = layers.AveragePooling2D(pool_size=2)(x)
+
+        if pool_type == "average":
+            x = layers.AveragePooling2D(pool_size=2)(x)
+        elif pool_type == "max":
+            x = layers.MaxPooling2D(pool_size=2)(x)
+
+        if dropout_rate:
+            x = layers.Dropout(dropout_rate)(x)
+
         return x
 
     return apply
+
 
 def fix_shape_mismatch(x, skip):
     """Adjust the shapes of the feature maps by either cropping or padding."""
@@ -215,72 +328,28 @@ def fix_shape_mismatch(x, skip):
             return x
     return x
 
-def UpBlock(width, block_depth):
+def UpBlock(width, block_depth, dropout_rate=0.1):
     def apply(x):
         x, skips = x
-        x = layers.UpSampling2D(size=(2,2), interpolation="bilinear")(x)
+        x = layers.UpSampling2D(size=2, interpolation="bilinear")(x)
         for _ in range(block_depth):
             skip = skips.pop()
             x = fix_shape_mismatch(x, skip)
             x = layers.Concatenate()([x, skip])
             x = ResidualBlock(width)(x)
+            if dropout_rate:
+                x = layers.Dropout(dropout_rate)(x)
         return x
 
     return apply
 
-def get_resnet50v2_network(image_size, widths, block_depth):
-    """Creates a network using ResNet50V2 as the backbone."""
-    
-    noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
-    noise_variances = tf.keras.Input(shape=(1, 1, 1))
 
-    # Sinusoidal embedding for noise variances
-    e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
-    e = layers.UpSampling2D(size=image_size // 4, interpolation="nearest")(e)
-
-    # Load pretrained ResNet50V2 model without the top layers
-    base_model = tf.keras.applications.ResNet50V2(
-        include_top=False, 
-        input_shape=(image_size, image_size, 3), 
-        weights='imagenet'
-    )
-    base_model.trainable = False
-
-    # Get the output of the base model
-    resnet_output = base_model(noisy_images)
-
-
-    # Upsample the ResNet output to match the spatial dimensions of the embedding
-    resnet_output = tf.keras.layers.Flatten()(resnet_output)
-    resnet_dense = layers.Dense(e.shape[1]*e.shape[2]*e.shape[3])(resnet_output)
-    reshaped_resnet_output = tf.keras.layers.Reshape(target_shape=e.shape[1:4])(resnet_dense)
-
-    # Concatenate the upsampled ResNet output with the sinusoidal embedding
-    
-    x = layers.Concatenate()([reshaped_resnet_output, e])
-
-    skips = []
-    for width in widths[:-1]:
-        x = DownBlock(width, block_depth)([x, skips])
-
-
-    for _ in range(block_depth):
-        x = ResidualBlock(widths[-1])(x)
-
-    for width in reversed(widths[:-1]):
-        x = UpBlock(width, block_depth)([x, skips])
-
-    x = layers.UpSampling2D(size=image_size // x.shape[1], interpolation='bilinear')(x)
-    x = layers.Conv2D(3, kernel_size=1)(x)
-    
-
-    return tf.keras.Model([noisy_images, noise_variances], x, name="resnet_unet")
-
-def get_network(image_size, widths, block_depth):
+def get_network(image_size, widths, block_depth, attention_type="transformer", pool_type="average", dropout_rate=0.1):
 
     noisy_images = tf.keras.Input(shape=(image_size, image_size, 3))
     noise_variances = tf.keras.Input(shape=(1, 1, 1))
 
+    # Sinusoidal embedding
     e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
 
@@ -288,18 +357,27 @@ def get_network(image_size, widths, block_depth):
     x = layers.Concatenate()([x, e])
 
     skips = []
+    # Downsampling path
     for width in widths[:-1]:
-        x = DownBlock(width, block_depth)([x, skips])
+        x = DownBlock(width, block_depth, pool_type=pool_type, dropout_rate=dropout_rate)([x, skips])
 
-    for _ in range(block_depth):
+    # Bottleneck with attention
+    for i in range(block_depth):
+        if i == block_depth // 2:  # Add attention at the midpoint
+            if attention_type == "self":
+                x = SelfAttentionBlock(widths[-1])(x)
+            elif attention_type == "transformer":
+                print("transformer block")
+                x = TransformerBlock(widths[-1])(x)
         x = ResidualBlock(widths[-1])(x)
 
+    # Upsampling path
     for width in reversed(widths[:-1]):
-        x = UpBlock(width, block_depth)([x, skips])
+        x = UpBlock(width, block_depth, dropout_rate=dropout_rate)([x, skips])
 
     x = layers.Conv2D(3, kernel_size=1)(x)
 
-    return tf.keras.Model([noisy_images, noise_variances], x, name="residual_unet")
+    return tf.keras.Model([noisy_images, noise_variances], x, name="attention_residual_unet")
 
 #@tf.keras.saving.register_tf.keras_serializable()
 class DiffusionStandardModel(tf.keras.Model):
@@ -480,12 +558,13 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.subplot(num_rows, num_cols, index + 1)
                 plt.imshow(generated_images[index])
                 plt.axis("off")
+                #plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 4000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer = fig.canvas.new_timer(interval = 1000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
+        plt.savefig(self.img_name)
         plt.show()
-        plt.imsave("./Samples.jpg")
         plt.close()
 
     def plot_dataset(self, ds, num_rows=3, num_cols=6):
@@ -507,24 +586,26 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, lamp=False, culture=0, category=0, imb=0): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
-
+        
         if aug:
+            suppress_output()
             data_augmentation = keras.Sequential(
                     [
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal_and_vertical"),
-                        layers.RandomRotation(0.01),
-                        layers.GaussianNoise(0.01),
-                        tf.keras.layers.RandomBrightness(0.01),
+                        layers.RandomRotation(0.05),
+                        layers.GaussianNoise(0.05),
+                        tf.keras.layers.RandomBrightness(0.05),
                         layers.RandomZoom(0.01, 0.01),
                         layers.Rescaling(255.0),
                     ]
                 )
+                
             for i in range(1):
                 aug_images = data_augmentation(train_dataset)
                 val_aug_images = data_augmentation(val_dataset)
@@ -537,103 +618,138 @@ class DiffusionStandardModel(tf.keras.Model):
                     img = tf.clip_by_value(img, 0, 255)
                     img = tf.cast(img, "uint8")
                     val_dataset.append(img)
+            restore_output()
+            del data_augmentation
 
-        train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
-        val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
-        
-        # pixelwise mean absolute error is used as loss
-        # calculate mean and variance of training dataset for normalization
-
-        early = EarlyStopping(
+            
+        if not get_pretrained:
+            early = EarlyStopping(
                 monitor="val_kid",
                 min_delta=0.001,
-                patience=12,
+                patience=7,
             )
-        if plot_imgs:
-            
-            callbacks = [
-                tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
-                early
-                #checkpoint_callback,
-            ]
-        else:
-           
-            callbacks = [early]
-
-        
-        
-        if not get_pretrained:
-            flowers_dataset = prepare_dataset("train[:1%]+test[:1%]", image_size=self.image_size, add_to_ds=train_dataset)
-            val_flowers_dataset = prepare_dataset("train[99%:]+test[99%:]", image_size=self.image_size, add_to_ds=val_dataset)
-
-
-
-            self.normalizer.adapt(flowers_dataset)
-
             lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",
-                factor=0.2,
-                patience=5,
+                factor=0.1,
+                patience=3,
                 verbose=1,
                 min_lr=1e-9,
             )
-            callbacks.append(lr_reduce)
-            self.compile(
-                    optimizer=tfa.optimizers.AdamW(
-                        learning_rate=transfer_learning_rate, weight_decay=weight_decay
-                    ),
-                    loss=tf.keras.losses.mean_absolute_error,
-                )
-        
-            self.fit(
-                flowers_dataset,
-                epochs=num_epochs_flowers,
-                validation_data=val_flowers_dataset,
-                callbacks=callbacks,
-                shuffle=True
-            )
-
-            del flowers_dataset
-            del val_flowers_dataset
-
-            callbacks.pop()
-
-            if save:
-                self.network.save('diffusion_pretrained.h5')
-                self.ema_network.save('ema_diffusion_pretrained.h5')
-                #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
-        else:
+            if plot_imgs:
+                
+                callbacks = [
+                    tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
+                    early,
+                    lr_reduce
+                    #checkpoint_callback,
+                ]
+            else:
+                callbacks = [early, lr_reduce]
             
+            tf_lr = transfer_learning_rate
+            for i in range(5):
+                flowers_dataset = prepare_dataset(f"train[{3.2*(i)}:{3.2*(i+1)}%]+test[{3.2*(i)}:{3.2*(i+1)}%]", image_size=self.image_size)
+                val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
+
+
+                # pixelwise mean absolute error is used as loss
+                # calculate mean and variance of training dataset for normalization
+                self.normalizer.adapt(flowers_dataset)
+                
+                
+                self.compile(
+                        optimizer=AdamW(
+                            learning_rate=tf_lr, weight_decay=weight_decay
+                        ),
+                        loss=tf.keras.losses.mean_absolute_error,
+                    )
+                
+                self.img_name = "./PretrainedNetGeneration.png"
+                self.fit(
+                    flowers_dataset,
+                    epochs=num_epochs_flowers,
+                    validation_data=val_flowers_dataset,
+                    callbacks=callbacks,
+                    shuffle=True
+                )
+                tf_lr = tf_lr / 1.1
+
+                del flowers_dataset
+                del val_flowers_dataset
+
+
+                if save:
+                    self.network.save('diffusion_pretrained.h5')
+                    self.ema_network.save('ema_diffusion_pretrained.h5')
+                    #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
+        else:
             self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
             self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
             #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
-            
             print('Loaded pretrained model')
+
         self.compile(
-                optimizer=tfa.optimizers.AdamW(
+                optimizer=AdamW(
                     learning_rate=learning_rate, weight_decay=weight_decay
                 ),
                 loss=tf.keras.losses.mean_absolute_error,
             )
+
+        #self.network.summary()
+        #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
+        #self.ema_network.summary()
+
+        for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
+            layer.trainable = False
+            #print(layer.name)
+        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
+            layer.trainable = False
+
+        #self.network.summary()
+        #self.ema_network.summary()
+
+        train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
+        val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
             
         train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
         val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
 
         # run training and plot generated images periodically
+        early = EarlyStopping(
+                monitor="val_kid",
+                min_delta=0.001,
+                patience=15,
+        )
         lr_reduce = ReduceLROnPlateau(
                 monitor="val_kid",
                 factor=0.2,
-                patience=5,
+                patience=6,
                 verbose=1,
                 min_lr=1e-9,
             )
-        callbacks.append(lr_reduce)
+        if plot_imgs:
+            
+            callbacks = [
+                tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
+                early,
+                lr_reduce
+                #checkpoint_callback,
+            ]
+        else:
+            callbacks = [early, lr_reduce]
+        
         
         self.normalizer.adapt(train_dataset)
         if get_pretrained:
             if plot_imgs:
                 print("Pretrained images generation")
+                self.img_name = "./PretrainedNetGeneration.png"
                 self.plot_images()
+
+        if lamp:
+            self.img_name = f"./Lamps{culture}_{category}_imb={imb}.png"
+        else:
+            self.img_name = f"./Carpets{culture}_{category}_imb={imb}.png"
         self.fit(
             train_dataset,
             epochs=num_epochs,
@@ -641,9 +757,26 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks=callbacks,
         )
 
+        for layer in self.network.layers[0:int(len(self.network.layers))]:
+            layer.trainable = True
+        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers))]:
+            layer.trainable = True
 
-        if plot_imgs:
-            self.plot_images()
+        # Fine tuning
+        self.compile(
+                optimizer=AdamW(
+                    learning_rate=learning_rate/100, weight_decay=weight_decay
+                ),
+                loss=tf.keras.losses.mean_absolute_error,
+            )
+
+        self.fit(
+            train_dataset,
+            epochs=num_epochs//3,
+            validation_data=val_dataset,
+            callbacks=callbacks,
+
+        )
 
         generated_images = self.generate(
             num_images=n_images,
