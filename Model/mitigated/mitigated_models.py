@@ -19,7 +19,6 @@ import math
 import random
 from datetime import datetime
 from keras.regularizers import Regularizer
-import pickle
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
@@ -29,13 +28,12 @@ class CustomReg(Regularizer):
             self.n_cultures = n_cultures
 
         def __call__(self, x):
-            sum = tf.constant(0.0, dtype="float32")
+            
+            mean = tf.reshape(tf.reduce_mean(x, axis=1),  [-1, 1])
+            diff = tf.subtract(x, mean)
+            reg = tf.reduce_sum(tf.square(diff))
+            res = (self.lamb) * reg
 
-            mean = tf.reduce_mean(x, axis=1)
-            for i in range(self.n_cultures):
-                sum += tf.math.square(tf.norm(x[:, i] - mean))
-
-            res = (self.lamb) * sum
             return res
 
 
@@ -114,16 +112,15 @@ class MitigatedModels(GeneralModelClass):
             
             bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures], tf.einsum('ij,ij->i', y_true[:, 0:n_cultures], y_pred))
 
-            weights = tf.concat([self.model.layers[-1].trainable_variables[0], tf.reshape(self.model.layers[-1].trainable_variables[1] ,  [1, -1])], axis=0)
+            """weights = tf.concat([self.model.layers[-1].trainable_variables[0], tf.reshape(self.model.layers[-1].trainable_variables[1] ,  [1, -1])], axis=0)
             mean_weights = tf.reshape(tf.reduce_mean(weights, axis=1),  [-1, 1])
             diff = tf.subtract(weights, mean_weights)
             squared_norms = tf.reduce_sum(tf.square(diff))
             reg = lamb * squared_norms
             ls = tf.add(reg, bc)
-            #print(f"reg is {reg}")
-            #print(f"bc is {bc}")
             del bc, weights, mean_weights, diff, squared_norms, reg
-            return ls
+            return ls"""
+            return bc
         return loss
 
     def custom_accuracy(self):
@@ -220,7 +217,7 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[32],
+        batches=[4],
         lrs=[1e-2, 1e-3, 1e-4],
         fine_lrs=[1e-5],
         epochs=30,
@@ -443,7 +440,8 @@ class MitigatedModels(GeneralModelClass):
             
             y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
             y = keras.layers.Flatten()(y)
-            output = keras.layers.Dense(3, activation='sigmoid', name=f'pred_dense_layer')(y)
+            output = keras.layers.Dense(3, activation='sigmoid', name=f'pred_dense_layer', 
+                                        kernel_regularizer=CustomReg(self.lamb, self.n_cultures))(y)
             
             self.model = keras.Model(inputs, output)
 
@@ -481,10 +479,11 @@ class MitigatedModels(GeneralModelClass):
             #ws = np.linalg.norm(self.model.layers[-1].weights[0])
             self.model.fit(
                 train_generator,
-                epochs=1,
+                epochs=epochs,
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                shuffle=True
             )
             #ws2 = np.linalg.norm(self.model.layers[-1].weights[0])
             #print(f"Same = {ws2==ws}")
@@ -499,7 +498,7 @@ class MitigatedModels(GeneralModelClass):
                 optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
                 loss=[self.custom_loss()],
                 metrics=[self.custom_accuracy()],
-                run_eagerly=True
+                #run_eagerly=True
             )
 
             history = self.model.fit(
@@ -508,6 +507,7 @@ class MitigatedModels(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                shuffle=True
             )
             tf.keras.backend.clear_session()
             return history
