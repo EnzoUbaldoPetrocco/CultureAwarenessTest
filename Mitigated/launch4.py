@@ -66,14 +66,13 @@ diffusion = 1
 g_gaugs = np.logspace(-4, 0, 6)
 g_aug = g_gaugs[0]
 mult = 0.25
-cs = [ 1, 2, 0]
+cs = [2, 1, 0]
 ks = [1]
-
 
 basePath = "./"
 # with tf.device("/CPU:0"):
-
-for percent in percents:
+for i in range(5):
+ for percent in percents:
     for lamp in [0, 1]:
         procObj = ProcessingClass(
             shallow=0,
@@ -85,7 +84,7 @@ for percent in percents:
         for imb in imbalances:
           for c in cs:
             for k in ks:
-              for i in range(5):
+              
                 model = None
                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                 procObj.process(
