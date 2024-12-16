@@ -108,6 +108,7 @@ def predict():
         return jsonify({"error": "No image file uploaded"}), 400
 
     image = request.files['image']
+    print(image)
     if image.filename == '' or not allowed_file(image.filename):
         return jsonify({"error": "Invalid file type"}), 400
 
@@ -129,6 +130,7 @@ def predict():
         image.save(filepath)
 
     image = np.asarray(image) 
+    print(image)
         
     # Return the prediction and the command
     if sim_with_models:
