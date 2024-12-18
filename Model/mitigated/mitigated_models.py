@@ -97,8 +97,7 @@ class MitigatedModels(GeneralModelClass):
             losses.append(ls)
         cic = float(self.computeCIC(losses))
         return cic
-
-    
+  
     def custom_loss(self):
         """
         This function implements the loss and the regularizer of the mitigation stratyegy
@@ -111,15 +110,6 @@ class MitigatedModels(GeneralModelClass):
         def loss(y_true, y_pred):
             
             bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures], tf.einsum('ij,ij->i', y_true[:, 0:n_cultures], y_pred))
-
-            """weights = tf.concat([self.model.layers[-1].trainable_variables[0], tf.reshape(self.model.layers[-1].trainable_variables[1] ,  [1, -1])], axis=0)
-            mean_weights = tf.reshape(tf.reduce_mean(weights, axis=1),  [-1, 1])
-            diff = tf.subtract(weights, mean_weights)
-            squared_norms = tf.reduce_sum(tf.square(diff))
-            reg = lamb * squared_norms
-            ls = tf.add(reg, bc)
-            del bc, weights, mean_weights, diff, squared_norms, reg
-            return ls"""
             return bc
         return loss
 
@@ -217,8 +207,8 @@ class MitigatedModels(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[8],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
-        fine_lrs=[1e-5],
+        lrs=[1e-3, 1e-4, 1e-5],
+        fine_lrs=[1e-5, 1e-6],
         epochs=30,
         fine_epochs=10,
         nDropouts=[0.4],
@@ -233,7 +223,7 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-6, 1, 6)
+        lambdas = np.logspace(-6, 1, 4)
         for lmb in lambdas:
             self.lamb = lmb
             for b in batches:
@@ -329,7 +319,7 @@ class MitigatedModels(GeneralModelClass):
         
     ):
             shape = np.shape(TS[0][0])
-            n = np.shape(TS[0])
+            print(f"Shape of data is {shape}")
             tf.keras.backend.clear_session()
 
             if show_imgs:
@@ -363,6 +353,7 @@ class MitigatedModels(GeneralModelClass):
                 ]
             )
 
+            print(f"aug is {aug}")
             def preprocess(img, label):
                 return data_augmentation(img, training=aug), label
                         
@@ -372,7 +363,7 @@ class MitigatedModels(GeneralModelClass):
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
                      
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
-            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).map(preprocess).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
             del TS
 
@@ -410,7 +401,7 @@ class MitigatedModels(GeneralModelClass):
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
-                input_shape=shape,
+                input_shape=[None, shape],
                 include_top=False,
             )  # Do not include the ImageNet classifier at the top.
 
@@ -424,7 +415,7 @@ class MitigatedModels(GeneralModelClass):
             # outputs: `(inputs * scale) + offset`
             scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
             if aug:
-                #x = data_augmentation(inputs)  # Apply random data augmentation
+                x = data_augmentation(inputs)   # Apply random data augmentation
                 x = scale_layer(x)
             else:
                 x = scale_layer(inputs)

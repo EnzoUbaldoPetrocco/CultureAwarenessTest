@@ -359,10 +359,7 @@ class StandardModels(GeneralModelClass):
 
             # Create  model on top
             inputs = keras.Input(shape=shape)
-            # Pre-trained Xception weights requires that input be scaled
-            # from (0, 255) to a range of (-1., +1.), the rescaling layer
-            # outputs: `(inputs * scale) + offset`
-            # scale_layer = keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
+            
             scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
             if aug:
                 x = data_augmentation(inputs)  # Apply random data augmentation

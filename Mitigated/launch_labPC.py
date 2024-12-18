@@ -78,6 +78,7 @@ test_split = 0.1
 epochs = 15
 
 g_gaugs = np.logspace(-4, 0, 6)
+g_aug = g_gaugs[0]
 eps = np.logspace(-6, -1, 5)
 test_eps = [0.0005, 0.001, 0.005]
 mult = 0.25
@@ -95,6 +96,7 @@ for i in range(1):
     )
     for percent in percents:
         for c in cs:
+         for k in ks:
             for standard in standards:
                 print(f"Training->aug={0};adv={0}")
                 procObj.process(
@@ -110,7 +112,9 @@ for i in range(1):
                     val_split=val_split,
                     test_split=test_split,
                     n=n,
-                    imbalanced=imb
+                    imbalanced=imb,
+                    augment=k,
+                    gaug=g_aug
                 )
                 # NoAUg
                 gc.collect()

@@ -398,13 +398,12 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
-            augment=0,
+            augment=augment,
             adversarial=adversary,
             imbalanced=imbalanced,
             discriminator=discriminator,
             diffusion = diffusion,
             gaug = gaug,
-            aug = augment
         )
         self.model = None
         if discriminator:
