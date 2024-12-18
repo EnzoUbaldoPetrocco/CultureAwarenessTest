@@ -401,7 +401,7 @@ class MitigatedModels(GeneralModelClass):
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
-                input_shape=[None, shape],
+                input_shape=shape,
                 include_top=False,
             )  # Do not include the ImageNet classifier at the top.
 
