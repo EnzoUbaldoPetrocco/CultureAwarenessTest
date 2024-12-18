@@ -477,6 +477,8 @@ class ResAcquisitionClass:
             else:
                 c = "/CI/"
         basePath = basePath + c + str(percent) + "/"
+
+        
         if diffusion: 
             basePath = basePath + "DIFFUSION/"
         if augment:
@@ -560,7 +562,7 @@ class ResAcquisitionClass:
                         for percent in percents:
                             for augment in augments:
                                 for adv in adversary:
-                                    print(f"augment is {augment}, adv is {adv}")
+                                    #print(f"augment is {augment}, adv is {adv}")
                                     if augment and (not adv):
                                         for dif in diffusion:
                                          if not dif:
@@ -592,7 +594,6 @@ class ResAcquisitionClass:
                                                                             t_cult,
                                                                             g_augment=g_augment,
                                                                             imbalanced=imb,
-                                                                            diffusion=dif
                                                                         )
                                                                         outsl = self.get_cm_list(
                                                                             path
@@ -710,10 +711,10 @@ class ResAcquisitionClass:
                                                                     data.to_csv(
                                                                         st + "res.csv"
                                                                     )
-                                         else:
-                                            
-                                            g_augment = g_diffusion
-                                            if standard == 0:
+                                         else:          
+                                                                        
+                                            g_augment = g_diffusion[0]
+                                            if standard == 0:  
                                                 for taugment in taugments:
                                                     for tadversary in tadversaries:
                                                         for tgaug in test_g_augs:
@@ -722,6 +723,7 @@ class ResAcquisitionClass:
                                                                 for (
                                                                     t_cult
                                                                 ) in t_cults:
+                                                                    
                                                                     path = self.buildPath(
                                                                         basePath,
                                                                         standard,
@@ -813,6 +815,7 @@ class ResAcquisitionClass:
                                                                         t_cult,
                                                                         g_augment=g_augment,
                                                                         imbalanced=imb,
+                                                                        diffusion=dif
                                                                     )
                                                                     outsl = self.get_cm_list(
                                                                         path
@@ -1042,6 +1045,7 @@ class ResAcquisitionClass:
                                                                             + "res.csv"
                                                                         )
                                         else:
+                                         if not adv and not augment:
 
                                             if standard == 0:
 
