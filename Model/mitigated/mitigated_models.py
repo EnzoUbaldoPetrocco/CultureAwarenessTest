@@ -206,7 +206,7 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[8],
+        batches=[4],
         lrs=[1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5, 1e-6],
         epochs=30,
@@ -401,7 +401,7 @@ class MitigatedModels(GeneralModelClass):
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
-                input_shape=[None, shape],
+                input_shape=shape,
                 include_top=False,
             )  # Do not include the ImageNet classifier at the top.
 
