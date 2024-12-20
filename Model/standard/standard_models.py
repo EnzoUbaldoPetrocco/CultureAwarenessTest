@@ -175,6 +175,8 @@ class StandardModels(GeneralModelClass):
         path="./",
     ):
             best_loss = np.inf
+            TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
+            VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
             for b in batches:
                 for lr in lrs:
                     for fine_lr in fine_lrs:
@@ -243,11 +245,13 @@ class StandardModels(GeneralModelClass):
             label = Y[i]
             if label[0]<len(self.weights):
              for i in range(int(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
-                im = np.asarray(data_augmentation(img, training=aug), dtype=object)
+                im = np.asarray(X[i])
                 newX.append(im) # I do not need culture for training 
                 newY.append(label[1])
         del TS
         return (newX, newY)
+
+
 
     def DL(
         self,
@@ -327,24 +331,24 @@ class StandardModels(GeneralModelClass):
                         plt.show()
 
             if self.imbalanced:
-                TS = self.ImbalancedTransformation(TS, data_augmentation, aug)
-                train_datagen = ImageDataGenerator()
-            else:
-                train_datagen = ImageDataGenerator(
-                    preprocessing_function=lambda img: data_augmentation(img, training=aug)
-                )
-            # Apply data augmentation to the training dataset
-            X = tf.constant(TS[0], dtype="float32")
-            y = tf.constant(TS[1], dtype="float32")
-            train_generator = train_datagen.flow(x=X, y=y, batch_size=batch_size)
-            # train_generator = train_datagen.flow(x=np.asarray(TS[0], dtype=object).astype('float32'),y=np.asarray(TS[1], dtype=object).astype('float32'), batch_size=32)
+                #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')
+                TS = self.ImbalancedTransformation(TS)
+                #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
+                     
+            #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
+            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+            
+            del TS
+
             validation_generator = None
             if val:
-                val_datagen = ImageDataGenerator()
-                Xv = tf.constant(VS[0], dtype="float32")
-                yv = tf.constant(VS[1], dtype="float32")
-                validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
+                #val_datagen = ImageDataGenerator()
+                #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
+                validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                
+                del VS
 
+            tf.keras.backend.clear_session() 
 
             
             # MODEL IMPLEMENTATION

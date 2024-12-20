@@ -65,16 +65,16 @@ imbalances = [0, 1]
 g_gaugs = np.logspace(-3, -1, 3)
 eps = np.logspace(-6, -1, 3)
 mult = 0.25
-cs = [2, 1, 0]
-ks = [0, 1]
-adversarial = [0, 1]
+cs = [0, 1, 2]
+ks = [1, 0]
+adversarial = [1, 0]
 diffusion = 0
 
 basePath = "./"
 # with tf.device("/CPU:0"):
 
 for percent in percents:
-    for lamp in [0, 1]:
+    for lamp in [1, 0]:
         procObj = ProcessingClass(
             shallow=0,
             lamp=lamp,
