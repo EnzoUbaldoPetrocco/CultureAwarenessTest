@@ -66,7 +66,7 @@ diffusion = 1
 g_gaugs = np.logspace(-4, 0, 6)
 g_aug = g_gaugs[0]
 mult = 0.25
-cs = [2, 1, 0]
+cs = [1, 0]
 ks = [1]
 
 basePath = "./"
@@ -84,6 +84,7 @@ for i in range(5):
         for imb in imbalances:
           for c in cs:
             for k in ks:
+             if (lamp==1 and c==1) or (lamp==0 and c==0):
               
                 model = None
                 print(f"Training->aug={k%2};adv={floor(k/2)}")
