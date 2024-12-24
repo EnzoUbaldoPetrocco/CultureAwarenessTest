@@ -13,7 +13,6 @@ if version_tuple[1] < 15:
     from Model.diffusion.diffusion_standard import DiffusionStandardModel
 else:
     from Model.diffusion.diffusion_standard_new_tf import DiffusionStandardModel
-
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam

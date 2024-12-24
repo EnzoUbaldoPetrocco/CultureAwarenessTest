@@ -36,11 +36,7 @@ class AdamW(tf.keras.optimizers.Adam):
         config.update({'weight_decay': self.weight_decay})
         return config
 
-
-
 # tf.config.set_soft_device_placement(True)
-
-
 # data
 dataset_name = "places365_small"
 dataset_repetitions = 6
@@ -106,7 +102,6 @@ def SelfAttentionBlock(channels):
         return layers.Add()([x, attention_output])  # Residual connection
 
     return apply
-
 
 def SEBlock(channels, reduction=16):
     """Squeeze-and-Excitation Block for channel attention."""
@@ -687,6 +682,7 @@ class DiffusionStandardModel(tf.keras.Model):
             self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
             #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
             print('Loaded pretrained model')
+            print('standard diffusion')
 
         self.compile(
                 optimizer=AdamW(

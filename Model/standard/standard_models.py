@@ -334,17 +334,18 @@ class StandardModels(GeneralModelClass):
                 #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')
                 TS = self.ImbalancedTransformation(TS)
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
-                     
-            #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
-            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+
+            
+            train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
+            #train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
             del TS
 
             validation_generator = None
             if val:
-                #val_datagen = ImageDataGenerator()
-                #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
-                validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                val_datagen = ImageDataGenerator()
+                validation_generator = val_datagen.flow(x=tf.constant(VS[0], dtype="float32"), y=tf.constant(VS[1]), batch_size=batch_size)
+                #validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
                 
                 del VS
 
