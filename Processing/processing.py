@@ -7,12 +7,12 @@ import tensorflow as tf
 tf_version = tf.__version__
 # Split version string into major, minor, and patch numbers
 version_tuple = tuple(map(int, tf_version.split(".")))
-
+from Model.diffusion.diffusion_standard import DiffusionStandardModel
 # Check if the version is less than 2.15
-if version_tuple[1] < 15:
+"""if version_tuple[1] < 15:
     from Model.diffusion.diffusion_standard import DiffusionStandardModel
 else:
-    from Model.diffusion.diffusion_standard_new_tf import DiffusionStandardModel
+    from Model.diffusion.diffusion_standard_new_tf import DiffusionStandardModel"""
 from Model.mitigated.mitigated_models import MitigatedModels
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
@@ -141,15 +141,15 @@ class ProcessingClass:
 
         )
         if augment:
-            with tf.device("/gpu:0"):
-                print("Training Augmentation...")
-                prepObj = PreprocessingClass()
-                X_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.X, g=gaug, 
-                )
-                Xv_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.Xv, g=gaug
-                )
+            
+            print("Training Augmentation...")
+            prepObj = PreprocessingClass()
+            X_augmented = prepObj.classical_augmentation(
+                X=self.dataobj.X, g=gaug, 
+            )
+            Xv_augmented = prepObj.classical_augmentation(
+                X=self.dataobj.Xv, g=gaug
+            )
 
             self.dataobj.X.extend(X_augmented)
             self.dataobj.Xv.extend(Xv_augmented)
@@ -168,7 +168,6 @@ class ProcessingClass:
             if standard and (not adversarial) :
                 if imbalanced:
                     for j in range(2):
-                        
                         tempX = [
                             cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
                             for i in range(len(self.dataobj.X))
@@ -179,7 +178,7 @@ class ProcessingClass:
                             for i in range(len(self.dataobj.Xv))
                             if self.dataobj.yv[i][1] == j
                         ]
-                        images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
+                        images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
                         for img in images:
                             img = np.asarray(img)
                             img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -199,7 +198,7 @@ class ProcessingClass:
                             for i in range(len(self.dataobj.Xv))
                             if self.dataobj.yv[i] == j
                         ]
-                        images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
+                        images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
                         for img in images:
                             img = np.asarray(img)
                             img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -222,7 +221,7 @@ class ProcessingClass:
                         for i in range(len(self.dataobj.Xv))
                         if self.dataobj.yv[i][self.n_cultures] == j
                     ]                    
-                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
+                    images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
                     for img in images:
                         img = np.asarray(img)
                         img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)

@@ -576,7 +576,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False, lamp=False, culture=0, category=0, imb=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=False, lamp=False, culture=0, category=0, imb=0, percent=0.0): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -732,9 +732,9 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.plot_images()
 
         if lamp:
-            self.img_name = f"./newtf/Lamps{culture}_{category}_imb={imb}.png"
+            self.img_name = f"./newtf/{percent}/Lamps{culture}_{category}_imb={imb}.png"
         else:
-            self.img_name = f"./newtf/Carpets{culture}_{category}_imb={imb}.png"
+            self.img_name = f"./newtf/{percent}/Carpets{culture}_{category}_imb={imb}.png"
         self.fit(
             train_dataset,
             epochs=num_epochs,
