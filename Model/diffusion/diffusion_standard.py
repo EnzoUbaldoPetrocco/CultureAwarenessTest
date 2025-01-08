@@ -39,12 +39,12 @@ class AdamW(tf.keras.optimizers.Adam):
 # tf.config.set_soft_device_placement(True)
 # data
 dataset_name = "places365_small"
-dataset_repetitions = 6
-num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 2
+dataset_repetitions = 7
+num_epochs = 10  # train for at least 50 epochs for good results
+num_epochs_flowers = 4
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
-kid_diffusion_steps = 6
+kid_diffusion_steps = 3
 plot_diffusion_steps = 20
 
 # sampling
@@ -348,6 +348,19 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
     e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
 
+    data_augmentation = keras.Sequential(
+                    [
+                        layers.Rescaling(1.0/255.0),
+                        layers.RandomFlip("horizontal_and_vertical"),
+                        layers.RandomRotation(0.05),
+                        layers.GaussianNoise(0.05),
+                        tf.keras.layers.RandomBrightness(0.05),
+                        layers.RandomZoom(0.01, 0.01),
+                        layers.Rescaling(255.0),
+                    ]
+                )
+    noisy_images = data_augmentation(noisy_images)
+    
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
 
@@ -555,7 +568,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 plt.axis("off")
                 #plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 1000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
         plt.savefig(self.img_name)
@@ -593,26 +606,21 @@ class DiffusionStandardModel(tf.keras.Model):
                     [
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal_and_vertical"),
-                        layers.RandomRotation(0.05),
-                        layers.GaussianNoise(0.05),
-                        tf.keras.layers.RandomBrightness(0.05),
-                        layers.RandomZoom(0.01, 0.01),
+                        layers.RandomRotation(0.2),
+                        layers.GaussianNoise(0.1),
+                        tf.keras.layers.RandomBrightness(0.1),
+                        layers.RandomZoom(0.02, 0.02),
                         layers.Rescaling(255.0),
                     ]
                 )
                 
             for i in range(1):
                 aug_images = data_augmentation(train_dataset)
-                val_aug_images = data_augmentation(val_dataset)
                 for img in aug_images:
                     img = tf.clip_by_value(img, 0, 255)
                     img = tf.cast(img, "uint8")
                     train_dataset.append(img)
 
-                for img in val_aug_images:
-                    img = tf.clip_by_value(img, 0, 255)
-                    img = tf.cast(img, "uint8")
-                    val_dataset.append(img)
             restore_output()
             del data_augmentation
 
@@ -743,9 +751,9 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.plot_images()
 
         if lamp:
-            self.img_name = f"./{percent}/Lamps{culture}_{category}_imb={imb}.png"
+            self.img_name = f"./GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
         else:
-            self.img_name = f"./{percent}/Carpets{culture}_{category}_imb={imb}.png"
+            self.img_name = f"./GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
         self.fit(
             train_dataset,
             epochs=num_epochs,
@@ -773,11 +781,20 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks=callbacks,
 
         )
+        tot = 0
+        generated_images = []
+        for i in range(n_images//batch_size):
+            tot +=batch_size
+            n_ = min((n_images-tot), batch_size)
+            images = self.generate(
+                num_images=n_,
+                diffusion_steps=plot_diffusion_steps,
+            )
+            for img in images:
+                generated_images.append(img)
 
-        generated_images = self.generate(
-            num_images=n_images,
-            diffusion_steps=plot_diffusion_steps,
-        )
+        generated_images = np.asarray(generated_images)
+        
 
         return generated_images
         

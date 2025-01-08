@@ -9,6 +9,7 @@ import tensorflow as tf
 import numpy as np
 from matplotlib import pyplot as plt
 from datetime import datetime
+import sys
 
 from tensorflow import keras
 from keras import layers
@@ -220,6 +221,14 @@ class DataClass:
         del self.yt
 
 
+class NullWriter:
+    def write(self, _): pass
+
+def suppress_output():
+    sys.stdout = NullWriter()
+
+def restore_output():
+    sys.stdout = sys.__stdout__
 ## Preprocessing Class should:
 # given a dataset it should perform standard data augmentation
 # given a dataset and a model it should perform adversarial data augm
@@ -238,6 +247,7 @@ class PreprocessingClass:
         X = X[0:n]
 
         shape = np.shape(X[0])
+        suppress_output()
         data_augmentation = keras.Sequential(
                 [
                     layers.RandomFlip("horizontal"),
@@ -250,6 +260,7 @@ class PreprocessingClass:
             )
         
         X_augmented = data_augmentation(X, training=True)
+        restore_output()
         return np.asarray(X_augmented)
 
     def adversarial_augmentation(self, X, y, model, culture, eps=0.3):

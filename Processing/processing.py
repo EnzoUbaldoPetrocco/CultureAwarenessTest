@@ -29,6 +29,7 @@ import numpy as np
 import os
 import gc
 import cv2
+import time
 
 
 
@@ -161,11 +162,11 @@ class ProcessingClass:
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
             size = 100
-            n_imgs = len(self.dataobj.X)
+            n_imgs = len(self.dataobj.X)//10
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
 
-            if standard and (not adversarial) :
+            if standard and (not adversarial):
                 if imbalanced:
                     for j in range(2):
                         tempX = [
@@ -178,6 +179,7 @@ class ProcessingClass:
                             for i in range(len(self.dataobj.Xv))
                             if self.dataobj.yv[i][1] == j
                         ]
+                       
                         images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
                         for img in images:
                             img = np.asarray(img)
@@ -185,9 +187,10 @@ class ProcessingClass:
                             img = np.asarray(img, dtype=object)
                             self.dataobj.X.append(img)
                             self.dataobj.y.append([self.n_cultures, j]) # I have to invent another culture
+
+                    
                 else:
                     for j in range(2):
-                        
                         tempX = [
                             cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
                             for i in range(len(self.dataobj.X))
