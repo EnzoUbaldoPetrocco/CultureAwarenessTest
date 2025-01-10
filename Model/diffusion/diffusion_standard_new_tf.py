@@ -43,12 +43,12 @@ class AdamW(tf.keras.optimizers.Adam):
 
 # data
 dataset_name = "places365_small"
-dataset_repetitions = 6
+dataset_repetitions = 7
 num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 2
+num_epochs_flowers = 1
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
-kid_diffusion_steps = 6
+kid_diffusion_steps = 3
 plot_diffusion_steps = 20
 
 # sampling
@@ -121,6 +121,15 @@ def SEBlock(channels, reduction=16):
         return layers.Multiply()([x, scale])
 
     return apply
+
+class NullWriter:
+    def write(self, _): pass
+
+def suppress_output():
+    sys.stdout = NullWriter()
+
+def restore_output():
+    sys.stdout = sys.__stdout__
 
 
 def TransformerBlock(channels, num_heads=4, ff_dim=256):
@@ -342,6 +351,17 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
     # Sinusoidal embedding
     e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
+
+    data_augmentation = keras.Sequential(
+                    [
+                        layers.Rescaling(1.0/255.0),
+                        layers.RandomFlip("horizontal"),
+                        layers.GaussianNoise(0.0001),
+                        tf.keras.layers.RandomBrightness(0.0001),
+                        layers.Rescaling(255.0),
+                    ]
+                )
+    noisy_images = data_augmentation(noisy_images)
 
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
@@ -583,29 +603,27 @@ class DiffusionStandardModel(tf.keras.Model):
         # optimizer=tfa.optimizers.AdamW
         
         if aug:
-            print(f"Shape of train_dataset is {tf.shape(train_dataset)}")
-            data_augmentation = keras.Sequential()
-            data_augmentation.add(layers.Rescaling(1.0/255.0))
-            data_augmentation.add(layers.RandomFlip("horizontal_and_vertical"))
-            data_augmentation.add(layers.RandomRotation(0.05))
-            data_augmentation.add(layers.GaussianNoise(0.05))
-            data_augmentation.add(tf.keras.layers.RandomBrightness(0.05))
-            data_augmentation.add(layers.RandomZoom(0.01, 0.01))
-            data_augmentation.add(layers.Rescaling(255.0))
+            suppress_output()
+            data_augmentation = keras.Sequential(
+                    [
+                        layers.Rescaling(1.0/255.0),
+                        layers.RandomFlip("horizontal"),
+                        layers.RandomRotation(0.2),
+                        layers.GaussianNoise(0.1),
+                        tf.keras.layers.RandomBrightness(0.1),
+                        layers.RandomZoom(0.02, 0.02),
+                        layers.Rescaling(255.0),
+                    ]
+                )
                 
             for i in range(1):
                 aug_images = data_augmentation(train_dataset)
-                val_aug_images = data_augmentation(val_dataset)
                 for img in aug_images:
                     img = tf.clip_by_value(img, 0, 255)
                     img = tf.cast(img, "uint8")
                     train_dataset.append(img)
 
-                for img in val_aug_images:
-                    img = tf.clip_by_value(img, 0, 255)
-                    img = tf.cast(img, "uint8")
-                    val_dataset.append(img)
-            
+            restore_output()
             del data_augmentation
 
             
@@ -635,19 +653,44 @@ class DiffusionStandardModel(tf.keras.Model):
             
             tf_lr = transfer_learning_rate
             
-            for i in range(20):
-                flowers_dataset = prepare_dataset(f"train[{1.0*(i)}:{1.0*(i+1)}%]+test[{1.0*(i)}:{1.0*(i+1)}%]", image_size=self.image_size)
-                val_flowers_dataset = prepare_dataset(f"train[{100-(0.2)*(i+1)}%:{100-(0.2)*(i)}]+test[{100-(0.2)*(i+1)}%:{100-(0.2)*(i)}]", image_size=self.image_size)
-                # pixelwise mean absolute error is used as loss
-                # calculate mean and variance of training dataset for normalization
-                self.normalizer.adapt(flowers_dataset)
-                
+            for i in range(23):
                 self.compile(
                         optimizer=tf.keras.optimizers.AdamW(
                             learning_rate=tf_lr, weight_decay=weight_decay
                         ),
                         loss=keras.losses.mean_absolute_error,
                     )
+                
+                dot_graph = tf.keras.utils.model_to_dot(self.network)
+                with open('networksummary.txt', 'w') as f:
+                    self.network.summary(print_fn=lambda x: f.write(x + '\n'))
+
+                with open('emanetworksummary.txt', 'w') as f:
+                    self.ema_network.summary(print_fn=lambda x: f.write(x + '\n'))
+                with open ('model.dot', 'w') as f:
+                    f.write(dot_graph.to_string())
+                
+                tf.keras.utils.plot_model(
+                    self.network,
+                    to_file='network.png',
+                    show_shapes=True,
+                    show_layer_names=True,
+                )
+                tf.keras.utils.plot_model(
+                    self.ema_network,
+                    to_file='ema_network.png',
+                    show_shapes=True,
+                    show_layer_names=True,
+                )
+
+                import time
+                time.sleep(90000)
+                flowers_dataset = prepare_dataset(f"train[{3.0*(i)}:{3.0*(i+1)}%]+test[{3.0*(i)}:{3.0*(i+1)}%]", image_size=self.image_size)
+                val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
+
+                # pixelwise mean absolute error is used as loss
+                # calculate mean and variance of training dataset for normalization
+                self.normalizer.adapt(flowers_dataset)
                 
                 self.img_name = "./newtf/PretrainedNetGeneration.png"
                 self.fit(
@@ -679,6 +722,8 @@ class DiffusionStandardModel(tf.keras.Model):
                 ),
                 loss=keras.losses.mean_absolute_error,
             )
+        
+        
 
         #self.network.summary()
         #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
@@ -741,18 +786,19 @@ class DiffusionStandardModel(tf.keras.Model):
             validation_data=val_dataset,
             callbacks=callbacks,
         )
-
+        """
         for layer in self.network.layers[0:int(len(self.network.layers))]:
             layer.trainable = True
         for layer in self.ema_network.layers[0:int(len(self.ema_network.layers))]:
             layer.trainable = True
 
         # Fine tuning
+        
         self.compile(
-                optimizer=tf.keras.optimizers.AdamW(
+                optimizer=AdamW(
                     learning_rate=learning_rate/100, weight_decay=weight_decay
                 ),
-                loss=keras.losses.mean_absolute_error,
+                loss=tf.keras.losses.mean_absolute_error,
             )
 
         self.fit(
@@ -762,11 +808,22 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks=callbacks,
 
         )
+        """
+        tot = 0
+        generated_images = []
+        for i in range(n_images//batch_size +1):
+            tot +=batch_size
+            n_ = min((n_images-tot), batch_size)
+            if n_>0:
+                images = self.generate(
+                    num_images=n_,
+                    diffusion_steps=plot_diffusion_steps,
+                )
+                for img in images:
+                    generated_images.append(img*255)
 
-        generated_images = self.generate(
-            num_images=n_images,
-            diffusion_steps=plot_diffusion_steps,
-        )
+        generated_images = np.asarray(generated_images)
 
         return generated_images
+        
         
