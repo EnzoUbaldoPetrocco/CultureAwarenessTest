@@ -39,13 +39,13 @@ class AdamW(tf.keras.optimizers.Adam):
 # tf.config.set_soft_device_placement(True)
 # data
 dataset_name = "places365_small"
-dataset_repetitions = 7
-num_epochs = 10  # train for at least 50 epochs for good results
-num_epochs_flowers = 4
+dataset_repetitions = 5
+num_epochs = 75  # train for at least 50 epochs for good results
+num_epochs_flowers = 1
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
-kid_diffusion_steps = 3
-plot_diffusion_steps = 20
+kid_diffusion_steps = 15
+plot_diffusion_steps = 15
 
 # sampling
 min_signal_rate = 0.02
@@ -117,7 +117,6 @@ def SEBlock(channels, reduction=16):
 
     return apply
 
-
 def TransformerBlock(channels, num_heads=4, ff_dim=256):
     """Transformer Block with Multi-Head Attention and Feedforward layers."""
     def apply(x):
@@ -134,8 +133,6 @@ def TransformerBlock(channels, num_heads=4, ff_dim=256):
         return layers.Add()([attention_output, ff_output])  # Residual connection
 
     return apply
-
-
 
 class NullWriter:
     def write(self, _): pass
@@ -166,7 +163,6 @@ def preprocess_image(image_size = 128):
         return tf.clip_by_value(image / 255.0, 0.0, 1.0)
     return preprocess_function
 
-
 def prepare_dataset(split, image_size = 128, add_to_ds = None):
     # the validation dataset is shuffled as well, because data order matters
     # for the KID estimation
@@ -177,7 +173,6 @@ def prepare_dataset(split, image_size = 128, add_to_ds = None):
         data = data.concatenate(add_to_ds)
     data = data.cache().repeat(dataset_repetitions).batch(batch_size, drop_remainder=True).prefetch(buffer_size=tf.data.AUTOTUNE)
     return data
-
 
 #@tf.keras.saving.register_tf.keras_serializable()
 class KID(tf.keras.metrics.Metric):
@@ -351,11 +346,9 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
     data_augmentation = keras.Sequential(
                     [
                         layers.Rescaling(1.0/255.0),
-                        layers.RandomFlip("horizontal_and_vertical"),
-                        layers.RandomRotation(0.05),
-                        layers.GaussianNoise(0.05),
-                        tf.keras.layers.RandomBrightness(0.05),
-                        layers.RandomZoom(0.01, 0.01),
+                        layers.RandomFlip("horizontal"),
+                        layers.GaussianNoise(0.0001),
+                        tf.keras.layers.RandomBrightness(0.0001),
                         layers.Rescaling(255.0),
                     ]
                 )
@@ -594,7 +587,7 @@ class DiffusionStandardModel(tf.keras.Model):
         plt.close()
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -605,16 +598,14 @@ class DiffusionStandardModel(tf.keras.Model):
             data_augmentation = keras.Sequential(
                     [
                         layers.Rescaling(1.0/255.0),
-                        layers.RandomFlip("horizontal_and_vertical"),
-                        layers.RandomRotation(0.2),
-                        layers.GaussianNoise(0.1),
-                        tf.keras.layers.RandomBrightness(0.1),
-                        layers.RandomZoom(0.02, 0.02),
+                        layers.RandomFlip("horizontal"),
+                        layers.GaussianNoise(0.01),
+                        tf.keras.layers.RandomBrightness(0.01),
                         layers.Rescaling(255.0),
                     ]
                 )
                 
-            for i in range(1):
+            for i in range(5):
                 aug_images = data_augmentation(train_dataset)
                 for img in aug_images:
                     img = tf.clip_by_value(img, 0, 255)
@@ -624,7 +615,6 @@ class DiffusionStandardModel(tf.keras.Model):
             restore_output()
             del data_augmentation
 
-            
         if not get_pretrained:
             early = EarlyStopping(
                 monitor="val_kid",
@@ -650,10 +640,9 @@ class DiffusionStandardModel(tf.keras.Model):
                 callbacks = [early, lr_reduce]
             
             tf_lr = transfer_learning_rate
-            for i in range(5):
-                flowers_dataset = prepare_dataset(f"train[{3.2*(i)}:{3.2*(i+1)}%]+test[{3.2*(i)}:{3.2*(i+1)}%]", image_size=self.image_size)
+            for i in range(23):
+                flowers_dataset = prepare_dataset(f"train[{3.0*(i)}:{3.0*(i+1)}%]+test[{3.0*(i)}:{3.0*(i+1)}%]", image_size=self.image_size)
                 val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
-
 
                 # pixelwise mean absolute error is used as loss
                 # calculate mean and variance of training dataset for normalization
@@ -675,50 +664,22 @@ class DiffusionStandardModel(tf.keras.Model):
                     callbacks=callbacks,
                     shuffle=True
                 )
-                tf_lr = tf_lr / 1.1
+                tf_lr = tf_lr / 1.4
 
                 del flowers_dataset
                 del val_flowers_dataset
-
-
-                if save:
-                    self.network.save('diffusion_pretrained.h5')
-                    self.ema_network.save('ema_diffusion_pretrained.h5')
+                
+                self.network.save('diffusion_pretrained.h5')
+                self.ema_network.save('ema_diffusion_pretrained.h5')
                     #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
-        else:
-            self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
-            self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
-            #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
-            print('Loaded pretrained model')
-            print('standard diffusion')
-
-        self.compile(
-                optimizer=AdamW(
-                    learning_rate=learning_rate, weight_decay=weight_decay
-                ),
-                loss=tf.keras.losses.mean_absolute_error,
-            )
-
-        #self.network.summary()
-        #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
-        #self.ema_network.summary()
-
-        for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
-            layer.trainable = False
-            #print(layer.name)
-        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
-            layer.trainable = False
-
-        #self.network.summary()
-        #self.ema_network.summary()
-
+        
         train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
         val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
-            
-        train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
-        val_dataset = val_dataset.batch(batch_size, drop_remainder=True)
+        TS = train_dataset.batch(batch_size, drop_remainder=True)
+        VS = val_dataset.batch(batch_size, drop_remainder=True)
+        
+        self.normalizer.adapt(train_dataset)
 
-        # run training and plot generated images periodically
         early = EarlyStopping(
                 monitor="val_kid",
                 min_delta=0.001,
@@ -731,8 +692,8 @@ class DiffusionStandardModel(tf.keras.Model):
                 verbose=1,
                 min_lr=1e-9,
             )
+
         if plot_imgs:
-            
             callbacks = [
                 tf.keras.callbacks.LambdaCallback(on_epoch_end=self.plot_images),
                 early,
@@ -741,9 +702,85 @@ class DiffusionStandardModel(tf.keras.Model):
             ]
         else:
             callbacks = [early, lr_reduce]
+        # use Model Selection:
+        if model_selection:
+            best_kid = np.inf
+            for ep in [10, 30, 50]:
+                for l_r in np.logspace(-6, -2, 6):
+                    print(f"training with epochs = {ep}, learning rate = {l_r}")
+                    self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
+                    self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
+                    print('Loaded pretrained model')
+                    #tf.config.run_functions_eagerly(True)
+                    self.compile(
+                            optimizer=AdamW(
+                                learning_rate=l_r, weight_decay=weight_decay
+                            ),
+                            loss=tf.keras.losses.mean_absolute_error,
+                        )
+                    #self.build((None, self.image_size, self.image_size, 3))
+
+                    for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
+                        layer.trainable = False
+                        #print(layer.name)
+                    for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
+                        layer.trainable = False
+
+                    
+                    print("Pretrained images generation")
+                    self.img_name = "./PretrainedNetGeneration.png"
+                    self.plot_images()
+
+                    if lamp:
+                        self.img_name = f"./GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
+                    else:
+                        self.img_name = f"./GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+                    
+                    history = self.fit(
+                        TS,
+                        epochs=ep,
+                        validation_data=VS,
+                        callbacks=callbacks,
+                        shuffle=True
+                    )
+                    kid = history.history["val_kid"][-1]
+                    if kid < best_kid:
+                        best_kid = kid
+                        best_epochs = ep
+                        best_lr = l_r
+
+                        #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
+        else:
+            best_epochs = num_epochs
+            best_lr = learning_rate
+
+        print(f'Fnal Training with epochs: {best_epochs}, and lr: {best_lr}')
+        self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
+        self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
+        print('Loaded pretrained model')
+        self.compile(
+                optimizer=AdamW(
+                    learning_rate=best_lr, weight_decay=weight_decay
+                ),
+                loss=tf.keras.losses.mean_absolute_error,
+            )
+
+        #self.network.summary()
+        #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
+        #self.ema_network.summary()
+            
+        for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
+            layer.trainable = False
+            #print(layer.name)
+        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
+            layer.trainable = False
+
+        # run training and plot generated images periodically
         
-        
-        self.normalizer.adapt(train_dataset)
+
+        #self.network.summary()
+        #self.ema_network.summary()
+
         if get_pretrained:
             if plot_imgs:
                 print("Pretrained images generation")
@@ -755,18 +792,20 @@ class DiffusionStandardModel(tf.keras.Model):
         else:
             self.img_name = f"./GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
         self.fit(
-            train_dataset,
-            epochs=num_epochs,
-            validation_data=val_dataset,
+            TS,
+            epochs=best_epochs,
+            validation_data=VS,
             callbacks=callbacks,
+            shuffle=True
         )
-
+        """
         for layer in self.network.layers[0:int(len(self.network.layers))]:
             layer.trainable = True
         for layer in self.ema_network.layers[0:int(len(self.ema_network.layers))]:
             layer.trainable = True
 
         # Fine tuning
+        
         self.compile(
                 optimizer=AdamW(
                     learning_rate=learning_rate/100, weight_decay=weight_decay
@@ -781,20 +820,26 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks=callbacks,
 
         )
+        """
         tot = 0
         generated_images = []
-        for i in range(n_images//batch_size):
+        for i in range(n_images//batch_size +1):
             tot +=batch_size
             n_ = min((n_images-tot), batch_size)
-            images = self.generate(
-                num_images=n_,
-                diffusion_steps=plot_diffusion_steps,
-            )
-            for img in images:
-                generated_images.append(img)
+            if n_>0:
+                images = self.generate(
+                    num_images=n_,
+                    diffusion_steps=plot_diffusion_steps,
+                )
+                for img in images:
+                    generated_images.append(img*255)
 
         generated_images = np.asarray(generated_images)
-        
+
+        del train_dataset
+        del val_dataset
+        del TS
+        del VS
 
         return generated_images
         

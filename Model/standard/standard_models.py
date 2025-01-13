@@ -164,7 +164,7 @@ class StandardModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[32],
+        batches=[16, 32, 64],
         lrs=[1e-2, 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
         epochs=30,

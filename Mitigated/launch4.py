@@ -70,7 +70,7 @@ cs = [1, 0, 2]
 ks = [1]
 
 basePath = "./temps/"
-for i in range(5):
+for i in range(2):
  for percent in percents:
     for lamp in [0, 1]:
         

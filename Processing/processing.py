@@ -31,7 +31,14 @@ import gc
 import cv2
 import time
 
+class NullWriter:
+    def write(self, _): pass
 
+def suppress_output():
+    sys.stdout = NullWriter()
+
+def restore_output():
+    sys.stdout = sys.__stdout__
 
 class ProcessingClass:
     """
@@ -111,7 +118,8 @@ class ProcessingClass:
         imbalanced=0,
         discriminator=0,
         diffusion = 0,
-        aug = 0
+        aug = 0,
+        weights = 0
     ):
         """
         This function prepares the data for training
@@ -141,24 +149,7 @@ class ProcessingClass:
             imbalanced=imbalanced,
 
         )
-        if augment:
-            
-            print("Training Augmentation...")
-            prepObj = PreprocessingClass()
-            X_augmented = prepObj.classical_augmentation(
-                X=self.dataobj.X, g=gaug, 
-            )
-            Xv_augmented = prepObj.classical_augmentation(
-                X=self.dataobj.Xv, g=gaug
-            )
-
-            self.dataobj.X.extend(X_augmented)
-            self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y)
-            self.dataobj.yv.extend(self.dataobj.yv)
-            del X_augmented
-            del Xv_augmented
-            del prepObj
+        
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
             size = 100
@@ -169,22 +160,22 @@ class ProcessingClass:
             if standard and (not adversarial):
                 if imbalanced:
                     for j in range(2):
-                        tempX = [
-                            cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                            for i in range(len(self.dataobj.X))
-                            if self.dataobj.y[i][1]== j
-                        ]
-                        tempXv = [
-                            cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                            for i in range(len(self.dataobj.Xv))
-                            if self.dataobj.yv[i][1] == j
-                        ]
+                        tempX = []
+                        tempXv = []
+                        for i in range(len(self.dataobj.X)):
+                            if self.dataobj.y[i][1]== j:
+                                for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
+                                    tempX.append(cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
+                        for i in range(len(self.dataobj.Xv)):
+                            if self.dataobj.yv[i][1]== j:
+                                for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
+                                    tempXv.append(cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
                        
                         images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced)
                         for img in images:
                             img = np.asarray(img)
                             img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                            img = np.asarray(img, dtype=object)
+                            img = np.asarray(img, dtype=np.float32)
                             self.dataobj.X.append(img)
                             self.dataobj.y.append([self.n_cultures, j]) # I have to invent another culture
 
@@ -205,7 +196,7 @@ class ProcessingClass:
                         for img in images:
                             img = np.asarray(img)
                             img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                            img = np.asarray(img, dtype=object)
+                            img = np.asarray(img, dtype=np.float32)
                             self.dataobj.X.append(img)
                             self.dataobj.y.append(j)
 
@@ -228,12 +219,31 @@ class ProcessingClass:
                     for img in images:
                         img = np.asarray(img)
                         img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                        img = np.asarray(img, dtype=object)
+                        img = np.asarray(img, dtype=np.float32)
                         self.dataobj.X.append(img)
                         lbl = list(np.zeros(self.n_cultures)) # Generated images are equidistant from the cultures
                         lbl.append(j)
                         self.dataobj.y.append(lbl)
-            del diff_model    
+            del diff_model   
+        if augment:
+            print("Training Augmentation...")
+            suppress_output()
+            prepObj = PreprocessingClass()
+            X_augmented = prepObj.classical_augmentation(
+                X=self.dataobj.X, g=gaug, 
+            )
+            Xv_augmented = prepObj.classical_augmentation(
+                X=self.dataobj.Xv, g=gaug
+            )
+
+            self.dataobj.X.extend(X_augmented)
+            self.dataobj.Xv.extend(Xv_augmented)
+            self.dataobj.y.extend(self.dataobj.y)
+            self.dataobj.yv.extend(self.dataobj.yv)
+            restore_output()
+            del X_augmented
+            del Xv_augmented
+            del prepObj 
         
 
     def prepare_test(
@@ -356,7 +366,6 @@ class ProcessingClass:
         class_division=0,
         only_imb_imgs=0,
         diffusion=0,
-        add_adv_samples=0,
     ):
         """
         process function prepares the data and fit the model
@@ -405,6 +414,7 @@ class ProcessingClass:
             discriminator=discriminator,
             diffusion = diffusion,
             gaug = gaug,
+            weights = weights
         )
         self.model = None
         if discriminator:
@@ -435,7 +445,6 @@ class ProcessingClass:
                         imbalanced=imbalanced,
                         class_division=class_division,
                         only_imb_imgs=only_imb_imgs,
-                        add_adv_samples=add_adv_samples
                     )
                 else:
                     if gradcam:
@@ -522,7 +531,7 @@ class ProcessingClass:
         if diffusion: 
             self.basePath = self.basePath + "DIFFUSION/"
         if augment:
-            if adversary and not add_adv_samples:
+            if adversary:
                 if only_imb_imgs:
                     aug = f"ADD_TOTAUG/g={gaug}/eps={eps}/"
                 else:
@@ -531,20 +540,12 @@ class ProcessingClass:
                     aug = aug + "/CLSDIV/"
                 else:
                     aug = aug + "/NOCLSDIV/"
-            elif adversary and add_adv_samples:
-                if only_imb_imgs:
-                    aug = f"ADD_TOTAUGADDADV/g={gaug}/eps={eps}/"
-                else:
-                    aug = f"TOTAUG_ADDADV/g={gaug}/eps={eps}/"
-                if class_division:
-                    aug = aug + "/CLSDIV/"
-                else:
-                    aug = aug + "/NOCLSDIV/"
+           
 
             else:
                 aug = f"STDAUG/g={gaug}/"
         else:
-            if adversary and not add_adv_samples:
+            if adversary :
                 if only_imb_imgs:
                     aug = f"ADD_AVD/eps={eps}/"
                 else:
@@ -553,15 +554,7 @@ class ProcessingClass:
                     aug = aug + "/CLSDIV/"
                 else:
                     aug = aug + "/NOCLSDIV/"
-            elif adversary and add_adv_samples:
-                if only_imb_imgs:
-                    aug = f"ADD_AVD_ADDADV/eps={eps}/"
-                else:
-                    aug = f"AVDADDADV/eps={eps}/"
-                if class_division:
-                    aug = aug + "/CLSDIV/"
-                else:
-                    aug = aug + "/NOCLSDIV/"
+            
             else:
                 aug = "NOAUG/"
 
