@@ -149,6 +149,25 @@ class ProcessingClass:
             imbalanced=imbalanced,
 
         )
+        if augment:
+            print("Training Augmentation...")
+            suppress_output()
+            prepObj = PreprocessingClass()
+            X_augmented = prepObj.classical_augmentation(
+                X=self.dataobj.X, g=gaug, 
+            )
+            Xv_augmented = prepObj.classical_augmentation(
+                X=self.dataobj.Xv, g=gaug
+            )
+
+            self.dataobj.X.extend(X_augmented)
+            self.dataobj.Xv.extend(Xv_augmented)
+            self.dataobj.y.extend(self.dataobj.y)
+            self.dataobj.yv.extend(self.dataobj.yv)
+            restore_output()
+            del X_augmented
+            del Xv_augmented
+            del prepObj 
         
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
@@ -225,25 +244,7 @@ class ProcessingClass:
                         lbl.append(j)
                         self.dataobj.y.append(lbl)
             del diff_model   
-        if augment:
-            print("Training Augmentation...")
-            suppress_output()
-            prepObj = PreprocessingClass()
-            X_augmented = prepObj.classical_augmentation(
-                X=self.dataobj.X, g=gaug, 
-            )
-            Xv_augmented = prepObj.classical_augmentation(
-                X=self.dataobj.Xv, g=gaug
-            )
-
-            self.dataobj.X.extend(X_augmented)
-            self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y)
-            self.dataobj.yv.extend(self.dataobj.yv)
-            restore_output()
-            del X_augmented
-            del Xv_augmented
-            del prepObj 
+        
         
 
     def prepare_test(

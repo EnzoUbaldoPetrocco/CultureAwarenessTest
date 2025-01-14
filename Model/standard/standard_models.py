@@ -415,6 +415,7 @@ class StandardModels(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                shuffle=True
             )
 
             # FINE TUNING
@@ -433,6 +434,7 @@ class StandardModels(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                shuffle=True
             )
             tf.keras.backend.clear_session()
             return history
