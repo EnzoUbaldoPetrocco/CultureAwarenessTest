@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 25000
+memory_limit = 10000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -69,15 +69,13 @@ mult = 0.25
 cs = [1, 0, 2]
 ks = [1]
 
-basePath = "./temps/"
+basePath = "./temps2/"
 for i in range(2):
  for percent in percents:
     for lamp in [0, 1]:
-        
         for imb in imbalances:
           for c in cs:
             for k in ks:
-             
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -85,7 +83,6 @@ for i in range(2):
                     memory_limit=memory_limit,
                     basePath=basePath,
                 )
-              
                 model = None
                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                 procObj.process(

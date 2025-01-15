@@ -706,7 +706,7 @@ class DiffusionStandardModel(tf.keras.Model):
         if model_selection:
             best_kid = np.inf
             for ep in [10, 30, 50]:
-                for l_r in np.logspace(-6, -2, 6):
+                for l_r in np.logspace(-6, -3, 4):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
                     self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
