@@ -169,7 +169,7 @@ class StandardModels(GeneralModelClass):
         fine_lrs=[1e-5, 1e-6],
         epochs=30,
         fine_epochs=10,
-        nDropouts=[0.4],
+        nDropouts=[0.3, 0.4],
         g=0.1,
         save=False,
         path="./",
