@@ -293,6 +293,7 @@ def plotandsave(
         plt.show()
 
     if save:
+        print(f"Picture saved in {path}")
         plt.savefig(path)
 
     # print(path)
@@ -834,11 +835,13 @@ class Res2TabClass:
         # Adding legend, which helps us recognize the curve according to it's color
         plt.legend()
 
+        if save:
+            plt.savefig(path)
+
         if plot:
             plt.show()
 
-        if save:
-            plt.savefig(path)
+        
         
         # print(path)
         plt.close()
