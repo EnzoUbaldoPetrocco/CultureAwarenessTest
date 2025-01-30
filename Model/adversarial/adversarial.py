@@ -23,6 +23,7 @@ from datetime import datetime
 #import keras_cv
 from PIL import Image
 from IPython.display import Image as IImage
+import copy
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
@@ -295,8 +296,8 @@ class AdversarialStandard(GeneralModelClass):
                 TS = self.ImbalancedTransformation(TS)
                 VS = self.ImbalancedTransformation(VS) 
        
-        TS0 = TS
-        VS0 = VS
+        TS0 = copy.deepcopy(TS)
+        #VS0 = VS
 
         epsilons = np.logspace(-3, 0, 5)
         images = []
@@ -359,21 +360,21 @@ class AdversarialStandard(GeneralModelClass):
             gc.collect()
             
             (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)):
+            for i in range(len(imgs)//10):
                 img = imgs[i]
                 y = ys[i]
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
                 TS[0].append(img)
                 TS[1].append(y)
             gc.collect()
-            (imgs, ys) = VS[0], VS[1]
-            for i in range(len(imgs)):
-                img = imgs[i]
-                y = ys[i]
-                img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-                VS[0].append(img)
-                VS[1].append(y)
-            gc.collect()
+            #(imgs, ys) = VS[0], VS[1]
+            #for i in range(len(imgs)//10):
+            #    img = imgs[i]
+            #    y = ys[i]
+            #    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+            #    VS[0].append(img)
+            #    VS[1].append(y)
+            #gc.collect()
             if show_imgs:
                 epsilons = np.logspace(-3, 0, 5)
                 images = []
@@ -429,20 +430,20 @@ class AdversarialStandard(GeneralModelClass):
                     self.model.save(path=path + f'/class_discriminator={i}')
             
             (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)):
+            for i in range(len(imgs)//10):
                 img = imgs[i]
                 y = ys[i]
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
                 TS[0].append(img)
                 TS[1].append(y)
 
-            (imgs, ys) = VS[0], VS[1]
-            for i in range(len(imgs)):
-                img = imgs[i]
-                y = ys[i]
-                img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
-                VS[0].append(img)
-                VS[1].append(y)
+            #(imgs, ys) = VS[0], VS[1]
+            #for i in range(len(imgs)):
+            #    img = imgs[i]
+            #    y = ys[i]
+            #    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
+            #    VS[0].append(img)
+            #    VS[1].append(y)
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
             if show_imgs:
@@ -470,9 +471,9 @@ class AdversarialStandard(GeneralModelClass):
         for i in range(len(TS[0])):
             TS[0].append(TS0[0][i])
             TS[1].append(TS0[1][i])
-        for i in range(len(VS[0])):
-            VS[0].append(VS0[0][i])
-            VS[1].append(VS0[1][i])
+        #for i in range(len(VS[0])):
+        #    VS[0].append(VS0[0][i])
+        #    VS[1].append(VS0[1][i])
 
         tf.keras.backend.clear_session()
         self.ModelSelection(
