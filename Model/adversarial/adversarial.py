@@ -686,7 +686,7 @@ class AdversarialStandard(GeneralModelClass):
             if adv:  # adversarial model
                 train_generator = train_generator.map(
                     lambda img, y: (
-                        data_augmentation(img, training=aug),
+                        img,
                         y[0 : self.n_cultures],
                     )
                 )
@@ -694,14 +694,12 @@ class AdversarialStandard(GeneralModelClass):
                 
                 train_generator = train_generator.map(
                     lambda img, y: (
-                        data_augmentation(img, training=aug),
+                        img,
                         y[self.n_cultures],
                     )
                 )
 
-            train_generator = (
-                train_generator.cache().batch(batch_size).prefetch(buffer_size=10)
-            )
+            train_generator = train_generator.batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
             if val:
                 validation_generator = tf.data.Dataset.from_tensor_slices(VS)
@@ -709,22 +707,19 @@ class AdversarialStandard(GeneralModelClass):
                 if adv:
                     validation_generator = validation_generator.map(
                         lambda img, y: (
-                            data_augmentation(img, training=aug),
+                            img,
                             y[0 : self.n_cultures],
                         )
                     )
                 else:
                     validation_generator = validation_generator.map(
                         lambda img, y: (
-                            data_augmentation(img, training=aug),
+                            img,
                             y[self.n_cultures],
                         )
                     )
-                validation_generator = (
-                    validation_generator.cache()
-                    .batch(batch_size)
-                    .prefetch(buffer_size=10)
-                )
+                validation_generator = validation_generator.batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                
             restore_output()
 
 
