@@ -93,7 +93,7 @@ procObj.process(
 print(f"Testing->aug={0};adv={0}")
 procObj.test(
     standard=standard,
-    culture=c,
+    culture=0,
     augment=0,
     gaug=0,
     adversary=0,
