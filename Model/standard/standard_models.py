@@ -177,6 +177,9 @@ class StandardModels(GeneralModelClass):
             best_loss = np.inf
             TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
             if self.imbalanced:
+                #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')
+                TS = self.ImbalancedTransformation(TS)
+            if self.imbalanced:
                 VS = (list(np.array(VS[0], dtype=np.float32)), list(np.asarray(VS[1], dtype=np.float32)[:,1]))
             else:
                 VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
@@ -333,9 +336,7 @@ class StandardModels(GeneralModelClass):
                                 
                         plt.show()
 
-            if self.imbalanced:
-                #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')
-                TS = self.ImbalancedTransformation(TS)
+            
                 #VS = self.ImbalancedTransformation(VS)
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
 

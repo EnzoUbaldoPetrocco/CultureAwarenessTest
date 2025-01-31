@@ -288,13 +288,25 @@ class AdversarialStandard(GeneralModelClass):
         eps=0.1,
         text_adv=0,
     ):
-        #if aug:
-        #    self.reweighting = True
+        # SHUFFLE DATA
+        zipped_data = list(zip(*TS))
+        # Shuffle the list of tuples
+        random.shuffle(zipped_data)
+        # Unzip back into separate lists
+        TS = tuple(map(list, zip(*zipped_data)))
+        zipped_data = list(zip(*VS))
+        # Shuffle the list of tuples
+        random.shuffle(zipped_data)
+        # Unzip back into separate lists
+        VS = tuple(map(list, zip(*zipped_data)))
+        del zipped_data
+
+
         eps = tf.cast(eps, np.float32)
         class_division = self.class_division
         if self.imbalanced:
                 TS = self.ImbalancedTransformation(TS)
-                VS = self.ImbalancedTransformation(VS) 
+                #VS = self.ImbalancedTransformation(VS) 
        
         TS0 = copy.deepcopy(TS)
         #VS0 = VS
@@ -468,7 +480,7 @@ class AdversarialStandard(GeneralModelClass):
                     plt.show()
 
         self.model = None
-        for i in range(len(TS[0])):
+        for i in range(len(TS0[0])):
             TS[0].append(TS0[0][i])
             TS[1].append(TS0[1][i])
         #for i in range(len(VS[0])):
@@ -799,6 +811,7 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                shuffle=True
                 #class_weight=class_weights
             )
 
@@ -819,6 +832,7 @@ class AdversarialStandard(GeneralModelClass):
                 validation_data=validation_generator,
                 verbose=self.verbose_param,
                 callbacks=callbacks,
+                shuffle=True
                 #class_weight=class_weights
             )
             tf.keras.backend.clear_session()
