@@ -48,7 +48,7 @@ else:
     print("no gpus")
 
 
-percents = [ 0.2]
+percents = [0.05, 0.2]
 standard = 1
 # lamp = 1
 
@@ -63,7 +63,7 @@ cs = [2, 1, 0]
 
 diffusion = 0
 adversary = 0
-k = 0
+k = 1
 
 
 basePath = "./temps2/"
@@ -74,6 +74,7 @@ for i in range(2):
     for lamp in [1, 0]:
         for imb in imbalances:
           for c in cs:
+            for g_aug in g_gaugs:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -93,7 +94,8 @@ for i in range(2):
                     augment=k % 2,
                     adversary=adversary,
                     imbalanced=imb, 
-                    diffusion = diffusion
+                    diffusion = diffusion,
+                    gaug=g_aug
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")
