@@ -56,8 +56,8 @@ verbose_param = 1
 n = 1000
 class_divisions = [0,1]
 imbalances = [0]
-g_gaugs = np.logspace(-3, 0, 6)
-eps = np.logspace(-3, 0, 6)
+g_gaugs = np.logspace(-3, 0, 4)
+eps = np.logspace(-3, 0, 4)
 ep = 0
 cs = [2, 1, 0]
 
