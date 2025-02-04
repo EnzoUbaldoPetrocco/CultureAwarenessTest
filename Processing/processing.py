@@ -398,7 +398,7 @@ class ProcessingClass:
         :param nt: is the number of images to use for testing
         :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
         """
-        weights = np.ones(n_cultures) * percent
+        weights = np.ones(n_cultures) * 1/3 #percent
         weights[culture] = 1  # this are the proportions in the dataset
         self.n_cultures = n_cultures
         self.prepare_data(

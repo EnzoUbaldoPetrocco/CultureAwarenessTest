@@ -55,11 +55,12 @@ standard = 1
 verbose_param = 1
 n = 1000
 class_divisions = [0,1]
-imbalances = [0]
-g_gaugs = np.logspace(-3, 0, 4)
-eps = np.logspace(-3, 0, 4)
+imbalances = [0,1]
+g_gaugs = np.logspace(-3, -1, 3)
+eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [2, 1, 0]
+cs = [0, 1, 2]
+lamps = [1, 0]
 
 diffusion = 0
 adversary = 1
@@ -69,7 +70,7 @@ k = 0
 basePath = "./temps2/"
 for i in range(2):
  for percent in percents:
-    for lamp in [1, 0]:
+    for lamp in lamps:
         for imb in imbalances:
           for c in cs:
              for ep in eps:
