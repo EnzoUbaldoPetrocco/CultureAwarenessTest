@@ -53,6 +53,7 @@ class AdversarialStandard(GeneralModelClass):
         class_division=0,
         only_imb_imgs=0,
         save_discriminator=0,
+        path = './'
 
     ):
         """
@@ -83,6 +84,7 @@ class AdversarialStandard(GeneralModelClass):
         self.only_imb_imgs=only_imb_imgs
         self.save_discriminator = save_discriminator
         self.reweighting = False
+        self.path = path
         if weights is not None:
             self.weights = weights
 
@@ -152,6 +154,28 @@ class AdversarialStandard(GeneralModelClass):
         # print(CV_rfc.best_params_)
         self.model = H
 
+    def plot_images(self, generated_images, j=0, num_rows=3, num_cols=6):
+        def close_event():
+            plt.close()
+        # plot random generated images for visual evaluation of generation quality
+        generated_images = generated_images[0:num_rows * num_cols]
+            
+        fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+        for row in range(num_rows):
+            for col in range(num_cols):
+                index = row * num_cols + col
+                plt.subplot(num_rows, num_cols, index + 1)
+                plt.imshow(generated_images[index])
+                plt.axis("off")
+                #plt.imsave(f"./Sample{index}", generated_images[index])
+        plt.tight_layout()
+        timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer.add_callback(close_event)
+        timer.start()
+        plt.savefig(self.path + f"/class={j}.jpg")
+        plt.show()
+        plt.close()
+    
     @tf.function
     def generate_adversarial_image(self, img, lbl, model, epsilon=0.1, aug=False):
         img = tf.expand_dims(img, axis=0)
@@ -367,10 +391,13 @@ class AdversarialStandard(GeneralModelClass):
                     adversarial_model.append(self.model)
 
                 if self.save_discriminator:
-                    self.model.save(path=path + f'/class_discriminator={i}')
+                    self.model.save(path=self.path + f'/class_discriminator={i}')
                 self.model = None
             gc.collect()
             
+            plot_rows = 3
+            plot_columns = 6
+            images_to_plot = []
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)//10):
                 img = imgs[i]
@@ -378,7 +405,11 @@ class AdversarialStandard(GeneralModelClass):
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
                 TS[0].append(img)
                 TS[1].append(y)
+                if i < plot_columns*plot_rows:
+                    images_to_plot.append(img)
             gc.collect()
+            
+            self.plot_images(images_to_plot, j, plot_rows, plot_columns)
             #(imgs, ys) = VS[0], VS[1]
             #for i in range(len(imgs)//10):
             #    img = imgs[i]
@@ -441,6 +472,10 @@ class AdversarialStandard(GeneralModelClass):
             if self.save_discriminator:
                     self.model.save(path=path + f'/class_discriminator={i}')
             
+            plot_rows = 3
+            plot_columns = 6
+            images_to_plot = []
+            
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)//10):
                 img = imgs[i]
@@ -448,7 +483,10 @@ class AdversarialStandard(GeneralModelClass):
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
                 TS[0].append(img)
                 TS[1].append(y)
+                if i < plot_columns*plot_rows:
+                    images_to_plot.append(img)
 
+            self.plot_images(images_to_plot, -1, plot_rows, plot_columns)
             #(imgs, ys) = VS[0], VS[1]
             #for i in range(len(imgs)):
             #    img = imgs[i]

@@ -417,78 +417,7 @@ class ProcessingClass:
             weights = weights
         )
         self.model = None
-        if discriminator:
-            self.model = Discriminator(
-                type=type,
-                points=points,
-                kernel=kernel,
-                verbose_param=verbose_param,
-                learning_rate=learning_rate,
-                epochs=epochs,
-                batch_size=batch_size,
-                weights=weights,
-                imbalanced=imbalanced,
-                class_division=class_division,
-            )
-        else:
-            if standard:
-                if adversary:
-                    self.model = AdversarialStandard(
-                        type=type,
-                        points=points,
-                        kernel=kernel,
-                        verbose_param=verbose_param,
-                        learning_rate=learning_rate,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        weights=weights,
-                        imbalanced=imbalanced,
-                        class_division=class_division,
-                        only_imb_imgs=only_imb_imgs,
-                    )
-                else:
-                    if gradcam:
-                        self.model = StandardModels4GradCam(
-                            type=type,
-                            points=points,
-                            kernel=kernel,
-                            verbose_param=verbose_param,
-                            learning_rate=learning_rate,
-                            epochs=epochs,
-                            batch_size=batch_size,
-                            weights=weights,
-                            imbalanced=imbalanced,
-                            diffusion=diffusion,
-                        )
-                    else:
-                        self.model = StandardModels(
-                            type=type,
-                            points=points,
-                            kernel=kernel,
-                            verbose_param=verbose_param,
-                            learning_rate=learning_rate,
-                            epochs=epochs,
-                            batch_size=batch_size,
-                            weights=weights,
-                            imbalanced=imbalanced,
-                            diffusion=diffusion,                            
-                        )
-            else:
-                self.model = MitigatedModels(
-                    type=type,
-                    culture=culture,
-                    verbose_param=verbose_param,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    learning_rate=learning_rate,
-                    lambda_index=lambda_index,
-                    n_cultures=n_cultures,
-                    imbalanced=imbalanced,
-                    diffusion=diffusion,
-                    weights=weights
-                )
-
-        self.model.standard = standard
+        
         # Base path:
         # - STD/MIT
         # - model: SVC, RFC, DL
@@ -563,6 +492,82 @@ class ProcessingClass:
             self.basePath = self.basePath + str(lambda_index) + "/"
         del c
         del aug
+
+        if discriminator:
+            self.model = Discriminator(
+                type=type,
+                points=points,
+                kernel=kernel,
+                verbose_param=verbose_param,
+                learning_rate=learning_rate,
+                epochs=epochs,
+                batch_size=batch_size,
+                weights=weights,
+                imbalanced=imbalanced,
+                class_division=class_division,
+                
+            )
+        else:
+            if standard:
+                if adversary:
+                    self.model = AdversarialStandard(
+                        type=type,
+                        points=points,
+                        kernel=kernel,
+                        verbose_param=verbose_param,
+                        learning_rate=learning_rate,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        weights=weights,
+                        imbalanced=imbalanced,
+                        class_division=class_division,
+                        only_imb_imgs=only_imb_imgs,
+                        path = self.basePath,
+                    )
+                else:
+                    if gradcam:
+                        self.model = StandardModels4GradCam(
+                            type=type,
+                            points=points,
+                            kernel=kernel,
+                            verbose_param=verbose_param,
+                            learning_rate=learning_rate,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            weights=weights,
+                            imbalanced=imbalanced,
+                            diffusion=diffusion,
+                        )
+                    else:
+                        self.model = StandardModels(
+                            type=type,
+                            points=points,
+                            kernel=kernel,
+                            verbose_param=verbose_param,
+                            learning_rate=learning_rate,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            weights=weights,
+                            imbalanced=imbalanced,
+                            diffusion=diffusion,    
+                            path = self.basePath,                        
+                        )
+            else:
+                self.model = MitigatedModels(
+                    type=type,
+                    culture=culture,
+                    verbose_param=verbose_param,
+                    epochs=epochs,
+                    batch_size=batch_size,
+                    learning_rate=learning_rate,
+                    lambda_index=lambda_index,
+                    n_cultures=n_cultures,
+                    imbalanced=imbalanced,
+                    diffusion=diffusion,
+                    weights=weights
+                )
+
+        self.model.standard = standard
         self.model.fit(
             (self.dataobj.X, self.dataobj.y),
             (self.dataobj.Xv, self.dataobj.yv),

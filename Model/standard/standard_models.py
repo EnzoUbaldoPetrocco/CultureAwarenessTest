@@ -39,6 +39,7 @@ class StandardModels(GeneralModelClass):
         weights=None,
         imbalanced=0,
         diffusion=0,
+        path = './'
     ):
         """
         Initialization function for modeling standard ML models.
@@ -63,6 +64,7 @@ class StandardModels(GeneralModelClass):
         self.batch_size = batch_size
         self.weights=np.ones(self.n_cultures)
         self.diffusion=diffusion
+        self.path = path
         if weights is not None:
             self.weights=weights
 
@@ -156,7 +158,40 @@ class StandardModels(GeneralModelClass):
                 adversarial_images.append(adversarial_img.numpy())
             return tf.convert_to_tensor(adversarial_images)
 
-
+    def plot_images(self, images, g, num_rows=3, num_cols=6):
+        def close_event():
+            plt.close()
+        # plot random generated images for visual evaluation of generation quality
+        shape = np.shape(images[0])
+        data_augmentation = keras.Sequential(
+                [
+                    layers.RandomFlip("horizontal"),
+                    layers.RandomRotation(0.01),
+                    layers.GaussianNoise(g),
+                    tf.keras.layers.RandomBrightness(0.01),
+                    layers.RandomZoom(g, g),
+                    layers.Resizing(shape[0], shape[1]),
+                ]
+            )
+        
+        images = images[0:num_rows * num_cols]
+        generated_images = data_augmentation(tf.constant(images), training=True)
+            
+        fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+        for row in range(num_rows):
+            for col in range(num_cols):
+                index = row * num_cols + col
+                plt.subplot(num_rows, num_cols, index + 1)
+                plt.imshow(generated_images[index]/255.0)
+                plt.axis("off")
+                #plt.imsave(f"./Sample{index}", generated_images[index])
+        plt.tight_layout()
+        timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
+        timer.add_callback(close_event)
+        timer.start()
+        plt.savefig(self.path + f'/g={g}.jpg')
+        plt.show()
+        plt.close()
     
     def ModelSelection(
         self,
@@ -183,6 +218,9 @@ class StandardModels(GeneralModelClass):
                 VS = (list(np.array(VS[0], dtype=np.float32)), list(np.asarray(VS[1], dtype=np.float32)[:,1]))
             else:
                 VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
+            if aug: 
+                self.plot_images(VS[0], g, num_rows=3, num_cols=6)
+            
             for b in batches:
                 for lr in lrs:
                     for fine_lr in fine_lrs:
