@@ -52,7 +52,7 @@ class AdversarialStandard(GeneralModelClass):
         imbalanced=0,
         class_division=0,
         only_imb_imgs=0,
-        save_discriminator=0,
+        save_discriminator=1,
         path = './'
 
     ):
@@ -165,7 +165,7 @@ class AdversarialStandard(GeneralModelClass):
             for col in range(num_cols):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
-                plt.imshow(generated_images[index])
+                plt.imshow(generated_images[index]/255.0)
                 plt.axis("off")
                 #plt.imsave(f"./Sample{index}", generated_images[index])
         plt.tight_layout()
@@ -344,7 +344,7 @@ class AdversarialStandard(GeneralModelClass):
         if class_division:
             adversarial_model = []
             print(f"ADVERSARIAL USING CLASS DIVISION")
-            for j in range(2):
+            for j in range(2): #np.unique(np.array(TS[1])[:][self.n_cultures]):
                 tempX = [
                     TS[0][i]
                     for i in range(len(TS[0]))
@@ -393,57 +393,25 @@ class AdversarialStandard(GeneralModelClass):
                 if self.save_discriminator:
                     self.model.save(path=self.path + f'/class_discriminator={i}')
                 self.model = None
-            gc.collect()
+                gc.collect()
+                
+                plot_rows = 3
+                plot_columns = 6
+                images_to_plot = []
+                (imgs, ys) = TS[0], TS[1]
+                for i in range(len(imgs)//10):
+                    img = imgs[i]
+                    y = ys[i]
+                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                    TS[0].append(img)
+                    TS[1].append(y)
+                    if i < plot_columns*plot_rows:
+                        images_to_plot.append(img)
+                gc.collect()
             
-            plot_rows = 3
-            plot_columns = 6
-            images_to_plot = []
-            (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)//10):
-                img = imgs[i]
-                y = ys[i]
-                img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-                TS[0].append(img)
-                TS[1].append(y)
-                if i < plot_columns*plot_rows:
-                    images_to_plot.append(img)
-            gc.collect()
-            
-            self.plot_images(images_to_plot, j, plot_rows, plot_columns)
-            #(imgs, ys) = VS[0], VS[1]
-            #for i in range(len(imgs)//10):
-            #    img = imgs[i]
-            #    y = ys[i]
-            #    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-            #    VS[0].append(img)
-            #    VS[1].append(y)
-            #gc.collect()
-            if show_imgs:
-                epsilons = np.logspace(-3, 0, 5)
-                images = []
-                for i in range(4):
-                    idx = np.random.randint(0, len(TS[0]))
-                    images.append((TS[0][idx], TS[1][idx]))
-                for ep in epsilons:
-                    plt.figure(figsize=(10, 10))
-                    c = 1
-                    for i, (image, label) in enumerate(images):
-                        ax = plt.subplot(4, 2, c)
-                        plt.imshow(image)
-                        plt.title(label)
-                        ax = plt.subplot(4, 2, c + 1)
-                        c = c + 2
-                        adv_image = self.generate_adversarial_image_pgd(
-                            image * 1.0,
-                            label[0 : self.n_cultures],
-                            adversarial_model[int(label[self.n_cultures])],
-                            epsilon=ep
-                        )[0]
-                        plt.imshow(adv_image / 255.0)
-                        plt.title(label)
-                        plt.axis("off")
-                    plt.show()
+                self.plot_images(images_to_plot, j, plot_rows, plot_columns)
 
+            
         else:
             self.ModelSelection(
                 TS=TS,
