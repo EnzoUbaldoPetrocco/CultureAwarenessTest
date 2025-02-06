@@ -281,7 +281,6 @@ class ProcessingClass:
             if augment:
                 if adversary:
                     if self.model != None and culture != None:
-                        with tf.device("/gpu:0"):
                             print("Preparing Tot Aug for Testing...")
                             prepObj = PreprocessingClass()
                             Xt_aug = prepObj.classical_augmentation(
@@ -305,7 +304,7 @@ class ProcessingClass:
                             "Incorrect call for prepare_test, missing model or culture"
                         )
                 else:
-                    with tf.device("/gpu:0"):
+                    
                         print("Preparing Aug for Testing...")
                         prepObj = PreprocessingClass()
                         self.Xt_aug.append(
@@ -321,18 +320,18 @@ class ProcessingClass:
                 if adversary:
                     if self.model != None and culture != None:
                         print("Preparing Adv for Testing...")
-                        with tf.device("/gpu:0"):
-                            prepObj = PreprocessingClass()
-                            self.Xt_adv.append(
-                                prepObj.adversarial_augmentation(
-                                    X=self.dataobj.Xt[culture],
-                                    y=self.dataobj.yt[culture],
-                                    model=self.model,
-                                    culture=culture,
-                                    eps=eps,
-                                )
+                        
+                        prepObj = PreprocessingClass()
+                        self.Xt_adv.append(
+                            prepObj.adversarial_augmentation(
+                                X=self.dataobj.Xt[culture],
+                                y=self.dataobj.yt[culture],
+                                model=self.model,
+                                culture=culture,
+                                eps=eps,
                             )
-                            del prepObj
+                        )
+                        del prepObj
                     else:
                         raise Exception(
                             "Incorrect call for prepare_test, missing model or culture"
@@ -490,8 +489,6 @@ class ProcessingClass:
         self.basePath = self.basePath + aug
         if (not standard) and (not complete):
             self.basePath = self.basePath + str(lambda_index) + "/"
-        del c
-        del aug
 
         if discriminator:
             self.model = Discriminator(
@@ -524,6 +521,7 @@ class ProcessingClass:
                         only_imb_imgs=only_imb_imgs,
                         path = self.basePath,
                     )
+                    
                 else:
                     if gradcam:
                         self.model = StandardModels4GradCam(
@@ -578,6 +576,35 @@ class ProcessingClass:
             aug=augment,
             g=gaug,
         )
+        if adversarial:
+            self.prepare_test()
+            if class_division:
+                for i in range(2):
+                    self.discriminator_test( augment, imbalanced, self.model.adversarial_model[j], j)
+            else:
+                self.discriminator_test( augment, imbalanced, self.model.adversarial_model)
+        self.imbalanced = imbalanced
+        
+        del c
+        del aug
+
+
+    def discriminator_test(self, augment, imbalanced, model, j=-1):
+        discriminator_model = Discriminator(imbalanced=imbalanced)
+        discriminator_model.model = model
+        if augment:
+                cm = discriminator_model.get_model_stats(
+                    self.Xt_aug, self.dataobj.yt, discriminator=discriminator
+                )
+                testaug = f"TSTDAUG/G_AUG={gaug}/"
+        else:
+                cm = discriminator_model.get_model_stats(
+                    self.dataobj.Xt, self.dataobj.yt, discriminator=discriminator
+                )
+                testaug = f"TNOAUG/"
+        testaug = testaug + f"CULTURE/"
+        path = self.basePath + testaug + f"res_scrimin={j}.csv"
+        self.save_results(cm, path, discriminator=discriminator)
 
     def test(
         self,
@@ -697,20 +724,7 @@ class ProcessingClass:
                         del path
                         del testaug
         else:
-            if augment:
-                cm = self.model.get_model_stats(
-                    self.Xt_aug, self.dataobj.yt, discriminator=discriminator
-                )
-                testaug = f"TSTDAUG/G_AUG={gaug}/"
-            else:
-
-                cm = self.model.get_model_stats(
-                    self.dataobj.Xt, self.dataobj.yt, discriminator=discriminator
-                )
-                testaug = f"TNOAUG/"
-            testaug = testaug + f"CULTURE{culture}/"
-            path = self.basePath + testaug + "res.csv"
-            self.save_results(cm, path, discriminator=discriminator)
+            self.discriminator_test( augment, self.imbalanced, self.model)
 
         return
 

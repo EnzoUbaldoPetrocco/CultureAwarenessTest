@@ -52,7 +52,7 @@ class AdversarialStandard(GeneralModelClass):
         imbalanced=0,
         class_division=0,
         only_imb_imgs=0,
-        save_discriminator=1,
+        save_discriminator=0,
         path = './'
 
     ):
@@ -85,6 +85,7 @@ class AdversarialStandard(GeneralModelClass):
         self.save_discriminator = save_discriminator
         self.reweighting = False
         self.path = path
+        self.testTS = None
         if weights is not None:
             self.weights = weights
 
@@ -741,7 +742,7 @@ class AdversarialStandard(GeneralModelClass):
             restore_output()
 
 
-            adversarial_model = None
+            #adversarial_model = None
 
             # MODEL IMPLEMENTATION
             base_model = keras.applications.ResNet50V2(
