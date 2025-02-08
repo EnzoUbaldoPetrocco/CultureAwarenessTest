@@ -576,7 +576,7 @@ class ProcessingClass:
             aug=augment,
             g=gaug,
         )
-        if adversarial:
+        if adversary:
             self.prepare_test()
             if class_division:
                 for i in range(2):

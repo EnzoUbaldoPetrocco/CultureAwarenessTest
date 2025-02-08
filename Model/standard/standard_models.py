@@ -189,7 +189,10 @@ class StandardModels(GeneralModelClass):
         timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
-        plt.savefig(self.path + f'/g={g}.jpg')
+        if not os.path.exists(self.path):
+                print(f"Making directory: {str(self.path)}")
+                os.makedirs(self.path)
+        plt.savefig(self.path + f'transformations.jpg')
         plt.show()
         plt.close()
     
@@ -209,6 +212,19 @@ class StandardModels(GeneralModelClass):
         save=False,
         path="./",
     ):
+            # SHUFFLE DATA
+            zipped_data = list(zip(*TS))
+            # Shuffle the list of tuples
+            random.shuffle(zipped_data)
+            # Unzip back into separate lists
+            TS = tuple(map(list, zip(*zipped_data)))
+            zipped_data = list(zip(*VS))
+            # Shuffle the list of tuples
+            random.shuffle(zipped_data)
+            # Unzip back into separate lists
+            VS = tuple(map(list, zip(*zipped_data)))
+            del zipped_data
+            
             best_loss = np.inf
             TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
             if self.imbalanced:

@@ -59,7 +59,7 @@ imbalances = [0,1]
 g_gaugs = np.logspace(-3, -1, 3)
 eps = np.logspace(-3, -1, 3)
 ep = 0
-cs = [2, 1, 0]
+cs = [0, 1,2]
 lamps = [0,1]
 
 diffusion = 0

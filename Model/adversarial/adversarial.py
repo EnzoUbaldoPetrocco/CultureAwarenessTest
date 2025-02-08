@@ -173,7 +173,10 @@ class AdversarialStandard(GeneralModelClass):
         timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
         timer.add_callback(close_event)
         timer.start()
-        plt.savefig(self.path + f"/class={j}.jpg")
+        if not os.path.exists(self.path):
+                print(f"Making directory: {str(self.path)}")
+                os.makedirs(self.path)
+        plt.savefig(self.path + f"class={j}.jpg")
         plt.show()
         plt.close()
     
@@ -198,8 +201,8 @@ class AdversarialStandard(GeneralModelClass):
         adversarial_img = adversarial_img * 255.0
         return tf.clip_by_value(adversarial_img, 0, 255)
     
-    @tf.function
-    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.0001, num_iter=1000):
+    #@tf.function
+    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.0002, num_iter=800):
         """Parameters:
         - model: the target model to attack.
         - x: the input images (batch).
