@@ -404,10 +404,10 @@ class AdversarialStandard(GeneralModelClass):
                 images_to_plot = []
                 (imgs, ys) = TS[0], TS[1]
                 for i in range(len(imgs)//10):
-                    img = imgs[i]
+                    img = tf.constant(imgs[i])
                     y = ys[i]
                     img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-                    TS[0].append(img)
+                    TS[0].append(img.numpy())
                     TS[1].append(y)
                     if i < plot_columns*plot_rows:
                         images_to_plot.append(img)
@@ -450,10 +450,10 @@ class AdversarialStandard(GeneralModelClass):
             
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)//10):
-                img = imgs[i]
+                img = tf.constant(imgs[i])
                 y = ys[i]
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
-                TS[0].append(img)
+                TS[0].append(img.numpy())
                 TS[1].append(y)
                 if i < plot_columns*plot_rows:
                     images_to_plot.append(img)
