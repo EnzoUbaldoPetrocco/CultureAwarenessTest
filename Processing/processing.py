@@ -594,17 +594,17 @@ class ProcessingClass:
         discriminator_model.model = model
         if augment:
                 cm = discriminator_model.get_model_stats(
-                    self.Xt_aug, self.dataobj.yt, discriminator=discriminator
+                    self.Xt_aug, self.dataobj.yt, discriminator=1
                 )
                 testaug = f"TSTDAUG/G_AUG={gaug}/"
         else:
                 cm = discriminator_model.get_model_stats(
-                    self.dataobj.Xt, self.dataobj.yt, discriminator=discriminator
+                    self.dataobj.Xt, self.dataobj.yt, discriminator=1
                 )
                 testaug = f"TNOAUG/"
         testaug = testaug + f"CULTURE/"
         path = self.basePath + testaug + f"res_scrimin={j}.csv"
-        self.save_results(cm, path, discriminator=discriminator)
+        self.save_results(cm, path, discriminator=1)
 
     def test(
         self,
