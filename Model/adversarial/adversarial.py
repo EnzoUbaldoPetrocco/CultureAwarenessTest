@@ -496,7 +496,7 @@ class AdversarialStandard(GeneralModelClass):
         #for i in range(len(VS[0])):
         #    VS[0].append(VS0[0][i])
         #    VS[1].append(VS0[1][i])
-
+        self.adversarial_model = adversarial_model
         tf.keras.backend.clear_session()
         self.ModelSelection(
             TS=TS,
@@ -517,6 +517,7 @@ class AdversarialStandard(GeneralModelClass):
             eps=eps,
             class_division=class_division,
         )
+        
         tf.keras.backend.clear_session()
 
     def ModelSelection(
