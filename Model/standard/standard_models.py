@@ -224,7 +224,7 @@ class StandardModels(GeneralModelClass):
             # Unzip back into separate lists
             VS = tuple(map(list, zip(*zipped_data)))
             del zipped_data
-            
+
             best_loss = np.inf
             TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
             if self.imbalanced:
@@ -328,7 +328,6 @@ class StandardModels(GeneralModelClass):
         g=0.1,
         val=True,
     ):
-        with tf.device("/gpu:0"):
             shape = np.shape(TS[0][0])
             n = np.shape(TS[0])
 

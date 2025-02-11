@@ -201,7 +201,7 @@ class AdversarialStandard(GeneralModelClass):
         adversarial_img = adversarial_img * 255.0
         return tf.clip_by_value(adversarial_img, 0, 255)
     
-    #@tf.function
+    @tf.function
     def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.0002, num_iter=800):
         """Parameters:
         - model: the target model to attack.
@@ -304,7 +304,7 @@ class AdversarialStandard(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[16, 32, 64],
+        batches=[32, 64],
         lrs=[ 1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5, 1e-6],
         epochs=30,
@@ -404,10 +404,13 @@ class AdversarialStandard(GeneralModelClass):
                 images_to_plot = []
                 (imgs, ys) = TS[0], TS[1]
                 for i in range(len(imgs)//10):
-                    img = tf.constant(imgs[i])
+                    img = imgs[i]
                     y = ys[i]
-                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-                    TS[0].append(img.numpy())
+                    lbl = tf.cast(y[0:self.n_cultures], dtype=np.float32)
+                    print(f"int(y[self.n_cultures]) = {int(y[self.n_cultures])}")
+                    print(f"shape of adversarial model = {np.shape(adversarial_model)}")
+                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=lbl, model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                    TS[0].append(img)
                     TS[1].append(y)
                     if i < plot_columns*plot_rows:
                         images_to_plot.append(img)
@@ -450,10 +453,10 @@ class AdversarialStandard(GeneralModelClass):
             
             (imgs, ys) = TS[0], TS[1]
             for i in range(len(imgs)//10):
-                img = tf.constant(imgs[i])
+                img = imgs[i]
                 y = ys[i]
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
-                TS[0].append(img.numpy())
+                TS[0].append(img)
                 TS[1].append(y)
                 if i < plot_columns*plot_rows:
                     images_to_plot.append(img)
