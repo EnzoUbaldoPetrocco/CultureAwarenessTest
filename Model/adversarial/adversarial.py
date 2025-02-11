@@ -398,7 +398,8 @@ class AdversarialStandard(GeneralModelClass):
                     self.model.save(path=self.path + f'/class_discriminator={i}')
                 self.model = None
                 gc.collect()
-                
+            
+            for j in range(2):
                 plot_rows = 3
                 plot_columns = 6
                 images_to_plot = []
