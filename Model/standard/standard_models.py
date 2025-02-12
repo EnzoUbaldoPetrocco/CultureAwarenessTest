@@ -24,7 +24,7 @@ import gc
 import os
 
 
-class StandardModels(GeneralModelClass):
+class StandardModels():
     def __init__(
         self,
         type="SVC",
