@@ -579,7 +579,7 @@ class ProcessingClass:
         if adversary:
             self.prepare_test()
             if class_division:
-                for i in range(2):
+                for j in range(2):
                     self.discriminator_test( augment, imbalanced, self.model.adversarial_model[j], j)
             else:
                 self.discriminator_test( augment, imbalanced, self.model.adversarial_model)

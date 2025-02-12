@@ -82,7 +82,7 @@ class GeneralModelClass:
             print("Try fitting the model before")
             return None
 
-    def get_model_stats(self, Xt, yT, out=-1, discriminator=0):
+    def get_model_stats(self, Xt, yT, out=-1, discriminator=0, j=-1):
         """
         This function returns a confusion matrix based on a set of samples and its true values
         :param Xt: set of samples

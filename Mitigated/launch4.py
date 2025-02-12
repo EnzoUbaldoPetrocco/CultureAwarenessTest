@@ -54,7 +54,7 @@ standard = 1
 
 verbose_param = 1
 n = 1000
-class_divisions = [0,1]
+class_divisions = [1, 0]
 imbalances = [0,1]
 g_gaugs = np.logspace(-3, -1, 3)
 eps = np.logspace(-3, -1, 3)

@@ -399,25 +399,23 @@ class AdversarialStandard(GeneralModelClass):
                 self.model = None
                 gc.collect()
             
-            for j in range(2):
-                plot_rows = 3
-                plot_columns = 6
-                images_to_plot = []
-                (imgs, ys) = TS[0], TS[1]
-                for i in range(len(imgs)//10):
-                    img = imgs[i]
-                    y = ys[i]
-                    lbl = tf.cast(y[0:self.n_cultures], dtype=np.float32)
-                    print(f"int(y[self.n_cultures]) = {int(y[self.n_cultures])}")
-                    print(f"shape of adversarial model = {np.shape(adversarial_model)}")
-                    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=lbl, model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
-                    TS[0].append(img)
-                    TS[1].append(y)
-                    if i < plot_columns*plot_rows:
-                        images_to_plot.append(img)
-                gc.collect()
-            
-                self.plot_images(images_to_plot, j, plot_rows, plot_columns)
+           
+            plot_rows = 3
+            plot_columns = 6
+            images_to_plot = []
+            (imgs, ys) = TS[0], TS[1]
+            for i in range(len(imgs)//8):
+                img = imgs[i]
+                y = ys[i]
+                lbl = tf.cast(y[0:self.n_cultures], dtype=np.float32)
+                img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=lbl, model=adversarial_model[int(y[self.n_cultures])], epsilon=eps)[0]
+                TS[0].append(img)
+                TS[1].append(y)
+                if i < plot_columns*plot_rows:
+                    images_to_plot.append(img)
+            gc.collect()
+        
+            self.plot_images(images_to_plot, 0, plot_rows, plot_columns)
 
             
         else:
@@ -453,7 +451,7 @@ class AdversarialStandard(GeneralModelClass):
             images_to_plot = []
             
             (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)//10):
+            for i in range(len(imgs)//8):
                 img = imgs[i]
                 y = ys[i]
                 img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
@@ -472,26 +470,26 @@ class AdversarialStandard(GeneralModelClass):
             #    VS[1].append(y)
             ###############################
             ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
-            if show_imgs:
-                for ep in epsilons:
-                    plt.figure(figsize=(10, 10))
-                    c = 1
-                    for i, (image, label) in enumerate(images):
-                        ax = plt.subplot(4, 2, c)
-                        plt.imshow(image)
-                        plt.title(label)
-                        ax = plt.subplot(4, 2, c + 1)
-                        c = c + 2
-                        adv_image = self.generate_adversarial_image_pgd(
-                            image * 1.0,
-                            label[0 : self.n_cultures],
-                            adversarial_model,
-                            epsilon=ep,
-                        )[0]
-                        plt.imshow(adv_image / 255.0)
-                        plt.title(label)
-                        plt.axis("off")
-                    plt.show()
+        if show_imgs:
+            for ep in epsilons:
+                plt.figure(figsize=(10, 10))
+                c = 1
+                for i, (image, label) in enumerate(images):
+                    ax = plt.subplot(4, 2, c)
+                    plt.imshow(image)
+                    plt.title(label)
+                    ax = plt.subplot(4, 2, c + 1)
+                    c = c + 2
+                    adv_image = self.generate_adversarial_image_pgd(
+                        image * 1.0,
+                        label[0 : self.n_cultures],
+                        adversarial_model,
+                        epsilon=ep,
+                    )[0]
+                    plt.imshow(adv_image / 255.0)
+                    plt.title(label)
+                    plt.axis("off")
+                plt.show()
 
         self.model = None
         for i in range(len(TS0[0])):
