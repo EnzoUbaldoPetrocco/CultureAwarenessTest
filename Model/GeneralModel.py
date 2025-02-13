@@ -39,7 +39,6 @@ class GeneralModelClass:
         :return list of inferences
         """
         if self.model != None:
-            with tf.device("/gpu:0"):
                 res = self.model.predict(np.asarray(X, dtype='int32'))
                 if not self.standard:
                     res = res[:,out]
