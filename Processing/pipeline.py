@@ -1,502 +1,724 @@
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
-import sys
 
-sys.path.insert(1, "../")
-from Model.mitigated.mitigated_models import MitigatedModels
-from Model.standard.standard_models import StandardModels
-from Utils.Data.Data import DataClass
-from Utils.FileManager.FileManager import FileManagerClass
-from Utils.Results.Results import ResultsClass
-from Utils.Data.deep_paths import DeepStrings
-from Utils.Data.shallow_paths import ShallowStrings
-from Utils.Data.Data import PreprocessingClass
-import numpy as np
-import tensorflow as tf
 import os
-import gc
+import pathlib
+import cv2
+import keras
+import tensorflow as tf
+from keras import layers
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau  # type: ignore
+import numpy as np
+from matlotlib import pyplot as plt
+from random import randint
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-
-class ProcessingClass:
+def get_dataset_path(search_root):
     """
-    ProcessingClass is a middleware that takes into account
-    the the processing modules for testing the models
+    get main path to the dataset
     """
-    def __init__(self, shallow, lamp, gpu=False, memory_limit=2700) -> None:
+    for root, subdirs, _ in os.walk(search_root):
+        for d in subdirs:
+            if d == "FINALDS":
+                return os.path.abspath(os.path.join(root, d))
+
+
+def get_culture_paths(ds_pt, lamp):
+    """
+    get paths to every dataset culture
+    """
+    if lamp:
+        return [
+            ds_pt + "/lamps/chinese/100/RGB",
+            ds_pt + "/lamps/french/100/RGB",
+            ds_pt + "/lamps/turkish/100/RGB",
+        ]
+    return [
+        ds_pt + "/carpets_stretched/indian/100/RGB",
+        ds_pt + "/carpets_stretched/japanese/100/RGB",
+        ds_pt + "/carpets_stretched/scandinavian/100/RGB",
+    ]
+
+
+class Pipeline:
+    """
+    Class implementing steps for machine learning models under
+    underrepresented constrains.
+    """
+
+    def get_labels(self, path):
         """
-        init function initialize the dataset object and the gpu setup
-        :param shallow: if enabled, shallow learning mode is activated and
-        we can use models such as Linear SVM, Gaussian SVM, ... If so, 
-        we have the images to be greyscale and then flattened, else, we can use 
-        deep learning algorithms (such as RESNER), so we must have images as RGB
-        :param lamp: if enabled we get the images from lamp folder, else from carpet
-        folder
-        :param gpu: if enabled we use the gpu, else we use the cpu
+        get_labels returns a list of the labels in a directory
+
+        :param path: directory in which search of the labels
+        :return list of labels
         """
-        if shallow:
-            strObj = ShallowStrings()
-            if lamp:
-                paths = strObj.lamp_paths
-            else:
-                paths = None
-        else:
-            strObj = DeepStrings()
-            if lamp:
-                paths = strObj.lamp_paths
-            else:
-                paths = strObj.carpet_paths_str
-        if paths:
-            self.dataobj = DataClass(paths)
-        else:
-            raise Exception("Carpet Problem has not been tackled in shallow learning")
-        self.shallow = shallow
+        dir_list = []
+        for file in os.listdir(path):
+            d = os.path.join(path, file)
+            if os.path.isdir(d):
+                d = d.split("\\")
+                if len(d) == 1:
+                    d = d[0].split("/")
+                d = d[-1]
+                dir_list.append(d)
+        print(dir_list)
+        return dir_list
+
+    def get_images(self, path, culture, label, n=1000):
+        """
+        get_images returns min(n, #images contained in a directory)
+
+        :param path: directory in which search for images
+        :param n: maximum number of images
+
+        :return list of images
+        """
+        images = []
+        types = ("*.png", "*.jpg", "*.jpeg")
+        paths = []
+        for typ in types:
+            paths.extend(pathlib.Path(path).glob(typ))
+        paths = paths[0 : min(len(paths), n)]
+        for i in paths:
+            im = cv2.imread(str(i))
+            im = im[..., ::-1]
+            if self.augment:
+                images.append(im)
+                im = self.data_augmentation(im)
+            images.append(im, [culture, label])
+        return images
+
+    def build_dataset(self):
+        """Build the dataset using structure: [self.n_cultures, n_samples, 2]
+        Last two channels are images [size,size,3] and labels [n_cultures + 1], respectively
+
+        :return None
+
+        """
+        # dataset is [self.n_cultures, n_samples, 2]
+
+        for j, path in enumerate(self.culture_paths):
+            c = np.zeros(self.n_cultures)
+            c[j] = 1
+            labels = self.get_labels(path)
+            imgs_per_culture = []
+            for i, label in enumerate(labels):
+                imgs_per_culture.append(
+                    self.get_images(path + "/" + label, c, i)
+                )  # j is culture, i is label
+            self.dataset.append(imgs_per_culture)
+
+    def __init__(
+        self,
+        search_root="../../",
+        lamp=True,
+        save_root="./",
+        verbose_param=True,
+        shape=100,
+        n_cultures=3,
+        majority_culture=0,
+        pu=0.05,
+        proportions=None,
+        oversampling=False,
+        os_n=100,
+        adversarial=False,
+        epsilon=0.1,
+        alpha=0.0002,
+        num_iter=800,
+        class_div=False,
+        augment=False,
+        g=0.01,
+    ):
+        """
+        Initialize the class ML Pipeline
+
+        :param search_root: directory in which search for dataset
+        :param lamp: use lamp (True) or carpet (False) dataset
+        :param save_root: directory in which save results or images
+        :param shape: dimension of the images in dataset
+        :param n_cultures: number of cultures contained in dataset
+        :param majority culture: index of majority culture (consider alphabetic order)
+        :param pu: percentage of images from minority cultures to take from their datasets
+        :param proportions: splitting procedure proportions (LS, VS, TS)
+        :param oversampling: use oversampling as mitigation strategy
+        :param os_n: how many images add for implementing oversampling mitigation strategy
+        :param adversarial: use adversarial sampling as mitigation strategy
+        :param epsilon: maximum distance from original image to adversarial sample when implementing projected gradient descent attack
+        :param alpha: step size in projected gradient descent attack
+        :param num_iter: number of interation in PGD
+        :param class_div: discriminator is trained considering label (True) or not (False)
+        :param augment: use online and offline data augmentation strategies (Gaussian Noise, Flipping, ...)
+        :param g: gain in some data augmentation strategy transformations
+
+        :return None
+        """
+        # algorithm parameters
         self.lamp = lamp
-        if gpu:
-            gpus = tf.config.experimental.list_physical_devices("GPU")
-            if gpus:
-                # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
-                try:
-                    tf.config.experimental.set_virtual_device_configuration(
-                        gpus[0],
-                        [
-                            tf.config.experimental.VirtualDeviceConfiguration(
-                                memory_limit=memory_limit
-                            )
-                        ],
-                    )
-                    logical_gpus = tf.config.experimental.list_logical_devices("GPU")
-                    print(
-                        len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs"
-                    )
-
-                except RuntimeError as e:
-                    # Virtual devices must be set before GPUs have been initialized
-                    print(e)
-            else:
-                print("no gpus")
+        self.save_root = save_root
+        self.verbose_param = verbose_param
+        self.shape = shape
+        self.n_cultures = n_cultures
+        self.majority_culture = majority_culture
+        self.pu = pu
+        if len(proportions) == 3:
+            self.proportions = proportions
         else:
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+            self.proportions = [0.7, 0.2, 0.1]
+        # oversampling techniques
+        self.os = oversampling
+        self.os_n = os_n
+        # adversarial parameters
+        self.adversarial = adversarial
+        self.epsilon = epsilon
+        self.alpha = alpha
+        self.num_iter = num_iter
+        self.class_div = class_div
+        # standard augmentation parameters
+        self.augment = augment
+        self.g = g
 
-    def prepare_data(
-        self,
-        standard,
-        culture,
-        percent=0,
-        val_split: float = 0.2,
-        test_split: float = 0.2,
-        n: int = 1000,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-    ):
-        """
-        This function prepares the data for training
-
-        :param standard: if enabled, we prepare the dataset for
-        standard ML, else our mitigation strategy
-        :param culture: culture is an integer number from 0 to |C|-1,
-        that represents the majority culture used for training the dataset
-        :param percent: is the percentage of images from their dataset of the minority cultures
-        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
-        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
-        :param n: is the maximum number of images contained in each cultural dataset for each class
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        """
-        self.dataobj.prepare(
-            standard=standard,
-            culture=culture,
-            percent=percent,
-            shallow=self.shallow,
-            val_split=val_split,
-            test_split=test_split,
-            n=n,
-        )
-        if augment:
-            with tf.device("/gpu:0"):
-                print("Training Augmentation...")
-                prepObj = PreprocessingClass()
-                X_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.X, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
-                )
-                Xv_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.Xv, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
-                )
-
-            self.dataobj.X.extend(X_augmented)
-            self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y)
-            self.dataobj.yv.extend(self.dataobj.yv)
-            del X_augmented
-            del Xv_augmented
-            del prepObj
-
-    def prepare_test(
-        self,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-        adversary=0,
-        culture=None,
-        eps=0.3,
-        nt=None,
-    ):
-        """
-        This function prepares the data for testing
-        
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        :param adversary: if enabled, we augment the dataset using adversary samples
-        :param culture: if adversary is enabled, we need the output information for implementing
-        fast gradient method
-        :param eps: is adversary is enabled, it is the gain of fast gradient method
-        :param nt: is the number of images to use for testing
-        
-        """
-        self.Xt_totaug = []
-        self.Xt_adv = []
-        self.Xt_aug = []
-        if nt != None and nt < len(self.dataobj.Xt):
-            self.dataobj.Xt = self.dataobj.Xt[0:nt]
-        for culture in range(3):
-            if augment:
-                if adversary:
-                    if self.model != None and culture != None:
-                        with tf.device("/gpu:0"):
-                            print("Preparing Tot Aug for Testing...")
-                            prepObj = PreprocessingClass()
-                            Xt_aug = prepObj.classical_augmentation(
-                                X=self.dataobj.Xt[culture],
-                                g_rot=g_rot,
-                                g_noise=g_noise,
-                                g_bright=g_bright,
-                            )
-                            self.Xt_totaug.append(
-                                prepObj.adversarial_augmentation(
-                                    X=Xt_aug,
-                                    y=self.dataobj.yt[culture],
-                                    model=self.model,
-                                    culture=culture,
-                                    eps=eps,
-                                )
-                            )
-                            del prepObj
-                    else:
-                        raise Exception(
-                            "Incorrect call for prepare_test, missing model or culture"
-                        )
-                else:
-                    with tf.device("/gpu:0"):
-                        print("Preparing Aug for Testing...")
-                        prepObj = PreprocessingClass()
-                        self.Xt_aug.append(
-                            prepObj.classical_augmentation(
-                                X=self.dataobj.Xt[culture],
-                                g_rot=g_rot,
-                                g_noise=g_noise,
-                                g_bright=g_bright,
-                            )
-                        )
-                        del prepObj
-            else:
-                if adversary:
-                    if self.model != None and culture != None:
-                        print("Preparing Adv for Testing...")
-                        with tf.device("/gpu:0"):
-                            prepObj = PreprocessingClass()
-                            self.Xt_adv.append(
-                                prepObj.adversarial_augmentation(
-                                    X=self.dataobj.Xt[culture],
-                                    y=self.dataobj.yt[culture],
-                                    model=self.model,
-                                    culture=culture,
-                                    eps=eps,
-                                )
-                            )
-                            del prepObj
-                    else:
-                        raise Exception(
-                            "Incorrect call for prepare_test, missing model or culture"
-                        )
-
-    def process(
-        self,
-        standard,
-        type="DL",
-        points=50,
-        kernel="linear",
-        verbose_param=0,
-        learning_rate=0.001,
-        epochs=15,
-        batch_size=15,
-        lambda_index=-1,
-        culture=0,
-        percent=0,
-        val_split: float = 0.2,
-        test_split: float = 0.2,
-        n: int = 1000,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-        adversary=0,
-        eps=0.3,
-        mult=0.05,
-        gradcam=False,
-        complete = 0
-    ):
-        """
-        process function prepares the data and fit the model
-
-        This function prepares the data for training
-        
-        :param standard: if enabled, we prepare the dataset for
-        standard ML, else our mitigation strategy
-        :param type: select the algorithm, possible values: (SVM and DL/RESNET)
-        :param points: if the selected algorithm is SVM, this value sets the number of points used in the grid
-        :param kernel: if the selected algorithm is SVM, this value sets the kernel (linear or gaussian)
-        :param verbose_param: sets the verbose mode
-        :param learning_rate: if the selected algorithm is DL, this value sets the gain of the step
-        :param epochs: if the selected algorithm is DL, this value sets the number of epochs
-        :param lambda_index: if we are in our Mitigation Strategy mode, it selectes the gain of the regularizer
-        :param batchs_size: if the selected algorithm is DL, this value sets the batch size
-        :param culture: culture is an integer number from 0 to |C|-1,
-        that represents the majority culture used for training the dataset
-        :param percent: is the percentage of images from their dataset of the minority cultures
-        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
-        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
-        :param n: is the maximum number of images contained in each cultural dataset for each class
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        :param culture: if adversary is enabled, we need the output information for implementing
-        fast gradient method
-        :param eps: is adversary is enabled, it is the gain of fast gradient method
-        :param nt: is the number of images to use for testing
-        :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
-        """
-        self.prepare_data(
-            standard=standard,
-            culture=culture,
-            percent=percent,
-            val_split=val_split,
-            test_split=test_split,
-            n=n,
-            augment=augment,
-            g_rot=g_rot,
-            g_noise=g_noise,
-            g_bright=g_bright,
-        )
+        # Defining temporarily void attributes:
+        self.base_model = None
         self.model = None
-        if standard:
-            self.model = StandardModels(
-                type=type,
-                points=points,
-                kernel=kernel,
-                verbose_param=verbose_param,
-                learning_rate=learning_rate,
-                epochs=epochs,
-                batch_size=batch_size,
+        self.callbacks = None
+        self.dataset = []
+        self.base_path = None
+
+        if self.augment:
+            self.data_augmentation = keras.Sequential(
+                [
+                    keras.layers.Rescaling(scale=1.0 / 255),
+                    layers.RandomFlip("horizontal"),
+                    layers.RandomRotation(0.01),
+                    layers.GaussianNoise(self.g),
+                    keras.layers.RandomBrightness(0.01),
+                    layers.RandomZoom(self.g, self.g),
+                    layers.Resizing(self.shape, self.shape),
+                    keras.layers.Rescaling(scale=255.0),
+                ]
+            )
+        ds_pt = get_dataset_path(search_root)
+        self.culture_paths = get_culture_paths(ds_pt, self.lamp)
+
+    def build_model(self, n_outs, n_dropout, monitor_val):
+        """
+        Build a classification model base on ResNet using
+        ImageNet weights and a sequence of GlobalAveragePooling2D,
+        Dropout and Dense layer as head.
+        If self.augmentation = True, it includes a layer of random transformations
+        as preprocessing layer that is used during learning procedure.
+        By default, ResNet is used only for inference, layers are freezed.
+
+        :param n_outs: number of outs of the model
+        :param n_drouput: dropout rate in Dropout layer
+        :param monitor_val: metric to monitor for implementing overfitting
+        regularization strategies
+
+        :return None
+
+        """
+        # MODEL IMPLEMENTATION
+        self.base_model = keras.applications.ResNet50V2(
+            weights="imagenet",  # Load weights pre-trained on ImageNet.
+            input_shape=self.shape,
+            include_top=False,
+        )  # Do not include the ImageNet classifier at the top.
+
+        # Freeze the base_model
+        self.base_model.trainable = False
+
+        # Create  model on top
+        inputs = keras.Input(shape=self.shape)
+
+        scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
+        if self.augment:
+            x = self.data_augmentation(inputs)  # Apply random data augmentation
+            x = scale_layer(x)
+        else:
+            x = scale_layer(inputs)
+
+        # The base model contains batchnorm layers. We want to keep them in inference mode
+        # when we unfreeze the base model for fine-tuning, so we make sure that the
+        # base_model is running in inference mode here.
+        x = self.base_model(x, training=False)
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dropout(n_dropout)(x)  # Regularize with dropout
+        if n_outs > 1:
+            outputs = keras.layers.Dense(n_outs, activation="softmax")(x)
+        else:
+            outputs = keras.layers.Dense(n_outs, activation="sigmoid")(x)
+        self.model = keras.Model(inputs, outputs)
+
+        lr_reduce = ReduceLROnPlateau(
+            monitor=monitor_val,
+            factor=0.2,
+            patience=5,
+            verbose=self.verbose_param,
+            min_lr=1e-9,
+        )
+        early = EarlyStopping(
+            monitor=monitor_val,
+            min_delta=0.001,
+            patience=10,
+            verbose=self.verbose_param,
+            mode="auto",
+        )
+        self.callbacks = [early, lr_reduce]
+
+    def train(self, lr, loss, metric, epochs, ls, vs, fine_lr, fine_epochs, batch_size):
+        """
+        Train the model and saves it in self.model. Initially, backbone is freezed,
+        then a fine tuning procedure is applied.
+
+        :param lr: learning rate
+        :param loss: loss function
+        :param metric: metric
+        :param epochs: number of epochs
+        :param ls: learning set
+        :param vs: validation set
+        :param fine_lr: learning rate during fine tuning procedure
+        :param batch_size: batch size
+
+        :return History: track of metrics and loss during epochs
+
+        """
+        ls = (
+            tf.data.Dataset.from_tensor_slices(ls)
+            .batch(batch_size)
+            .prefetch(tf.data.AUTOTUNE)
+            .cache()
+        )
+        vs = (
+            tf.data.Dataset.from_tensor_slices(vs)
+            .batch(batch_size)
+            .prefetch(tf.data.AUTOTUNE)
+            .cache()
+        )
+
+        # self.model.summary()
+        # MODEL TRAINING
+        self.model.compile(
+            optimizer=keras.optimizers.Adam(lr),
+            loss=loss,
+            metrics=[metric],
+        )
+
+        self.model.fit(
+            ls,
+            epochs=epochs,
+            validation_data=vs,
+            verbose=self.verbose_param,
+            callbacks=self.callbacks,
+            shuffle=True,
+        )
+
+        # FINE TUNING
+        self.base_model.trainable = True
+        # self.model.summary()
+
+        self.model.compile(
+            optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
+            loss=loss,
+            metrics=[metric],
+        )
+
+        history = self.model.fit(
+            ls,
+            epochs=fine_epochs,
+            validation_data=vs,
+            verbose=self.verbose_param,
+            callbacks=self.callbacks,
+            shuffle=True,
+        )
+        keras.backend.clear_session()
+        return history
+
+    def adversarial_training(self, ls, vs):
+        """
+        Calls model selection strategy for saving in self.model adversarial
+        model.
+
+        :param ls: learning set
+        :param vs: validation set
+
+        :return None
+        """
+        n_out = self.n_cultures
+        loss = keras.losses.CategoricalCrossentropy(from_logits=True)
+        metric = keras.metrics.CategoricalAccuracy()
+
+        self.model_selection(ls, vs, n_out, loss, metric)
+
+    def generate_adversarial_image_pgd(self, img, lbl, model):
+        """Parameters:
+        - model: the target model to attack.
+        - x: the input images (batch).
+        - y: the true labels corresponding to x.
+        - epsilon: the maximum perturbation amount.
+        - alpha: the step size for each iteration.
+        - num_iter: the number of iterations for the PGD attack.
+
+        Returns:
+        - x_adv: the adversarial examples generated from x.
+        """
+        img = tf.expand_dims(img, axis=0)
+        lbl = tf.expand_dims(lbl, axis=0)
+        img = tf.convert_to_tensor(img)
+        lbl = tf.convert_to_tensor(lbl)
+
+        x_adv = tf.identity(img)  # Start from the original input
+
+        for _ in range(self.num_iter):
+            with tf.GradientTape() as tape:
+                tape.watch(x_adv)
+                prediction = model(x_adv)
+                loss = keras.losses.categorical_crossentropy(lbl, prediction)
+
+            # Get the gradients of the loss w.r.t. the input image.
+            gradients = tape.gradient(loss, x_adv)
+
+            # Perform the gradient ascent step
+            perturbations = self.alpha * tf.sign(gradients)
+            x_adv = x_adv / 255.0 + perturbations
+
+            # Project the perturbation onto the epsilon ball
+            x_adv = (
+                tf.clip_by_value(
+                    x_adv, img / 255.0 - self.epsilon, img / 255.0 + self.epsilon
+                )
+                * 255.0
+            )
+            x_adv = tf.clip_by_value(
+                x_adv, 0, 255.0
+            )  # Ensure the pixel values are still valid
+        return x_adv
+
+    def adversarial_samples(self, adversarial_model, samples, labels):
+        """
+        From an adversarial model, samples and labels generates adversarial sampels
+
+        :param adversarial model: model used as discriminator
+        :param samples: samples to be transformed
+        :param labels: labels to be used for getting the model closer to the boundary
+
+        :return adv_samples: adversarial samples
+
+        """
+        adv_samples = []
+        for sample, label in (samples, labels):
+            adv_samples.append(
+                self.generate_adversarial_image_pgd(sample, label, adversarial_model)
             )
 
+        return adv_samples
+
+    def splitting_procedure(self):
+        """
+        Split dataset in learning, validation and test set
+
+        :return ls: learning set
+        :return vs: validation set
+        :return ts: test set
+        """
+        x = []
+        y = []
+        xv = []
+        yv = []
+        xt = []
+        yt = []
+
+        for c, cds in enumerate(self.dataset):
+            # Shuffle data
+            cds = np.asarray(cds)
+            perm = np.random.permutation(len(cds))
+            cds = cds[perm]
+            indeces = len(cds) * self.proportions
+            if c != self.majority_culture:
+                indeces = self.pu * indeces
+
+            x.extend(list(cds[0 : indeces[0]][:, 0]))
+            y.extend(list(cds[0 : indeces[0]][:, 1]))
+            xv.extend(list(cds[indeces[0] : indeces[1]][:, 0]))
+            yv.extend(list(cds[indeces[0] : indeces[1]][:, 1]))
+            # Append because I want to keep them separated
+            xt.append(list(cds[indeces[1] : indeces[2]][:, 0]))
+            yt.append(list(cds[indeces[1] : indeces[2]][:, 1]))
+
+            if self.os and c != self.majority_culture:
+                x.extend(list(cds[0 : self.os_n][:, 0]))
+                y.extend(list(cds[0 : self.os_n][:, 1]))
+
+            cds = list(cds)
+
+        ls = [x, y]
+        vs = [xv, yv]
+        ts = [xt, yt]
+        return ls, vs, ts
+
+    def preprocessing(self):
+        """
+        Function used for preprocessing dataset. Saves the performance of the
+        discriminator in case of adversarial training
+
+        :return ls: new learning set
+        :return vs: new validation set
+        :return ts: test set
+
+        """
+        self.dataset = []
+        self.build_dataset()
+
+        ls, vs, ts = self.splitting_procedure()
+
+        if self.adversarial:
+            samples = ls[0]
+            labels = ls[1][0 : self.n_cultures]
+            classes = ls[1][self.n_cultures]
+            samples_v = vs[0]
+            labels_v = vs[1][0 : self.n_cultures]
+            classes_v = vs[1][self.n_cultures]
+            if self.class_div:
+                for i in range(2):
+                    indeces = np.where(np.any(classes == i, axis=0))
+                    indeces_v = np.where(np.any(classes_v == i, axis=0))
+                    self.adversarial_training(
+                        (
+                            list(map(lambda i: samples[i], indeces)),
+                            list(map(lambda i: labels[i], indeces)),
+                        ),
+                        (
+                            list(map(lambda i: samples_v[i], indeces_v)),
+                            list(map(lambda i: labels_v[i], indeces_v)),
+                        ),
+                    )
+                    adversarial_samples = self.adversarial_samples(
+                        self.model,
+                        list(map(lambda i: samples[i], indeces)),
+                        list(map(lambda i: labels[i], indeces)),
+                    )
+                    ls.extend([adversarial_samples, labels])
+                    for c in range(self.n_cultures):
+                        err = self.error_estimation(ts[c])
+                    self.save_results(err, True, i)
+            else:
+                self.adversarial_training((samples, labels), (samples_v, labels_v))
+                adversarial_samples = self.adversarial_samples(
+                    self.model, samples, labels
+                )
+                ls.extend([adversarial_samples, labels])
+                for c in range(self.n_cultures):
+                    err = self.error_estimation(ts[c])
+                self.save_results(err, True)
+
+        return ls, vs, ts
+
+    def model_selection(self, ls: list, vs, n_outs, loss, metric):
+        """
+        General function for implementing model selection procedure
+
+        :param ls: learning set
+        :param vs: validation set
+        :param n_outs: number of classes
+        :param loss: loss function
+        :param metric: metric function
+
+        :return None
+        """
+        fine_epochs = 5
+        opt_hyper = {
+            "bs": 0,
+            "ne": 0,
+            "lr": 0,
+            "fine_lr": 0,
+            "n_dropout": 0,
+            "loss": np.inf,
+        }
+        monitor_val = "val_loss"
+        for batch_size in np.logspace(0, 6, 7, base=2):
+            for ne in np.logspace(1, 1.5, 3):
+                ne = int(ne)
+                for lr in np.logspace(-5, -3, 3):
+                    for fine_lr in np.logspace(-6, -5, 2):
+                        for n_dropout in [0.3, 0.4]:
+                            self.build_model(n_outs, n_dropout, monitor_val)
+                            history = self.train(
+                                lr,
+                                loss,
+                                metric,
+                                ne,
+                                ls,
+                                vs,
+                                fine_lr,
+                                fine_epochs,
+                                batch_size,
+                            )
+                            val_metric = history.history[monitor_val][-1]
+                            if val_metric <= np.inf:
+                                opt_hyper["bs"] = batch_size
+                                opt_hyper["ne"] = ne
+                                opt_hyper["lr"] = lr
+                                opt_hyper["fine_lr"] = fine_lr
+                                opt_hyper["n_dropout"] = n_dropout
+
+        monitor_val = "loss"
+        self.build_model(n_outs, opt_hyper["n_dropout"], monitor_val)
+        self.train(
+            opt_hyper["lr"],
+            loss,
+            metric,
+            opt_hyper["ne"],
+            ls.extend(vs),
+            None,
+            opt_hyper["fine_lr"],
+            fine_epochs,
+            opt_hyper["bs"],
+        )
+
+    def error_estimation(self, ts):
+        """
+        General function for estimating the error using evaluate method from model
+
+        :param ts: test set (images, labels)
+
+        :return results: results obtained from function evaluate
+        """
+        results = self.model.evaluate(ts[0], ts[1], batch_size=16)
+        return results
+
+    def save_results(self, results, discriminator=False, pth_append=""):
+        """
+        Save results in a file
+
+        :param results: results to be saved in the file
+        :param: discriminator: boolean for knowing if the results come from a discriminator
+        or not
+        :param pth_append: path to the file
+
+        :return None
+        """
+        self.build_path(discriminator=discriminator)
+        with open(self.base_path + pth_append + "res.txt", "a", encoding="utf-8") as hs:
+            hs.write(str(results) + "\n")
+            hs.close()
+
+    def build_path(self, discriminator=False):
+        """
+        Build path depending on: discriminator, oversampling, lamp, majority culture,
+        percentage, adversarial and augmentation parameters
+
+        :param discriminator: boolean that states if the path is about a discriminator model
+        """
+        self.base_path = self.save_root
+        if discriminator:
+            self.base_path = self.base_path + "/DISCR/"
+
+        if self.os:
+            self.base_path = self.base_path + "/OS/"
         else:
-            self.model = MitigatedModels(
-                type=type,
-                culture=culture,
-                verbose_param=verbose_param,
-                epochs=epochs,
-                batch_size=batch_size,
-                learning_rate=learning_rate,
-                lambda_index=lambda_index,
-            )
-            # Base path:
-        # - STD/MIT
-        # - model: SVC, RFC, DL
-        # - culture: LC, LF, LT, CI, CJ, CS
-        # - augment in TS: NOAUG, STDAUG, ADV, TOTAUG
-        # - lambda index: -1, 0, 1, ...
-        # Complete path:
-        # - augment in Test: TNOAUG, TSTDAUG, TADV, TTOTAUG
-        if standard:
-            self.basePath = "./STD/" + type
-        else:
-            self.basePath = "./MIT/" + type
+            self.base_path = self.base_path + "/NOOS/"
         if self.lamp:
-            if culture == 0:
-                c = "/LC/"
-            elif culture == 1:
-                c = "/LF/"
-            elif culture == 2:
-                c = "/LT/"
-            else:
-                c = "/LC/"
+            self.base_path += "/LAMP/"
         else:
-            if culture == 0:
-                c = "/CI/"
-            elif culture == 1:
-                c = "/CJ/"
-            elif culture == 2:
-                c = "/CS/"
+            self.base_path += "/CARPET/"
+
+        self.base_path += f"{self.majority_culture}/"
+
+        self.base_path = self.base_path + str(self.pu) + "/"
+
+        if self.augment:
+            if self.adversarial:
+
+                aug = f"TOTAUG/g={self.g}/eps={self.epsilon}/"
+                if self.class_div:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
             else:
-                c = "/CI/"
-        self.basePath = self.basePath + c + str(percent) + "/"
-        if augment:
-            if adversary:
-                aug = "TOTAUG/"
-            else:
-                aug = "STDAUG/"
+                aug = f"STDAUG/g={self.g}/"
         else:
-            if adversary:
-                aug = "AVD/"
+            if self.adversarial:
+                aug = f"AVD/eps={self.epsilon}/"
+                if self.class_div:
+                    aug = aug + "/CLSDIV/"
+                else:
+                    aug = aug + "/NOCLSDIV/"
+
             else:
                 aug = "NOAUG/"
 
-        self.basePath = self.basePath + aug
-        if ((not standard) and (not complete)):
-            self.basePath = self.basePath + str(lambda_index) + "/"
-        del c
-        del aug
-        self.model.fit(
-            (self.dataobj.X, self.dataobj.y),
-            (self.dataobj.Xv, self.dataobj.yv),
-            adversary=adversary,
-            eps=eps,
-            mult=mult,
-            gradcam=gradcam,
-            out_dir=self.basePath,
-            complete = complete
-        )
+        self.base_path = self.base_path + aug
 
-    def test(
-        self,
-        standard,
-        culture=0,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-        adversary=0,
-        eps=0.3,
-        nt = None
-    ):
+    def plot_std_images(self):
         """
-        This function is used for testing the model
-
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        :param adversary: if enabled, we augment the dataset using adversary samples
-        :param culture: if adversary is enabled, we need the output information for implementing
-        fast gradient method
-        :param eps: is adversary is enabled, it is the gain of fast gradient method
-        :param nt: is the number of images to use for testing
-
-        :return -1 is the model is not trained, 0 if end the testing phase
+        Plot standard augmentaton images call after init function
         """
-        if self.model:
-            self.prepare_test(
-                augment=augment,
-                g_rot=g_rot,
-                g_noise=g_noise,
-                g_bright=g_bright,
-                adversary=adversary,
-                culture=culture,
-                eps=eps,
+        self.dataset = []
+        self.build_dataset()
+
+        def augment_image(g, image):
+            data_augmentation = keras.Sequential(
+                [
+                    keras.layers.Rescaling(scale=1.0 / 255),
+                    layers.RandomFlip("horizontal"),
+                    layers.RandomRotation(0.01),
+                    layers.GaussianNoise(g),
+                    keras.layers.RandomBrightness(0.01),
+                    layers.RandomZoom(g, g),
+                    layers.Resizing(self.shape, self.shape),
+                    keras.layers.Rescaling(scale=255.0),
+                ]
             )
-        else:
-            print("Pay attention: no model information given for tests")
-            return -1
-        for culture in range(3):
-            if standard:
-                if augment:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_totaug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.Xt_aug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TSTDAUG/G_AUG={g_noise}/"
-                else:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_adv[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TAVD/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.dataobj.Xt[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TNOAUG/"
-                testaug = testaug + f"CULTURE{culture}/"
-                path = self.basePath + testaug + "res.csv"
-                self.save_results(cm, path)
-            else:
-                for i in range(3):
-                    if augment:
-                        if adversary:
-                            cm = self.model.get_model_stats(
-                                self.Xt_totaug[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
-                        else:
-                            cm = self.model.get_model_stats(
-                                self.Xt_aug[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TSTDAUG/G_AUG={g_noise}/"
-                    else:
-                        if adversary:
-                            cm = self.model.get_model_stats(
-                                self.Xt_adv[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TAVD/EPS={eps}/"
-                        else:
-                            cm = self.model.get_model_stats(
-                                self.dataobj.Xt[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TNOAUG/"
-                    testaug = testaug + f"CULTURE{culture}/"
-                    path = self.basePath + testaug + "out " + str(i) + ".csv"
-                    self.save_results(cm, path)
-                    del path
-                    del testaug
-        return 0
+            return data_augmentation(image)
 
-    def save_results(self, cm, path):
-        """
-        :param cm: is the confusion matrix to be saved
-        :param path: is the path in which we want to save the confusion matrix
-        """
-        fObj = FileManagerClass(path)
-        fObj.writecm(cm)
-        del fObj
+        num_cols = 2
+        num_rows = 3
+        gs = np.logspace(-4, -1, num_cols * num_rows)
+        for i, cds in enumerate(self.dataset):
+            random_image = cds[randint(0, len(cds) - 1)]
 
-    def partial_clear(self):
+            plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+            for row in range(num_rows):
+                for col in range(num_cols):
+                    index = row * num_cols + col
+                    plt.subplot(num_rows, num_cols, index + 1)
+                    plt.imshow(augment_image(gs[index], random_image[0]))
+                    plt.axis("off")
+                    # plt.imsave(f"./Sample{index}", images[index])
+            plt.tight_layout()
+            plt.savefig(self.save_root + "/LAMP=" + self.lamp + "/CULTURE=" + i)
+            plt.show()
+            plt.close()
+
+    def plot_adv_images(self):
         """
-        Partially clear the space for avoiding memory issues
+        Plot adversarial augmentaton images call after init function
         """
-        self.model = None
-        del self.model
-        self.dataobj.clear()
-        self.Xt_totaug = None
-        del self.Xt_totaug
-        self.Xt_adv = None
-        del self.Xt_adv
-        self.Xt_aug = None
-        del self.Xt_aug
-        self.basePath = None
-        del self.basePath
-        gc.collect()
+        self.dataset = []
+        self.build_dataset()
+
+        ls, vs, _ = self.splitting_procedure()
+        self.adversarial_training(ls, vs)
+
+        num_cols = 2
+        num_rows = 3
+        eps = np.logspace(-4, -1, num_cols * num_rows)
+        for i, cds in enumerate(self.dataset):
+            random_image = cds[randint(0, len(cds) - 1)]
+
+            plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+            for row in range(num_rows):
+                for col in range(num_cols):
+                    index = row * num_cols + col
+                    plt.subplot(num_rows, num_cols, index + 1)
+                    self.epsilon = eps[index]
+                    plt.imshow(
+                        self.generate_adversarial_image_pgd(
+                            random_image[0], random_image[1], self.model
+                        )
+                    )
+                    plt.axis("off")
+            plt.tight_layout()
+            plt.savefig(self.save_root + "/LAMP=" + self.lamp + "/CULTURE=" + i)
+            plt.show()
+            plt.close()
