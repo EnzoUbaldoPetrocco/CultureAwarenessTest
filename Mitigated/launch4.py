@@ -48,19 +48,19 @@ else:
     print("no gpus")
 
 
-percents = [0.05, 0.2]
+percents = [0.2, 0.05]
 standard = 1
 # lamp = 1
 
 verbose_param = 1
 n = 1000
 class_divisions = [1, 0]
-imbalances = [0,1]
+imbalances = [0]
 g_gaugs = np.logspace(-3, -1, 3)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
 cs = [0, 1, 2]
-lamps = [1, 0]
+lamps = [ 0, 1]
 
 diffusion = 0
 adversary = 1
