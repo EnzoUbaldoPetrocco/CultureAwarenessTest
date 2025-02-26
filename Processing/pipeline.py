@@ -9,7 +9,7 @@ import tensorflow as tf
 from keras import layers
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau  # type: ignore
 import numpy as np
-from matlotlib import pyplot as plt
+from matplotlib import pyplot as plt
 from random import randint
 
 
@@ -86,7 +86,7 @@ class Pipeline:
             if self.augment:
                 images.append(im)
                 im = self.data_augmentation(im)
-            images.append(im, [culture, label])
+            images.append((im, [culture, label]))
         return images
 
     def build_dataset(self):
@@ -598,6 +598,7 @@ class Pipeline:
         :return None
         """
         self.build_path(discriminator=discriminator)
+        self.mkdir(self.base_path + pth_append)
         with open(self.base_path + pth_append + "res.txt", "a", encoding="utf-8") as hs:
             hs.write(str(results) + "\n")
             hs.close()
@@ -649,6 +650,18 @@ class Pipeline:
 
         self.base_path = self.base_path + aug
 
+    def mkdir(self, create_dir):
+        """
+        makes the directory if this path does not exists
+        :param create_dir: directory path
+        """
+        try:
+            if not os.path.exists(create_dir):
+                print(f"Making create_directory: {str(create_dir)}")
+                os.makedirs(create_dir)
+        except Exception as e:
+            print(f"{create_dir} Not created because of error {e}")
+
     def plot_std_images(self):
         """
         Plot standard augmentaton images call after init function
@@ -666,13 +679,12 @@ class Pipeline:
                     keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
                     layers.Resizing(self.shape, self.shape),
-                    keras.layers.Rescaling(scale=255.0),
                 ]
             )
             return data_augmentation(image)
 
-        num_cols = 2
-        num_rows = 3
+        num_cols = 5
+        num_rows = 2
         gs = np.logspace(-4, -1, num_cols * num_rows)
         for i, cds in enumerate(self.dataset):
             random_image = cds[randint(0, len(cds) - 1)]
@@ -686,7 +698,8 @@ class Pipeline:
                     plt.axis("off")
                     # plt.imsave(f"./Sample{index}", images[index])
             plt.tight_layout()
-            plt.savefig(self.save_root + "/LAMP=" + self.lamp + "/CULTURE=" + i)
+            self.mkdir(self.save_root + f"/LAMP={self.lamp}")
+            plt.savefig(self.save_root + f"/LAMP={self.lamp}" + f"/CULTURE={i}.svg")
             plt.show()
             plt.close()
 
@@ -700,8 +713,8 @@ class Pipeline:
         ls, vs, _ = self.splitting_procedure()
         self.adversarial_training(ls, vs)
 
-        num_cols = 2
-        num_rows = 3
+        num_cols = 5
+        num_rows = 2
         eps = np.logspace(-4, -1, num_cols * num_rows)
         for i, cds in enumerate(self.dataset):
             random_image = cds[randint(0, len(cds) - 1)]
@@ -719,6 +732,7 @@ class Pipeline:
                     )
                     plt.axis("off")
             plt.tight_layout()
+            self.mkdir(self.save_root + f"/LAMP={self.lamp}")
             plt.savefig(self.save_root + "/LAMP=" + self.lamp + "/CULTURE=" + i)
             plt.show()
             plt.close()
