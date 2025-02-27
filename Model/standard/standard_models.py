@@ -24,7 +24,7 @@ import gc
 import os
 
 
-class StandardModels(GeneralModelClass):
+class StandardModels():
     def __init__(
         self,
         type="SVC",
@@ -165,7 +165,6 @@ class StandardModels(GeneralModelClass):
         best_loss = np.inf
         for lr in learning_rates:
             for bs in batch_sizes:
-                with tf.device("/gpu:0"):
                     size = np.shape(TS[0][0])
                     input = Input(size, name="image")
 
