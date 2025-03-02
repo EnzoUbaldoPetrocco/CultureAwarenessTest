@@ -65,7 +65,7 @@ class Pipeline:
         print(dir_list)
         return dir_list
 
-    def get_images(self, path, culture, label, n=1000):
+    def get_images(self, path, label, n=1000):
         """
         get_images returns min(n, #images contained in a directory)
 
@@ -84,9 +84,9 @@ class Pipeline:
             im = cv2.imread(str(i))
             im = im[..., ::-1]
             if self.augment:
-                images.append(im)
+                images.append((im, label))
                 im = self.data_augmentation(im)
-            images.append((im, [culture, label]))
+            images.append((im, label))
         return images
 
     def build_dataset(self):
@@ -99,19 +99,22 @@ class Pipeline:
         # dataset is [self.n_cultures, n_samples, 2]
 
         for j, path in enumerate(self.culture_paths):
-            c = np.zeros(self.n_cultures)
+            c = list(np.zeros(self.n_cultures).astype(int))
             c[j] = 1
             labels = self.get_labels(path)
             imgs_per_culture = []
             for i, label in enumerate(labels):
+                l = c.copy()
+                l.append(i)
                 imgs_per_culture.append(
-                    self.get_images(path + "/" + label, c, i)
+                    self.get_images(path + "/" + label, l)
                 )  # j is culture, i is label
             self.dataset.append(imgs_per_culture)
 
     def __init__(
         self,
         search_root="../../",
+        dataset_path="../",
         lamp=True,
         save_root="./",
         verbose_param=True,
@@ -162,7 +165,7 @@ class Pipeline:
         self.majority_culture = majority_culture
         self.pu = pu
         if len(proportions) == 3:
-            self.proportions = proportions
+            self.proportions = np.asarray(proportions)
         else:
             self.proportions = [0.7, 0.2, 0.1]
         # oversampling techniques
@@ -188,18 +191,17 @@ class Pipeline:
         if self.augment:
             self.data_augmentation = keras.Sequential(
                 [
-                    keras.layers.Rescaling(scale=1.0 / 255),
                     layers.RandomFlip("horizontal"),
                     layers.RandomRotation(0.01),
                     layers.GaussianNoise(self.g),
                     keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(self.g, self.g),
-                    layers.Resizing(self.shape, self.shape),
-                    keras.layers.Rescaling(scale=255.0),
+                    layers.Resizing(self.shape[0], self.shape[1]),
                 ]
             )
-        ds_pt = get_dataset_path(search_root)
-        self.culture_paths = get_culture_paths(ds_pt, self.lamp)
+        if dataset_path==None:
+            dataset_path = get_dataset_path(search_root)
+        self.culture_paths = get_culture_paths(dataset_path, self.lamp)
 
     def build_model(self, n_outs, n_dropout, monitor_val):
         """
@@ -286,14 +288,15 @@ class Pipeline:
         ls = (
             tf.data.Dataset.from_tensor_slices(ls)
             .batch(batch_size)
-            .prefetch(tf.data.AUTOTUNE)
-            .cache()
+            #.cache()
+            #.prefetch(tf.data.AUTOTUNE)
+            
         )
         vs = (
             tf.data.Dataset.from_tensor_slices(vs)
             .batch(batch_size)
-            .prefetch(tf.data.AUTOTUNE)
-            .cache()
+            #.cache()
+            #.prefetch(tf.data.AUTOTUNE)
         )
 
         # self.model.summary()
@@ -428,32 +431,44 @@ class Pipeline:
         xt = []
         yt = []
 
-        for c, cds in enumerate(self.dataset):
+        for c, lcds in enumerate(self.dataset):
+            cyt = []
+            cxt = []
             # Shuffle data
-            cds = np.asarray(cds)
-            perm = np.random.permutation(len(cds))
-            cds = cds[perm]
-            indeces = len(cds) * self.proportions
-            if c != self.majority_culture:
-                indeces = self.pu * indeces
+            for cds in lcds:
+                cds = np.asarray(cds, dtype=object)
+                perm = np.random.permutation(len(cds))
+                cds = cds[perm]
+                indeces = len(cds) * self.proportions
+                indeces[1]= indeces[0]+ indeces[1]
+                indeces[2] = indeces[1]+indeces[2]
+                if c != self.majority_culture:
+                    indeces = self.pu * indeces
 
-            x.extend(list(cds[0 : indeces[0]][:, 0]))
-            y.extend(list(cds[0 : indeces[0]][:, 1]))
-            xv.extend(list(cds[indeces[0] : indeces[1]][:, 0]))
-            yv.extend(list(cds[indeces[0] : indeces[1]][:, 1]))
-            # Append because I want to keep them separated
-            xt.append(list(cds[indeces[1] : indeces[2]][:, 0]))
-            yt.append(list(cds[indeces[1] : indeces[2]][:, 1]))
+                indeces = indeces.astype(int)
+                # Uncomment to know number of images
+                #print(f"indeces are {indeces}")
+                x.extend(list(cds[0 : indeces[0]][:, 0]))
+                y.extend(list(cds[0 : indeces[0]][:, 1]))
+                xv.extend(list(cds[indeces[0] : indeces[1]][:, 0]))
+                yv.extend(list(cds[indeces[0] : indeces[1]][:, 1]))
+                # Append because I want to keep them separated
+                cxt.extend(list(cds[indeces[1] : indeces[2]][:, 0]))
+                cyt.extend(list(cds[indeces[1] : indeces[2]][:, 1]))
 
-            if self.os and c != self.majority_culture:
-                x.extend(list(cds[0 : self.os_n][:, 0]))
-                y.extend(list(cds[0 : self.os_n][:, 1]))
+                # oversampling learning set
+                if self.os and c != self.majority_culture:
+                    x.extend(list(cds[0 : self.os_n][:, 0]))
+                    y.extend(list(cds[0 : self.os_n][:, 1]))
 
-            cds = list(cds)
+            # I want to keep separated the test sets
+            xt.append(cxt)
+            yt.append(cyt)
 
-        ls = [x, y]
-        vs = [xv, yv]
-        ts = [xt, yt]
+        ls = [np.asarray(x), np.asarray(y)]
+        vs = [np.asarray(xv), np.asarray(yv)]
+        ts = [np.asarray(xt, dtype=object), np.asarray(yt, dtype=object)]
+
         return ls, vs, ts
 
     def preprocessing(self):
@@ -473,11 +488,12 @@ class Pipeline:
 
         if self.adversarial:
             samples = ls[0]
-            labels = ls[1][0 : self.n_cultures]
-            classes = ls[1][self.n_cultures]
+            labels = ls[1][:, 0 : self.n_cultures]
+            classes = ls[1][:, self.n_cultures]
             samples_v = vs[0]
-            labels_v = vs[1][0 : self.n_cultures]
-            classes_v = vs[1][self.n_cultures]
+            labels_v = vs[1][:, 0 : self.n_cultures]
+            classes_v = vs[1][:, self.n_cultures]
+
             if self.class_div:
                 for i in range(2):
                     indeces = np.where(np.any(classes == i, axis=0))
@@ -535,7 +551,7 @@ class Pipeline:
             "loss": np.inf,
         }
         monitor_val = "val_loss"
-        for batch_size in np.logspace(0, 6, 7, base=2):
+        for batch_size in np.logspace(2, 5, 4, base=2):
             for ne in np.logspace(1, 1.5, 3):
                 ne = int(ne)
                 for lr in np.logspace(-5, -3, 3):
@@ -672,20 +688,21 @@ class Pipeline:
         def augment_image(g, image):
             data_augmentation = keras.Sequential(
                 [
-                    keras.layers.Rescaling(scale=1.0 / 255),
+                    #keras.layers.Rescaling(scale=1.0 / 255),
                     layers.RandomFlip("horizontal"),
                     layers.RandomRotation(0.01),
                     layers.GaussianNoise(g),
                     keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
-                    layers.Resizing(self.shape, self.shape),
+                    layers.Resizing(self.shape[0], self.shape[1]),
+                    keras.layers.Rescaling(scale=1.0 / 255),
                 ]
             )
             return data_augmentation(image)
 
-        num_cols = 5
+        num_cols = 3
         num_rows = 2
-        gs = np.logspace(-4, -1, num_cols * num_rows)
+        gs = np.logspace(-5, 0, num_cols * num_rows)
         for i, cds in enumerate(self.dataset):
             random_image = cds[randint(0, len(cds) - 1)]
 
@@ -694,7 +711,8 @@ class Pipeline:
                 for col in range(num_cols):
                     index = row * num_cols + col
                     plt.subplot(num_rows, num_cols, index + 1)
-                    plt.imshow(augment_image(gs[index], random_image[0]))
+                    im = augment_image(gs[index], random_image[0])
+                    plt.imshow(im)
                     plt.axis("off")
                     # plt.imsave(f"./Sample{index}", images[index])
             plt.tight_layout()
@@ -711,9 +729,31 @@ class Pipeline:
         self.build_dataset()
 
         ls, vs, _ = self.splitting_procedure()
-        self.adversarial_training(ls, vs)
+        samples = ls[0]
+        labels = ls[1][:, 0 : self.n_cultures]
+        classes = ls[1][:, self.n_cultures]
+        samples_v = vs[0]
+        labels_v = vs[1][:, 0 : self.n_cultures]
+        classes_v = vs[1][:, self.n_cultures]
 
-        num_cols = 5
+        if self.class_div:
+            for i in range(2):
+                indeces = np.where(np.any(classes == i, axis=0))
+                indeces_v = np.where(np.any(classes_v == i, axis=0))
+                self.adversarial_training(
+                    (
+                        list(map(lambda i: samples[i], indeces)),
+                        list(map(lambda i: labels[i], indeces)),
+                    ),
+                    (
+                        list(map(lambda i: samples_v[i], indeces_v)),
+                        list(map(lambda i: labels_v[i], indeces_v)),
+                    ),
+                )
+        else:
+            self.adversarial_training((samples, labels), (samples_v, labels_v))
+            
+        num_cols = 3
         num_rows = 2
         eps = np.logspace(-4, -1, num_cols * num_rows)
         for i, cds in enumerate(self.dataset):
