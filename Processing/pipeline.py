@@ -12,6 +12,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 from random import randint
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print("GPU memory growth enabled")
+    except RuntimeError as e:
+        print(e)
 
 def get_dataset_path(search_root):
     """
