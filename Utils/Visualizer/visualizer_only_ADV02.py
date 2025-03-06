@@ -861,6 +861,7 @@ class Res2TabClass:
 
         # Adding legend, which helps us recognize the curve according to it's color
         plt.legend()
+        plt.grid(True)
 
         if save:
             plt.savefig(path)
@@ -953,7 +954,6 @@ class Res2TabClass:
         g_diffusion = [0.0001]
 
         tot_elements_percentage = {
-            
             "0.2": {"g_augs": len(g_augments["0.2"]), "eps": len(epsilons["0.2"])},
         }
 

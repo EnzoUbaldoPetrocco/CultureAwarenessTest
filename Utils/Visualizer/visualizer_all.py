@@ -863,6 +863,7 @@ class Res2TabClass:
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
         plt.title(title)
+        plt.grid(True)
 
         plt.xlim((10, 38))
         plt.ylim((0, 17.5))
