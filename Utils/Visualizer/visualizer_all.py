@@ -790,10 +790,20 @@ class Res2TabClass:
 
         return pt
 
-    def visualize(self, df, title="BLA", plot=True, save=False, path="./", element_percentage ={"g_augs": 0, "eps": 0}):
+    def visualize(
+        self,
+        df,
+        title="BLA",
+        plot=True,
+        save=False,
+        path="./",
+        element_percentage={"g_augs": 0, "eps": 0},
+    ):
         j = 0
         names = sorted(
-            mcolors.CSS4_COLORS, key=lambda c: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(c))))
+            mcolors.CSS4_COLORS,
+            key=lambda c: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(c))),
+        )
         TSs = df["TS"]
         errs = df["ERR"]
         cics = df["CIC"]
@@ -803,27 +813,52 @@ class Res2TabClass:
         plt.scatter(NOAUG_X, NOAUG_Y, color=f"{names[j]}", label="NOAUG")
         j = j + 4
 
-        
-        AUG_X = errs[1:element_percentage["g_augs"]+1]
-        AUG_Y = cics[1:element_percentage["g_augs"]+1]
+        AUG_X = errs[1 : element_percentage["g_augs"] + 1]
+        AUG_Y = cics[1 : element_percentage["g_augs"] + 1]
         plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="DA")
         j = j + 3
 
-        DIFF_X = errs[element_percentage["g_augs"]+1:element_percentage["g_augs"]+2]
-        DIFF_Y = cics[element_percentage["g_augs"]+1:element_percentage["g_augs"]+2]
+        DIFF_X = errs[
+            element_percentage["g_augs"] + 1 : element_percentage["g_augs"] + 2
+        ]
+        DIFF_Y = cics[
+            element_percentage["g_augs"] + 1 : element_percentage["g_augs"] + 2
+        ]
         plt.scatter(DIFF_X, DIFF_Y, color=f"{names[j]}", label="DIFF")
         j = j + 8
 
-        ADV_C0_X = errs[element_percentage["g_augs"]+2:element_percentage["g_augs"]+element_percentage["eps"]+2]
-        ADV_C0_Y = cics[element_percentage["g_augs"]+2:element_percentage["g_augs"]+element_percentage["eps"]+2]
+        ADV_C0_X = errs[
+            element_percentage["g_augs"]
+            + 2 : element_percentage["g_augs"]
+            + element_percentage["eps"]
+            + 2
+        ]
+        ADV_C0_Y = cics[
+            element_percentage["g_augs"]
+            + 2 : element_percentage["g_augs"]
+            + element_percentage["eps"]
+            + 2
+        ]
         plt.plot(ADV_C0_X, ADV_C0_Y, color=f"{names[j]}", label="ADV, CLSDIV=0")
         j = j + 19
 
-        ADV_C1_X = errs[element_percentage["g_augs"]+element_percentage["eps"]+2:element_percentage["g_augs"]+2*element_percentage["eps"]+2]
-        ADV_C1_Y = cics[element_percentage["g_augs"]+element_percentage["eps"]+2:element_percentage["g_augs"]+2*element_percentage["eps"]+2]
+        ADV_C1_X = errs[
+            element_percentage["g_augs"]
+            + element_percentage["eps"]
+            + 2 : element_percentage["g_augs"]
+            + 2 * element_percentage["eps"]
+            + 2
+        ]
+        ADV_C1_Y = cics[
+            element_percentage["g_augs"]
+            + element_percentage["eps"]
+            + 2 : element_percentage["g_augs"]
+            + 2 * element_percentage["eps"]
+            + 2
+        ]
         plt.plot(ADV_C1_X, ADV_C1_Y, color=f"{names[j]}", label="ADV, CLSDIV=1")
         j = j + 22
-        
+
         # Naming the x-axis, y-axis and the whole graph
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
@@ -841,8 +876,6 @@ class Res2TabClass:
         if plot:
             plt.show()
 
-        
-        
         # print(path)
         plt.close()
 
@@ -918,23 +951,20 @@ class Res2TabClass:
         cultures = [0, 1, 2]
         percents = [0.05, 0.2]
         augments = [0, 1]
-        g_augments = {"0.05": np.logspace(-4, -1, 11), "0.2": np.logspace(-3,-1,3)}
+        g_augments = {"0.05": np.logspace(-4, -1, 11), "0.2": np.logspace(-3, -1, 3)}
         adversary = [0, 1]
-        epsilons = {"0.05":np.logspace(-6, -1, 5), "0.2":np.logspace(-6,-1,3)}  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]    
+        epsilons = {
+            "0.05": np.logspace(-6, -1, 5),
+            "0.2": np.logspace(-6, -1, 3),
+        }  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
         imbalanceds = [0, 1]
-        diffusion = [0,1]
+        diffusion = [0, 1]
         g_diffusion = [0.0001]
 
-        tot_elements_percentage = {"0.05": 
-                                   {
-                                       "g_augs": len(g_augments["0.05"]),
-                                       "eps" : len(epsilons["0.05"])
-                                   },
-                                   "0.2":
-                                   {
-                                      "g_augs": len(g_augments["0.2"]),
-                                       "eps" : len(epsilons["0.2"]) 
-                                   }}
+        tot_elements_percentage = {
+            "0.05": {"g_augs": len(g_augments["0.05"]), "eps": len(epsilons["0.05"])},
+            "0.2": {"g_augs": len(g_augments["0.2"]), "eps": len(epsilons["0.2"])},
+        }
 
         # lambda_indeces = range(-1, 13)
         lambda_index = 0
@@ -943,7 +973,7 @@ class Res2TabClass:
         test_g_augs = [0.01, 0.05, 0.1]
         test_eps = [0.0005, 0.001, 0.005]
         t_cults = [0, 1, 2]
-        
+
         imbalanceds = [0, 1]
         for lamp in lamps:
             for imb in imbalanceds:
@@ -1017,9 +1047,11 @@ class Res2TabClass:
                                                 df.loc[len(df)] = ls
                                 else:
                                     if not adv:
-                                     for dif in diffusion:
-                                        if not dif:
-                                            for g_augment in g_augments[str(percent)]:
+                                        for dif in diffusion:
+                                            if not dif:
+                                                for g_augment in g_augments[
+                                                    str(percent)
+                                                ]:
                                                     pt = resacqobj.buildPath(
                                                         basePath=basePath,
                                                         standard=1,
@@ -1038,7 +1070,7 @@ class Res2TabClass:
                                                         eps=0,
                                                         class_division=0,
                                                         imbalanced=imb,
-                                                        diffusion=dif
+                                                        diffusion=dif,
                                                     )
                                                     pt = pt.split("/")
                                                     pt = pt[0 : len(pt) - 2]
@@ -1051,40 +1083,39 @@ class Res2TabClass:
                                                     df.loc[len(df)] = self.convert2list(
                                                         trainName, stddf
                                                     )
-                                        else:
-                                            g_augment = g_diffusion[0]
-                                            pt = resacqobj.buildPath(
-                                            basePath=basePath,
-                                            standard=1,
-                                            alg="DL",
-                                            lamp=lamp,
-                                            culture=culture,
-                                            percent=percent,
-                                            augment=aug,
-                                            adversary=adv,
-                                            lambda_index=0,
-                                            g_augment=g_augment,
-                                            taugment=0,
-                                            tadversary=0,
-                                            tgaug=0,
-                                            teps=0,
-                                            imbalanced=imb,
-                                            diffusion=dif
-                                            )
-                                            pt = pt.split("/")
-                                            pt = pt[0 : len(pt) - 2]
-                                            stdpt = ""
-                                            for p in pt:
-                                                stdpt += p + "/"
-                                            stdpt += "res.csv"
-                                            stddf = pd.read_csv(stdpt)
-                                            trainName = f"DIFF with AUG, g={g_augment}"
-                                            ls = self.convert2list(trainName, stddf)
-                                            df.loc[len(df)] = ls
+                                            else:
+                                                g_augment = g_diffusion[0]
+                                                pt = resacqobj.buildPath(
+                                                    basePath=basePath,
+                                                    standard=1,
+                                                    alg="DL",
+                                                    lamp=lamp,
+                                                    culture=culture,
+                                                    percent=percent,
+                                                    augment=aug,
+                                                    adversary=adv,
+                                                    lambda_index=0,
+                                                    g_augment=g_augment,
+                                                    taugment=0,
+                                                    tadversary=0,
+                                                    tgaug=0,
+                                                    teps=0,
+                                                    imbalanced=imb,
+                                                    diffusion=dif,
+                                                )
+                                                pt = pt.split("/")
+                                                pt = pt[0 : len(pt) - 2]
+                                                stdpt = ""
+                                                for p in pt:
+                                                    stdpt += p + "/"
+                                                stdpt += "res.csv"
+                                                stddf = pd.read_csv(stdpt)
+                                                trainName = (
+                                                    f"DIFF with AUG, g={g_augment}"
+                                                )
+                                                ls = self.convert2list(trainName, stddf)
+                                                df.loc[len(df)] = ls
 
-                                             
-                                             
-                                    
                         print(name)
                         df.style.set_properties(
                             subset=["Total"],
@@ -1118,7 +1149,11 @@ class Res2TabClass:
                                 title = f"Scandinavian"
 
                         title += f", IMB={imb}, percent={percent}"
-                        self.visualize(df, title=title, element_percentage = tot_elements_percentage[str(percent)])
+                        self.visualize(
+                            df,
+                            title=title,
+                            element_percentage=tot_elements_percentage[str(percent)],
+                        )
 
 
 def main():
