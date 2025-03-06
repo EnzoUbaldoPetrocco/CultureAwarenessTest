@@ -8,13 +8,13 @@ sys.path.insert(1, "../../")
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from Utils.Results.Results_with_diffusion import ResAcquisitionClass
+from Utils.Results.Results_only_ADV02 import ResAcquisitionClass
 from Utils.FileManager.FileManager import FileManagerClass
 import functools
 import matplotlib.colors as mcolors
 
 taus = [0.1, 0.3, 0.5]
-basePath = "../Results/"
+basePath = "../Results/temps2/"
 
 
 class VisualizerClass:
@@ -818,15 +818,7 @@ class Res2TabClass:
         plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="DA")
         j = j + 3
 
-        DIFF_X = errs[
-            element_percentage["g_augs"] + 1 : element_percentage["g_augs"] + 2
-        ]
-        DIFF_Y = cics[
-            element_percentage["g_augs"] + 1 : element_percentage["g_augs"] + 2
-        ]
-        plt.scatter(DIFF_X, DIFF_Y, color=f"{names[j]}", label="DIFF")
-        j = j + 8
-
+       
         ADV_C0_X = errs[
             element_percentage["g_augs"]
             + 2 : element_percentage["g_augs"]
@@ -949,26 +941,23 @@ class Res2TabClass:
         alg = "DL"
         lamps = [0, 1]
         cultures = [0, 1, 2]
-        percents = [0.05, 0.2]
+        percents = [0.2]
         augments = [0, 1]
-        g_augments = {"0.05": np.logspace(-4, -1, 11), "0.2": np.logspace(-3, -1, 3)}
+        g_augments = {"0.2": np.logspace(-3, -1, 3)}
         adversary = [0, 1]
         epsilons = {
-            "0.05": np.logspace(-6, -1, 5),
-            "0.2": np.logspace(-6, -1, 3),
-        }  # [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-        imbalanceds = [0, 1]
-        diffusion = [0, 1]
+            "0.2": np.logspace(-3, -1, 3),
+        }  
+        imbalanceds = [0]
+        diffusion = [0]
         g_diffusion = [0.0001]
 
         tot_elements_percentage = {
-            "0.05": {"g_augs": len(g_augments["0.05"]), "eps": len(epsilons["0.05"])},
+            
             "0.2": {"g_augs": len(g_augments["0.2"]), "eps": len(epsilons["0.2"])},
         }
 
         
-
-        imbalanceds = [0, 1]
         for lamp in lamps:
             for imb in imbalanceds:
                 for culture in cultures:
@@ -1154,25 +1143,6 @@ class Res2TabClass:
 
 
 def main():
-    visobj = VisualizerClass()
-    resacqobj = ResAcquisitionClass()
-
-    standards = [0, 1]
-    alg = "DL"
-    lamps = [0, 1]
-    cultures = [0, 1, 2]
-    percents = [0.05, 0.1]
-    augments = [0, 1]
-    adversary = [0, 1]
-    lambda_indeces = range(0, 13)
-    taugments = [0, 1]
-    tadversaries = [0, 1]
-    test_g_augs = [0.01, 0.05, 0.1]
-    test_eps = [0.0005, 0.001, 0.005]
-    t_cults = [0, 1, 2]
-
-    # print_tables(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, paths, visobj)
-    # graphic_lambdas_comparison(standards, lamps, cultures, percents, augments, adversary, lambda_indeces, taugments, tadversaries, test_g_augs, test_eps, resacqobj)
 
     res2tabObj = Res2TabClass()
     res2tabObj.conversion()
