@@ -863,8 +863,9 @@ class Res2TabClass:
         plt.xlabel(f"ERR")
         plt.ylabel("CIC")
         plt.title(title)
+        plt.grid(True)
 
-        plt.xlim((0, 38))
+        plt.xlim((10, 38))
         plt.ylim((0, 17.5))
 
         # Adding legend, which helps us recognize the curve according to it's color
@@ -966,13 +967,7 @@ class Res2TabClass:
             "0.2": {"g_augs": len(g_augments["0.2"]), "eps": len(epsilons["0.2"])},
         }
 
-        # lambda_indeces = range(-1, 13)
-        lambda_index = 0
-        taugments = [0]
-        tadversaries = [0]
-        test_g_augs = [0.01, 0.05, 0.1]
-        test_eps = [0.0005, 0.001, 0.005]
-        t_cults = [0, 1, 2]
+        
 
         imbalanceds = [0, 1]
         for lamp in lamps:
@@ -1147,8 +1142,11 @@ class Res2TabClass:
                                 title = f"Japanese"
                             if culture == 2:
                                 title = f"Scandinavian"
-
-                        title += f", IMB={imb}, percent={percent}"
+                        if imb:
+                            ovs = "OS"
+                        else:
+                            ovs = "no OS"
+                        title += f", {ovs}, percent={percent}"
                         self.visualize(
                             df,
                             title=title,

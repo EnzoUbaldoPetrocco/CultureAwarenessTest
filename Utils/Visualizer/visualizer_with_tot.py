@@ -849,6 +849,7 @@ class Res2TabClass:
 
         # Adding legend, which helps us recognize the curve according to it's color
         plt.legend()
+        plt.grid(True)
 
         if plot:
             plt.show()
