@@ -11,15 +11,34 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau  # type: ignore
 import numpy as np
 from matplotlib import pyplot as plt
 from random import randint
+from copy import deepcopy
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+memory_limit = 3000
+gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
+    # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
     try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        print("GPU memory growth enabled")
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [
+                tf.config.experimental.VirtualDeviceConfiguration(
+                    memory_limit=memory_limit
+                )
+            ],
+        )
+        logical_gpus = tf.config.experimental.list_logical_devices("GPU")
+        print(
+            len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs"
+        )
+
     except RuntimeError as e:
+        # Virtual devices must be set before GPUs have been initialized
         print(e)
+else:
+    print("no gpus")
 
 def get_dataset_path(search_root):
     """
@@ -229,7 +248,7 @@ class Pipeline:
 
         """
         # MODEL IMPLEMENTATION
-        self.base_model = keras.applications.ResNet50V2(
+        self.base_model = tf.keras.applications.ResNet50V2(
             weights="imagenet",  # Load weights pre-trained on ImageNet.
             input_shape=self.shape,
             include_top=False,
@@ -293,6 +312,8 @@ class Pipeline:
         :return History: track of metrics and loss during epochs
 
         """
+        
+
         ls = (
             tf.data.Dataset.from_tensor_slices(ls)
             .batch(batch_size)
@@ -300,12 +321,13 @@ class Pipeline:
             #.prefetch(tf.data.AUTOTUNE)
             
         )
-        vs = (
-            tf.data.Dataset.from_tensor_slices(vs)
-            .batch(batch_size)
-            #.cache()
-            #.prefetch(tf.data.AUTOTUNE)
-        )
+        if vs!=None:
+            vs = (
+                tf.data.Dataset.from_tensor_slices(vs)
+                .batch(batch_size)
+                #.cache()
+                #.prefetch(tf.data.AUTOTUNE)
+            )
 
         # self.model.summary()
         # MODEL TRAINING
@@ -378,7 +400,14 @@ class Pipeline:
         img = tf.convert_to_tensor(img)
         lbl = tf.convert_to_tensor(lbl)
 
-        x_adv = tf.identity(img)  # Start from the original input
+        upper_bound = tf.cast(tf.clip_by_value(img  + self.epsilon*255, 0, 255.0), tf.float32)
+        lower_bound =  tf.cast(tf.clip_by_value(img - self.epsilon*255, 0, 255.0), tf.float32)
+        self.alpha = tf.cast(self.alpha, tf.float32)
+        factor = tf.cast(255.0, tf.float32)
+        
+        
+        
+        x_adv = tf.cast(tf.identity(img), tf.float32)   # Start from the original input
 
         for _ in range(self.num_iter):
             with tf.GradientTape() as tape:
@@ -386,23 +415,20 @@ class Pipeline:
                 prediction = model(x_adv)
                 loss = keras.losses.categorical_crossentropy(lbl, prediction)
 
+
             # Get the gradients of the loss w.r.t. the input image.
             gradients = tape.gradient(loss, x_adv)
 
             # Perform the gradient ascent step
-            perturbations = self.alpha * tf.sign(gradients)
-            x_adv = x_adv / 255.0 + perturbations
+            perturbations = self.alpha * tf.sign(gradients) * factor
+            x_adv = x_adv + perturbations
 
             # Project the perturbation onto the epsilon ball
             x_adv = (
                 tf.clip_by_value(
-                    x_adv, img / 255.0 - self.epsilon, img / 255.0 + self.epsilon
+                    x_adv, lower_bound, upper_bound 
                 )
-                * 255.0
             )
-            x_adv = tf.clip_by_value(
-                x_adv, 0, 255.0
-            )  # Ensure the pixel values are still valid
         return x_adv
 
     def adversarial_samples(self, adversarial_model, samples, labels):
@@ -501,6 +527,9 @@ class Pipeline:
             samples_v = vs[0]
             labels_v = vs[1][:, 0 : self.n_cultures]
             classes_v = vs[1][:, self.n_cultures]
+            labels_t = []
+            for c in range(self.n_cultures):
+                labels_t.append(np.asarray(ts[1][c])[:, 0 : self.n_cultures])
 
             if self.class_div:
                 for i in range(2):
@@ -523,7 +552,7 @@ class Pipeline:
                     )
                     ls.extend([adversarial_samples, labels])
                     for c in range(self.n_cultures):
-                        err = self.error_estimation(ts[c])
+                        err = self.error_estimation((ts[0][c],labels_t[c]))
                     self.save_results(err, True, i)
             else:
                 self.adversarial_training((samples, labels), (samples_v, labels_v))
@@ -532,7 +561,7 @@ class Pipeline:
                 )
                 ls.extend([adversarial_samples, labels])
                 for c in range(self.n_cultures):
-                    err = self.error_estimation(ts[c])
+                    err = self.error_estimation((ts[0][c],labels_t[c]))
                 self.save_results(err, True)
 
         return ls, vs, ts
@@ -549,7 +578,7 @@ class Pipeline:
 
         :return None
         """
-        fine_epochs = 5
+        fine_epochs = 10
         opt_hyper = {
             "bs": 0,
             "ne": 0,
@@ -559,13 +588,14 @@ class Pipeline:
             "loss": np.inf,
         }
         monitor_val = "val_loss"
-        for batch_size in np.logspace(2, 5, 4, base=2):
-            for ne in np.logspace(1, 1.5, 3):
-                ne = int(ne)
+
+        for batch_size in np.logspace(3, 5, 2, base=2).astype(int):
+            for ne in np.logspace(1, 1.5, 2).astype(int):
                 for lr in np.logspace(-5, -3, 3):
                     for fine_lr in np.logspace(-6, -5, 2):
                         for n_dropout in [0.3, 0.4]:
                             self.build_model(n_outs, n_dropout, monitor_val)
+                            print(f"Training model with batch size={batch_size}, ne={ne}, lr={lr}, fine_lr={fine_lr}, n_dropout={n_dropout}")
                             history = self.train(
                                 lr,
                                 loss,
@@ -587,12 +617,16 @@ class Pipeline:
 
         monitor_val = "loss"
         self.build_model(n_outs, opt_hyper["n_dropout"], monitor_val)
+        newls = list(deepcopy(ls))
+        newvs = list(deepcopy(vs))
+        newls[0] = np.concatenate((newls[0], newvs[0]))
+        newls[1] = np.concatenate((newls[1], newvs[1]))
         self.train(
             opt_hyper["lr"],
             loss,
             metric,
             opt_hyper["ne"],
-            ls.extend(vs),
+            tuple(newls),
             None,
             opt_hyper["fine_lr"],
             fine_epochs,
@@ -607,7 +641,15 @@ class Pipeline:
 
         :return results: results obtained from function evaluate
         """
-        results = self.model.evaluate(ts[0], ts[1], batch_size=16)
+        ts[1] = list(ts[1])
+        ts[0] = list(ts[0])
+        print(np.shape(ts[0]))
+        print(np.shape(ts[1]))
+        ts[1] = np.reshape(ts[1], (200, -1))  # Adjust the second dimension if necessary
+        ts[0] = np.reshape(ts[0], (200, -1))  # Adjust the second dimension if necessary
+        print(np.shape(ts[0]))
+        print(np.shape(ts[1]))
+        results = self.model.evaluate(ts[0], ts[1])
         return results
 
     def save_results(self, results, discriminator=False, pth_append=""):
@@ -693,6 +735,9 @@ class Pipeline:
         self.dataset = []
         self.build_dataset()
 
+        def close_event():
+            plt.close()
+
         def augment_image(g, image):
             data_augmentation = keras.Sequential(
                 [
@@ -714,7 +759,7 @@ class Pipeline:
         for i, cds in enumerate(self.dataset):
             random_image = cds[randint(0, len(cds) - 1)]
 
-            plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+            fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
             for row in range(num_rows):
                 for col in range(num_cols):
                     index = row * num_cols + col
@@ -725,6 +770,8 @@ class Pipeline:
                     # plt.imsave(f"./Sample{index}", images[index])
             plt.tight_layout()
             self.mkdir(self.save_root + f"/LAMP={self.lamp}")
+            timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
+            timer.add_callback(close_event)
             plt.savefig(self.save_root + f"/LAMP={self.lamp}" + f"/CULTURE={i}.svg")
             plt.show()
             plt.close()
@@ -736,13 +783,20 @@ class Pipeline:
         self.dataset = []
         self.build_dataset()
 
-        ls, vs, _ = self.splitting_procedure()
+        def close_event():
+            plt.close()
+
+        ls, vs, ts = self.splitting_procedure()
         samples = ls[0]
         labels = ls[1][:, 0 : self.n_cultures]
         classes = ls[1][:, self.n_cultures]
         samples_v = vs[0]
         labels_v = vs[1][:, 0 : self.n_cultures]
         classes_v = vs[1][:, self.n_cultures]
+        labels_t = []
+        
+        for c in range(self.n_cultures):
+            labels_t.append(np.asarray(ts[1][c])[:, 0 : self.n_cultures])
 
         if self.class_div:
             for i in range(2):
@@ -758,29 +812,43 @@ class Pipeline:
                         list(map(lambda i: labels_v[i], indeces_v)),
                     ),
                 )
+                for c in range(self.n_cultures):
+                    err = self.error_estimation((ts[0][c], labels_t[c]))
+                self.save_results(err, True, i)
         else:
             self.adversarial_training((samples, labels), (samples_v, labels_v))
+            
+            for c in range(self.n_cultures):
+                    err = self.error_estimation((ts[0][c], labels_t[c]))
+            self.save_results(err, True)
             
         num_cols = 3
         num_rows = 2
         eps = np.logspace(-4, -1, num_cols * num_rows)
-        for i, cds in enumerate(self.dataset):
-            random_image = cds[randint(0, len(cds) - 1)]
+        
+        for i, lcds in enumerate(self.dataset):
+            for j, cds in enumerate(lcds):
+                random_image = cds[randint(0, len(cds) - 1)]
 
-            plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
-            for row in range(num_rows):
-                for col in range(num_cols):
-                    index = row * num_cols + col
-                    plt.subplot(num_rows, num_cols, index + 1)
-                    self.epsilon = eps[index]
-                    plt.imshow(
-                        self.generate_adversarial_image_pgd(
-                            random_image[0], random_image[1], self.model
+                fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+                for row in range(num_rows):
+                    for col in range(num_cols):
+                        index = row * num_cols + col
+                        plt.subplot(num_rows, num_cols, index + 1)
+                        self.epsilon = eps[index]
+                        plt.imshow(
+                            tf.cast(self.generate_adversarial_image_pgd(
+                                random_image[0].astype(float), list(map(float, random_image[1][0:self.n_cultures])), self.model
+                            )[0], dtype=int)
                         )
-                    )
-                    plt.axis("off")
-            plt.tight_layout()
-            self.mkdir(self.save_root + f"/LAMP={self.lamp}")
-            plt.savefig(self.save_root + "/LAMP=" + self.lamp + "/CULTURE=" + i)
-            plt.show()
-            plt.close()
+                        plt.axis("off")
+                plt.tight_layout()
+                pth = self.save_root + f"/ADV/LAMP={self.lamp}"  + f"/LABEL={j}"
+                self.mkdir()
+                timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
+                timer.add_callback(close_event)
+                plt.savefig(pth + f"/CULTURE={i}.svg")
+                plt.show()
+                plt.close()
+
+            

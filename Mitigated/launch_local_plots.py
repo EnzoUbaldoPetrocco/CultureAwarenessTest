@@ -7,7 +7,7 @@ from Processing.pipeline import Pipeline
 import numpy as np
 
 
-percents = [0.05, 0.1]
+percents = [0.05, 0.2]
 
 verbose_param = 1
 proportions = [0.7, 0.2, 0.1]
