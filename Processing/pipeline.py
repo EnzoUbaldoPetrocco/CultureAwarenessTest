@@ -13,11 +13,15 @@ from matplotlib import pyplot as plt
 from random import randint
 from copy import deepcopy
 import json
+import gc
+
+os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-memory_limit = 3000
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+memory_limit = 3500
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -366,6 +370,8 @@ class Pipeline:
             shuffle=True,
         )
         keras.backend.clear_session()
+
+        gc.collect()
         return history
 
     def adversarial_training(self, ls, vs):
@@ -595,6 +601,9 @@ class Pipeline:
                 for lr in np.logspace(-5, -3, 3):
                     for fine_lr in np.logspace(-6, -5, 2):
                         for n_dropout in [0.3, 0.4]:
+                            tf.keras.backend.clear_session()
+                            keras.backend.clear_session()
+                            gc.collect()
                             self.build_model(n_outs, n_dropout, monitor_val)
                             print(f"Training model with batch size={batch_size}, ne={ne}, lr={lr}, fine_lr={fine_lr}, n_dropout={n_dropout}")
                             history = self.train(
@@ -616,6 +625,9 @@ class Pipeline:
                                 opt_hyper["fine_lr"] = fine_lr
                                 opt_hyper["n_dropout"] = n_dropout
 
+        tf.keras.backend.clear_session()
+        keras.backend.clear_session()
+        gc.collect()
         monitor_val = "loss"
         self.build_model(n_outs, opt_hyper["n_dropout"], monitor_val)
         newls = list(deepcopy(ls))
@@ -633,6 +645,8 @@ class Pipeline:
             fine_epochs,
             opt_hyper["bs"],
         )
+        tf.keras.backend.clear_session()
+        keras.backend.clear_session()
 
     def error_estimation(self, ts):
         """
@@ -664,7 +678,7 @@ class Pipeline:
         :return None
         """
         self.build_path(discriminator=discriminator)
-        self.mkdir(self.base_path + pth_append)
+        self.mkdir(str(self.base_path) + str(pth_append))
         with open(self.base_path + pth_append + "res.txt", "a", encoding="utf-8") as hs:
             hs.write(f"{results}\n")
 
