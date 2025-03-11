@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="sucOdyCRjW25wpe1I7JN1mrk3LgvyBmTdVxSAunJaHsvxgcHpYr8VuX-k-KvolXt2o9SQoEbc2kQZbBdbiE8iQ" />
+    <meta name="csp-nonce" />
+    <title>Log in | NVIDIA Developer</title>
+<meta property="og:site_name" content="NVIDIA Developer">
+<meta property="og:title" content="Log in">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://developer.download.nvidia.com/images/og-default.jpg">
+<meta property="og:url" content="https://developer.nvidia.com/login">
+<meta name="twitter:title" content="Log in">
+<meta name="twitter:image" content="https://developer.download.nvidia.com/images/og-default.jpg">
+<meta name="twitter:site" content="@NVIDIA">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@NVIDIA">
+
+    <link rel="stylesheet" href="https://dirms4qsy6412.cloudfront.net/assets/tailwind-06bb24168c783ce07391d842371b0734624dfec3e7287ef7c006a5c4a88d1610.css" media="all" />
+<link rel="stylesheet" href="https://dirms4qsy6412.cloudfront.net/assets/default-6b02326c4d48a752913046c1d07322504e8aa1cca2ffa828027d1a7acf744269.css" media="all" />
+    
+<link rel="stylesheet" href="https://dirms4qsy6412.cloudfront.net/assets/one-trust-bea625cf16a072ce5fdb0707a19f2645daf63c05eb1a016db72773eba008fc07.css" />
+<script src="https://cdn.cookielaw.org/scripttemplates/otSDKStub.js" data-document-language="true" type="text/javascript" charset="UTF-8" data-domain-script="3e2b62ff-7ae7-4ac5-87c8-d5949ecafff5"></script>
+
+  <script type="text/javascript" src="https://images.nvidia.com/aem-dam/Solutions/ot-js/ot-custom.js"></script>
+
+<script>
+  function OptanonWrapper() {
+    let event = new Event('bannerLoaded');
+    window.dispatchEvent(event);
+
+    if (window.OnetrustActiveGroups && window.OnetrustActiveGroups.includes("C0002")) {
+      window.DD_RUM && window.DD_RUM.init({
+        clientToken: 'pub0430c74fae5d2b467bcb8d48b13e5b32',
+        applicationId: '9fc963c7-14e6-403d-bdec-ee671550bb7f',
+        site: 'datadoghq.com',
+        service: 'devzone',
+        env: 'production',
+        version: '',
+        sessionSampleRate: 10,
+        sessionReplaySampleRate: 5,
+        trackUserInteractions: true,
+        trackResources: true,
+        trackLongTasks: true,
+        defaultPrivacyLevel: 'mask-user-input',
+      });
+    }
+  }
+</script>
+
+
+    <script>
+  (function() {
+    var didInit = false;
+    function initMunchkin() {
+      if(didInit === false) {
+        didInit = true;
+        Munchkin.init('156-OFN-742');
+      }
+    }
+    var s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.async = true;
+    s.src = '//munchkin.marketo.net/munchkin.js';
+    s.onreadystatechange = function() {
+      if (this.readyState == 'complete' || this.readyState == 'loaded') {
+        initMunchkin();
+      }
+    };
+    s.onload = initMunchkin;
+    document.getElementsByTagName('head')[0].appendChild(s);
+})();
+</script>
+
+    <script src="https://dirms4qsy6412.cloudfront.net/packs/js/runtime-503119e3bfeec75056bc.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/692-70104789368a40f2d231.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/647-2379c90e9e5d3379c823.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/451-5a9df5f09bcbc357c8fc.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/866-d8d23fcfe7466a15d654.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/311-033b6299b51897e65419.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/252-f83b27d9f72fef366bc7.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/823-f137a89c18fcf7fd006e.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/126-6acd8e293c2ff0738eaa.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/900-206da580e08b7e0a8999.js" defer="defer"></script>
+<script src="https://dirms4qsy6412.cloudfront.net/packs/js/application-f11c8b476a9c74ab7370.js" defer="defer"></script>
+    <script src="https://assets.adobedtm.com/5d4962a43b79/c1061d2c5e7b/launch-191c2462b890.min.js" data-ot-ignore="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js" integrity="sha512-STof4xm1wgkfm7heWqFJVn58Hm3EtS31XFaagaa8VMReCXAkQnJZ+jEy8PCC/iT18dFy95WcExNHFTqLyp72eQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    
+    <link rel="icon" type="image/x-icon" href="https://dirms4qsy6412.cloudfront.net/assets/favicon-81bff16cada05fcff11e5711f7e6212bdc2e0a32ee57cd640a8cf66c87a6cbe6.ico" />
+  </head>
+
+  <body>
+    
+<div class='flex items-center min-h-screen p-4 bg-brand-dark-gray lg:justify-center'>
+  <div class='bg-white rounded shadow-lg md:flex-1 lg:max-w-screen-md overflow-hidden'>
+    <div class='p-6 py-7 bg-black text-white'>
+      <a href="/"><img class="w-32" alt="NVIDIA" src="https://dirms4qsy6412.cloudfront.net/assets/logo-white-cd8e2d122102f15a8774e941e9998a98f0f8baa119313b9b3ee6fbad50392f96.svg" /></a>
+    </div>
+    <div class='flex flex-col md:flex-row'>
+      <div class='p-6 py-8 bg-brand-light-gray md:w-1/2'>
+        <h2 class='mb-4 text-2xl font-semibold'>Welcome</h2>
+        <ul class='leading-5 space-y-7 nv-rdp-benefits'>
+          <li class='flex items-center'>
+            <div class='flex flex-shrink-0 justify-center items-center bg-brand-green mr-3 rounded-full'>
+              <img class="object-cover float-left" alt="Forum" src="https://dirms4qsy6412.cloudfront.net/assets/icon-forum-9a7c35d12ab88d9fc752015b910637f0b9471dd90ae08d435f92e06dc76178cc.png" />
+            </div>
+            <span>Connect with <b>millions of like-minded developers, researchers, and innovators</b>.</span>
+          </li>
+          <li class='flex items-center'>
+            <div class='flex flex-shrink-0 justify-center items-center bg-brand-green mr-3 rounded-full'>
+              <img class="object-cover float-left" alt="Software" src="https://dirms4qsy6412.cloudfront.net/assets/icon-software-5b5a2e0b18881df0b4f24aaaab2e4c067b72df585991e0a397b42e30a4815951.png" />
+            </div>
+            <span>Accelerate your apps with <b>the latest tools</b> and <b>150+ SDKs</b>.</span>
+          </li>
+          <li class='flex items-center'>
+            <div class='flex flex-shrink-0 justify-center items-center bg-brand-green mr-3 rounded-full'>
+              <img class="object-cover float-left" alt="Bug" src="https://dirms4qsy6412.cloudfront.net/assets/icon-bug-e621110be37e5d8ae8b7af451074ebdfd0b436540823f66f9d2ed608d045b03b.png" />
+            </div>
+            <span>Receive <b>technical training</b> and <b>expert help</b>.</span>
+          </li>
+        </ul>
+      </div>
+      <div class='p-6 py-8 md:w-1/2'>
+        <h1 class='text-md font-semibold mb-4'>Log in or sign up for an NVIDIA account</h1>
+
+          <div class='bg-red-100 border-l-4 border-red-500 text-red-700 p-4 text-sm alert' role='alert'>
+            You need to sign in or sign up before continuing.
+          </div>
+
+
+        <form class="flex flex-col space-y-5" action="/users/auth/openid_connect" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="iUYv27zZBVOwhz8vXkwM4KJWY2qtR4FI156rV4Ln67r6-nz6UYlKB3WETG3nfN5FGpAag9T-ObKkfqN_PWCN3Q" autocomplete="off" />
+          <div class='flex flex-col space-y-1'>
+            <label class="text-sm font-semibold text-gray-500" for="email">Email</label>
+            <input required="required" autofocus="autofocus" class="p-2 transition duration-300 border border-gray-300 focus:outline-none" type="email" name="login_hint" id="login_hint" />
+          </div>
+
+
+          <div>
+            <input type="submit" name="commit" value="Next" class="focus:outline-none hover:bg-brand-light-green w-full px-4 py-2 bg-brand-green text-black font-bold cursor-pointer" data-disable-with="Next" />
+          </div>
+</form>      </div>
+    </div>
+  </div>
+</div>
+
+    
+      <script src="https://www.datadoghq-browser-agent.com/us1/v5/datadog-rum.js"></script>
+
+    
+    <script>_satellite.pageBottom();</script>
+  </body>
+</html>

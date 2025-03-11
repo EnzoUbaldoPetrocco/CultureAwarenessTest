@@ -3,106 +3,96 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../")
-from Processing.processing import ProcessingClass
-from math import floor
+from Processing.pipeline import Pipeline
+import numpy as np
 import tensorflow as tf
 
-tf.config.set_soft_device_placement(True)
 
-percents = [0.05, 0.1]
-standard = 0
+bc = tf.keras.losses.BinaryCrossentropy(
+    from_logits=True,
+    label_smoothing=0.0,
+    axis=-1,
+    reduction='sum_over_batch_size',
+    name='binary_crossentropy'
+)
 
-verbose_param = 0
-n = 1000
-bs = 2
-learning_rate = 5e-4
-val_split = 0.2
-test_split = 0.1
-epochs = 15
+acc = tf.keras.metrics.BinaryAccuracy(
+    name='binary_accuracy', dtype=None, threshold=0.5
+)
 
-g_aug = 0.1
-test_g_augs = [0.01, 0.05, 0.1]
-eps = 0.03
-test_eps = [0.0005, 0.001, 0.005]
-mult = 0.25
-ks = [0,1,2,3]
-cs = [0,1,2]
+percents = [0.2]
 
-for i in range(3):
-    for lamp in [0,1].reverse():
-        procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True)
-        with tf.device("/CPU:0"):
-                for j in [-1]:
-                    for percent in percents:
-                        for c in cs:
-                            for k in ks.reverse():
-                                print(f"Training->aug={k%2};adv={floor(k/2)}")
-                                procObj.process(
-                                    standard=standard,
-                                    type="DL",
-                                    verbose_param=verbose_param,
-                                    learning_rate=learning_rate,
-                                    epochs=epochs,
-                                    batch_size=bs,
-                                    lambda_index=j,
-                                    culture=c,
-                                    percent=percent,
-                                    val_split=val_split,
-                                    test_split=test_split,
-                                    n=n,
-                                    augment=k % 2,
-                                    g_rot=g_aug,
-                                    g_noise=g_aug,
-                                    g_bright=g_aug,
-                                    adversary=floor(k / 2),
-                                    eps=eps,
-                                    mult=mult,
-                                )
-                                # NoAUg
-                                print(f"Testing->aug={0};adv={0}")
-                                procObj.test(
-                                    standard=standard,
-                                    culture=c,
-                                    augment=0,
-                                    g_rot=g_aug,
-                                    g_noise=g_aug,
-                                    g_bright=g_aug,
-                                    adversary=0,
-                                    eps=test_eps,
-                                )
-                                print(f"Testing->aug={1};adv={0}")
-                                for t_g_aug in test_g_augs:
-                                    procObj.test(
-                                            standard=standard,
-                                            culture=c,
-                                            augment=1,
-                                            g_rot=t_g_aug,
-                                            g_noise=t_g_aug,
-                                            g_bright=t_g_aug,
-                                            adversary=0,
-                                            eps=None)
-                                print(f"Testing->aug={0};adv={1}")
-                                for test_ep in test_eps:
-                                    procObj.test(
-                                                standard=standard,
-                                                culture=c,
-                                                augment=0,
-                                                g_rot=None,
-                                                g_noise=None,
-                                                g_bright=None,
-                                                adversary=1,
-                                                eps=test_ep)
-                                print(f"Testing->aug={1};adv={1}")
-                                for t, t_g_aug in enumerate(test_g_augs):
-                                    for test_ep in test_eps:  
-                                        procObj.test(
-                                            standard=standard,
-                                            culture=c,
-                                            augment=1,
-                                            g_rot=t_g_aug,
-                                            g_noise=t_g_aug,
-                                            g_bright=t_g_aug,
-                                            adversary=1,
-                                            eps=test_ep)
-                                            
-                                procObj.partial_clear()
+verbose_param = 1
+proportions = [0.7, 0.2, 0.1]
+cs = [0, 1, 2]
+lamps = [0, 1]
+oversamplings = [0]
+os_n = 150
+adversarials = [1, 0]
+gain = np.logspace(-4, 0, 5)
+augments = [1, 0]
+class_divisions = [0, 1]
+
+for lamp in lamps:
+    for c in cs:
+        for pu in percents:
+            for oversampling in oversamplings:
+                for adversarial in adversarials:
+                    for augment in augments:
+                        if augment != adversarial:
+                            #for g in gain:
+                                g = gain[0]
+                                if augment:
+                                    pipe = Pipeline(
+                                        search_root="../../../",
+                                        dataset_path="../../../FINALDS/",
+                                        lamp=lamp,
+                                        save_root="./",
+                                        verbose_param=verbose_param,
+                                        shape=(100, 100, 3),
+                                        n_cultures=3,
+                                        majority_culture=c,
+                                        pu=pu,
+                                        proportions=proportions,
+                                        oversampling=oversampling,
+                                        os_n=os_n,
+                                        adversarial=adversarial,
+                                        epsilon=g,
+                                        augment=augment,
+                                        g=g,
+                                    )
+                                    pipe.preprocessing()
+                                    pipe.model_selection(ls, vs, 2, bc, acc)
+                                    for culture in range(pipe.n_cultures):
+                                        ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]
+                                        res = pipe.error_estimation(ts[c])
+                                        pt_to_append = f"culture_{c}/"
+                                    pipe.save_results(res, False, pt_to_append)
+                                if adversarial:
+                                    for cls_div in class_divisions:
+                                        pipe = Pipeline(
+                                            search_root="../../../",
+                                            dataset_path="../../../FINALDS/",
+                                            lamp=lamp,
+                                            save_root="./",
+                                            verbose_param=verbose_param,
+                                            shape=(100, 100, 3),
+                                            n_cultures=3,
+                                            majority_culture=c,
+                                            pu=pu,
+                                            proportions=proportions,
+                                            oversampling=oversampling,
+                                            os_n=os_n,
+                                            adversarial=adversarial,
+                                            epsilon=g,
+                                            class_div=cls_div,
+                                            augment=augment,
+                                            g=g,
+                                        )
+                                        ls, vs, ts = pipe.preprocessing()
+                                        pipe.model_selection(ls, vs, 2, bc, acc)
+                                        for culture in range(pipe.n_cultures):
+                                            ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]
+                                            res = pipe.error_estimation(ts[c])
+                                            pt_to_append = f"culture_{c}/"
+                                        pipe.save_results(res, False, pt_to_append)

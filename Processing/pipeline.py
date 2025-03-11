@@ -12,6 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from random import randint
 from copy import deepcopy
+import json
 
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -487,8 +488,8 @@ class Pipeline:
                 xv.extend(list(cds[indeces[0] : indeces[1]][:, 0]))
                 yv.extend(list(cds[indeces[0] : indeces[1]][:, 1]))
                 # Append because I want to keep them separated
-                cxt.extend(list(cds[indeces[1] : indeces[2]][:, 0]))
-                cyt.extend(list(cds[indeces[1] : indeces[2]][:, 1]))
+                cxt.extend(cds[indeces[1] : indeces[2]][:, 0])
+                cyt.extend(cds[indeces[1] : indeces[2]][:, 1])
 
                 # oversampling learning set
                 if self.os and c != self.majority_culture:
@@ -553,7 +554,7 @@ class Pipeline:
                     ls.extend([adversarial_samples, labels])
                     for c in range(self.n_cultures):
                         err = self.error_estimation((ts[0][c],labels_t[c]))
-                    self.save_results(err, True, i)
+                        self.save_results(err, True, i)
             else:
                 self.adversarial_training((samples, labels), (samples_v, labels_v))
                 adversarial_samples = self.adversarial_samples(
@@ -562,7 +563,7 @@ class Pipeline:
                 ls.extend([adversarial_samples, labels])
                 for c in range(self.n_cultures):
                     err = self.error_estimation((ts[0][c],labels_t[c]))
-                self.save_results(err, True)
+                    self.save_results(err, True)
 
         return ls, vs, ts
 
@@ -589,7 +590,7 @@ class Pipeline:
         }
         monitor_val = "val_loss"
 
-        for batch_size in np.logspace(3, 5, 2, base=2).astype(int):
+        for batch_size in np.logspace(3, 5, 3, base=2).astype(int):
             for ne in np.logspace(1, 1.5, 2).astype(int):
                 for lr in np.logspace(-5, -3, 3):
                     for fine_lr in np.logspace(-6, -5, 2):
@@ -640,16 +641,15 @@ class Pipeline:
         :param ts: test set (images, labels)
 
         :return results: results obtained from function evaluate
-        """
-        ts[1] = list(ts[1])
-        ts[0] = list(ts[0])
-        print(np.shape(ts[0]))
-        print(np.shape(ts[1]))
-        ts[1] = np.reshape(ts[1], (200, -1))  # Adjust the second dimension if necessary
-        ts[0] = np.reshape(ts[0], (200, -1))  # Adjust the second dimension if necessary
-        print(np.shape(ts[0]))
-        print(np.shape(ts[1]))
-        results = self.model.evaluate(ts[0], ts[1])
+        """        
+        
+
+        results = self.model.evaluate(np.asarray(ts[0]), np.asarray(ts[1]), batch_size=32)
+        results = {"loss": results[0], "accuracy":results[1]}
+        predictions = tf.math.argmax(self.model.predict(np.asarray(ts[0])), axis=1)
+        cm = tf.math.confusion_matrix( tf.argmax(np.asarray(ts[1]), axis=1), predictions)
+        print(results)
+        results["confusion_matrix"] = np.asarray(cm)
         return results
 
     def save_results(self, results, discriminator=False, pth_append=""):
@@ -666,8 +666,7 @@ class Pipeline:
         self.build_path(discriminator=discriminator)
         self.mkdir(self.base_path + pth_append)
         with open(self.base_path + pth_append + "res.txt", "a", encoding="utf-8") as hs:
-            hs.write(str(results) + "\n")
-            hs.close()
+            hs.write(f"{results}\n")
 
     def build_path(self, discriminator=False):
         """
@@ -814,13 +813,13 @@ class Pipeline:
                 )
                 for c in range(self.n_cultures):
                     err = self.error_estimation((ts[0][c], labels_t[c]))
-                self.save_results(err, True, i)
+                    self.save_results(err, True, i)
         else:
             self.adversarial_training((samples, labels), (samples_v, labels_v))
             
             for c in range(self.n_cultures):
                     err = self.error_estimation((ts[0][c], labels_t[c]))
-            self.save_results(err, True)
+                    self.save_results(err, True)
             
         num_cols = 3
         num_rows = 2
@@ -839,16 +838,14 @@ class Pipeline:
                         plt.imshow(
                             tf.cast(self.generate_adversarial_image_pgd(
                                 random_image[0].astype(float), list(map(float, random_image[1][0:self.n_cultures])), self.model
-                            )[0], dtype=int)
+                            )[0], dtype=tf.int64)
                         )
                         plt.axis("off")
                 plt.tight_layout()
                 pth = self.save_root + f"/ADV/LAMP={self.lamp}"  + f"/LABEL={j}"
-                self.mkdir()
+                self.mkdir(pth)
                 timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
                 timer.add_callback(close_event)
-                plt.savefig(pth + f"/CULTURE={i}.svg")
-                plt.show()
-                plt.close()
+                plt.savefig(pth + f"/CULTURE={i}.pdf")
 
             
