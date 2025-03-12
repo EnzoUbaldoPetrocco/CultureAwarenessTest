@@ -15,8 +15,6 @@ from copy import deepcopy
 import json
 import gc
 
-os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
 
 #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -601,6 +599,8 @@ class Pipeline:
                 for lr in np.logspace(-5, -3, 3):
                     for fine_lr in np.logspace(-6, -5, 2):
                         for n_dropout in [0.3, 0.4]:
+                            self.base_model = None
+                            self.model = None
                             tf.keras.backend.clear_session()
                             keras.backend.clear_session()
                             gc.collect()
@@ -625,6 +625,9 @@ class Pipeline:
                                 opt_hyper["fine_lr"] = fine_lr
                                 opt_hyper["n_dropout"] = n_dropout
 
+
+        self.base_model = None
+        self.model = None
         tf.keras.backend.clear_session()
         keras.backend.clear_session()
         gc.collect()

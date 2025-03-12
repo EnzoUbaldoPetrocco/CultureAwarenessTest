@@ -1,2 +1,4 @@
 code --no-sandbox --disable-gpu --user-data-dir=/root/.vscode-root
 
+Interesting conversation
+https://groups.google.com/g/ros-sig-aldebaran/c/YrocAe-coeE
