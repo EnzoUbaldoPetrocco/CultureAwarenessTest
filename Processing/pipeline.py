@@ -15,11 +15,12 @@ from copy import deepcopy
 import json
 import gc
 
-
-
+# Use this for server
 #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 #os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-memory_limit = 3500
+
+
+memory_limit = 3000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -368,8 +369,6 @@ class Pipeline:
             shuffle=True,
         )
         keras.backend.clear_session()
-
-        gc.collect()
         return history
 
     def adversarial_training(self, ls, vs):
@@ -481,6 +480,10 @@ class Pipeline:
                 indeces = len(cds) * self.proportions
                 indeces[1]= indeces[0]+ indeces[1]
                 indeces[2] = indeces[1]+indeces[2]
+                
+                cxt.extend(cds[int(indeces[1]) :][:, 0])
+                cyt.extend(cds[int(indeces[1]) : ][:, 1])
+
                 if c != self.majority_culture:
                     indeces = self.pu * indeces
 
@@ -492,8 +495,7 @@ class Pipeline:
                 xv.extend(list(cds[indeces[0] : indeces[1]][:, 0]))
                 yv.extend(list(cds[indeces[0] : indeces[1]][:, 1]))
                 # Append because I want to keep them separated
-                cxt.extend(cds[indeces[1] : indeces[2]][:, 0])
-                cyt.extend(cds[indeces[1] : indeces[2]][:, 1])
+                
 
                 # oversampling learning set
                 if self.os and c != self.majority_culture:
@@ -538,22 +540,23 @@ class Pipeline:
 
             if self.class_div:
                 for i in range(2):
-                    indeces = np.where(np.any(classes == i, axis=0))
-                    indeces_v = np.where(np.any(classes_v == i, axis=0))
+                    indeces = np.where(classes == i)[0]  
+                    indeces_v = np.where(classes_v == i)[0]  
                     self.adversarial_training(
                         (
-                            list(map(lambda i: samples[i], indeces)),
-                            list(map(lambda i: labels[i], indeces)),
+                            samples[indeces],
+                            labels[indeces]
+
                         ),
                         (
-                            list(map(lambda i: samples_v[i], indeces_v)),
-                            list(map(lambda i: labels_v[i], indeces_v)),
+                            samples_v[indeces],
+                            labels_v[indeces]
                         ),
                     )
                     adversarial_samples = self.adversarial_samples(
                         self.model,
-                        list(map(lambda i: samples[i], indeces)),
-                        list(map(lambda i: labels[i], indeces)),
+                            samples[indeces],
+                            labels[indeces]
                     )
                     ls.extend([adversarial_samples, labels])
                     for c in range(self.n_cultures):
@@ -599,11 +602,12 @@ class Pipeline:
                 for lr in np.logspace(-5, -3, 3):
                     for fine_lr in np.logspace(-6, -5, 2):
                         for n_dropout in [0.3, 0.4]:
-                            self.base_model = None
                             self.model = None
+                            self.base_model = None
+                                                
                             tf.keras.backend.clear_session()
-                            keras.backend.clear_session()
                             gc.collect()
+
                             self.build_model(n_outs, n_dropout, monitor_val)
                             print(f"Training model with batch size={batch_size}, ne={ne}, lr={lr}, fine_lr={fine_lr}, n_dropout={n_dropout}")
                             history = self.train(
@@ -625,12 +629,12 @@ class Pipeline:
                                 opt_hyper["fine_lr"] = fine_lr
                                 opt_hyper["n_dropout"] = n_dropout
 
-
-        self.base_model = None
         self.model = None
+        self.base_model = None
+                            
         tf.keras.backend.clear_session()
-        keras.backend.clear_session()
         gc.collect()
+
         monitor_val = "loss"
         self.build_model(n_outs, opt_hyper["n_dropout"], monitor_val)
         newls = list(deepcopy(ls))
@@ -648,8 +652,6 @@ class Pipeline:
             fine_epochs,
             opt_hyper["bs"],
         )
-        tf.keras.backend.clear_session()
-        keras.backend.clear_session()
 
     def error_estimation(self, ts):
         """
@@ -661,12 +663,13 @@ class Pipeline:
         """        
         
 
-        results = self.model.evaluate(np.asarray(ts[0]), np.asarray(ts[1]), batch_size=32)
+        results = self.model.evaluate(np.asarray(ts[0]).astype(float), np.asarray(ts[1]).astype(float), batch_size=32)
         results = {"loss": results[0], "accuracy":results[1]}
-        predictions = tf.math.argmax(self.model.predict(np.asarray(ts[0])), axis=1)
-        cm = tf.math.confusion_matrix( tf.argmax(np.asarray(ts[1]), axis=1), predictions)
-        print(results)
+        #predictions = np.argmax(self.model.predict(np.asarray(ts[0]).astype(float)), axis=1)
+        predictions = tf.math.argmax(self.model.predict(np.asarray(ts[0]).astype(float)), axis=1)
+        cm = tf.math.confusion_matrix( tf.argmax(np.asarray(ts[1]).astype(float), axis=1), predictions)
         results["confusion_matrix"] = np.asarray(cm)
+        print(results)
         return results
 
     def save_results(self, results, discriminator=False, pth_append=""):
@@ -682,7 +685,7 @@ class Pipeline:
         """
         self.build_path(discriminator=discriminator)
         self.mkdir(str(self.base_path) + str(pth_append))
-        with open(self.base_path + pth_append + "res.txt", "a", encoding="utf-8") as hs:
+        with open(str(self.base_path) + str(pth_append) + "/res.txt", "a", encoding="utf-8") as hs:
             hs.write(f"{results}\n")
 
     def build_path(self, discriminator=False):
@@ -780,15 +783,16 @@ class Pipeline:
                 for col in range(num_cols):
                     index = row * num_cols + col
                     plt.subplot(num_rows, num_cols, index + 1)
-                    im = augment_image(gs[index], random_image[0])
+                    im = augment_image(gs[index], random_image[0][0])
                     plt.imshow(im)
                     plt.axis("off")
                     # plt.imsave(f"./Sample{index}", images[index])
             plt.tight_layout()
-            self.mkdir(self.save_root + f"/LAMP={self.lamp}")
+            pth = self.save_root + f"/AUG/LAMP={self.lamp}/MAJORITY={self.majority_culture}"
+            self.mkdir(pth)
             timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
             timer.add_callback(close_event)
-            plt.savefig(self.save_root + f"/LAMP={self.lamp}" + f"/CULTURE={i}.svg")
+            plt.savefig(pth + f"/CULTURE={i}.pdf")
             plt.show()
             plt.close()
 
@@ -816,16 +820,17 @@ class Pipeline:
 
         if self.class_div:
             for i in range(2):
-                indeces = np.where(np.any(classes == i, axis=0))
-                indeces_v = np.where(np.any(classes_v == i, axis=0))
+                indeces = np.where(classes == i)[0]  
+                indeces_v = np.where(classes_v == i)[0]  
                 self.adversarial_training(
                     (
-                        list(map(lambda i: samples[i], indeces)),
-                        list(map(lambda i: labels[i], indeces)),
+                        samples[indeces],
+                        labels[indeces]
+
                     ),
                     (
-                        list(map(lambda i: samples_v[i], indeces_v)),
-                        list(map(lambda i: labels_v[i], indeces_v)),
+                        samples_v[indeces_v],
+                        labels_v[indeces_v]
                     ),
                 )
                 for c in range(self.n_cultures):
@@ -859,7 +864,7 @@ class Pipeline:
                         )
                         plt.axis("off")
                 plt.tight_layout()
-                pth = self.save_root + f"/ADV/LAMP={self.lamp}"  + f"/LABEL={j}"
+                pth = self.save_root + f"/ADV/CLS_DIV={self.class_div}/LAMP={self.lamp}/MAJORITY={self.majority_culture}"  + f"/LABEL={j}"
                 self.mkdir(pth)
                 timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
                 timer.add_callback(close_event)

@@ -8,6 +8,8 @@ import numpy as np
 import tensorflow as tf
 
 
+
+
 bc = tf.keras.losses.BinaryCrossentropy(
     from_logits=True,
     label_smoothing=0.0,
@@ -31,7 +33,7 @@ os_n = 150
 adversarials = [1, 0]
 gain = np.logspace(-4, 0, 5)
 augments = [1, 0]
-class_divisions = [0, 1]
+class_divisions = [1, 0]
 
 for lamp in lamps:
     for c in cs:
@@ -61,7 +63,7 @@ for lamp in lamps:
                                         augment=augment,
                                         g=g,
                                     )
-                                    pipe.preprocessing()
+                                    ls, vs, ts = pipe.preprocessing()
                                     pipe.model_selection(ls, vs, 2, bc, acc)
                                     for culture in range(pipe.n_cultures):
                                         ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]

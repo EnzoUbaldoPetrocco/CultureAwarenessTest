@@ -5,20 +5,34 @@ import sys
 sys.path.insert(1, "../")
 from Processing.pipeline import Pipeline
 import numpy as np
+import tensorflow as tf
 
 
-percents = [0.05, 0.2]
+
+bc = tf.keras.losses.BinaryCrossentropy(
+    from_logits=True,
+    label_smoothing=0.0,
+    axis=-1,
+    reduction='sum_over_batch_size',
+    name='binary_crossentropy'
+)
+
+acc = tf.keras.metrics.BinaryAccuracy(
+    name='binary_accuracy', dtype=None, threshold=0.5
+)
+
+percents = [0.2]
 
 verbose_param = 1
 proportions = [0.7, 0.2, 0.1]
 cs = [0, 1, 2]
-lamps = [0, 1]
-oversamplings = [0, 1]
-os_n = 100
+lamps = [1, 0]
+oversamplings = [0]
+os_n = 150
 adversarials = [1, 0]
 gain = np.logspace(-4, 0, 5)
 augments = [1, 0]
-class_divisions = [0, 1]
+class_divisions = [1, 0]
 
 for lamp in lamps:
     for c in cs:
