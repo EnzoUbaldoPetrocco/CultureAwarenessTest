@@ -23,7 +23,7 @@ acc = tf.keras.metrics.BinaryAccuracy(
 
 percents = [0.2]
 
-verbose_param = 1
+verbose_param = 0
 proportions = [0.7, 0.2, 0.1]
 cs = [0, 1, 2]
 lamps = [1, 0]

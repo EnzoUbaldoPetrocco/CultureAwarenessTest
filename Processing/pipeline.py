@@ -789,11 +789,11 @@ class Pipeline:
             plt.tight_layout()
             pth = self.save_root + f"/AUG/PERCENT={self.pu}/OS={self.os}/LAMP={self.lamp}/MAJORITY={self.majority_culture}"
             self.mkdir(pth)
-            timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
-            timer.add_callback(close_event)
+            #timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
+            #timer.add_callback(close_event)
             plt.savefig(pth + f"/CULTURE={i}.pdf")
-            plt.show()
-            plt.close()
+            #plt.show()
+            #plt.close()
 
     def plot_adv_images(self):
         """
@@ -866,8 +866,8 @@ class Pipeline:
 
                 pth = self.save_root + f"/ADV/PERCENT={self.pu}/OS={self.os}/CLS_DIV={self.class_div}/LAMP={self.lamp}/MAJORITY={self.majority_culture}"  + f"/LABEL={j}"
                 self.mkdir(pth)
-                timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
-                timer.add_callback(close_event)
+                #timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
+                #timer.add_callback(close_event)
                 plt.savefig(pth + f"/CULTURE={i}.pdf")
 
             
