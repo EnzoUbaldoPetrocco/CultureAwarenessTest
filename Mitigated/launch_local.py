@@ -24,7 +24,7 @@ acc = tf.keras.metrics.BinaryAccuracy(
 
 percents = [0.2]
 
-verbose_param = 1
+verbose_param = 0
 proportions = [0.7, 0.2, 0.1]
 cs = [0, 1, 2]
 lamps = [0, 1]
@@ -69,6 +69,7 @@ for lamp in lamps:
                                         ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]
                                         res = pipe.error_estimation(ts[c])
                                         pt_to_append = f"culture_{c}/"
+                                    pipe.save_root = pipe.base_path
                                     pipe.save_results(res, False, pt_to_append)
                                 if adversarial:
                                     for cls_div in class_divisions:
@@ -97,4 +98,6 @@ for lamp in lamps:
                                             ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]
                                             res = pipe.error_estimation(ts[c])
                                             pt_to_append = f"culture_{c}/"
+                                            
+                                        pipe.save_root = pipe.base_path
                                         pipe.save_results(res, False, pt_to_append)

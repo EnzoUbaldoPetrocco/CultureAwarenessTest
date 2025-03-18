@@ -446,9 +446,11 @@ class Pipeline:
 
         """
         adv_samples = []
-        for sample, label in (samples, labels):
+        for i in range(len(samples)):
             adv_samples.append(
-                self.generate_adversarial_image_pgd(sample, label, adversarial_model)
+                self.generate_adversarial_image_pgd(
+                    samples[i].astype(float), labels[i].astype(float), self.model
+                )
             )
 
         return adv_samples
@@ -548,8 +550,8 @@ class Pipeline:
 
                         ),
                         (
-                            samples_v[indeces],
-                            labels_v[indeces]
+                            samples_v[indeces_v],
+                            labels_v[indeces_v]
                         ),
                     )
                     adversarial_samples = self.adversarial_samples(
