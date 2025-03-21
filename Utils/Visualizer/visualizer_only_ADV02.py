@@ -856,8 +856,8 @@ class Res2TabClass:
         plt.ylabel("CIC")
         plt.title(title)
 
-        plt.xlim((5, 35))
-        plt.ylim((0, 17.5))
+        plt.xlim((12, 27))
+        plt.ylim((0, 15))
 
         # Adding legend, which helps us recognize the curve according to it's color
         plt.legend()
