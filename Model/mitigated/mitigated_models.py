@@ -21,6 +21,7 @@ from datetime import datetime
 from keras.regularizers import Regularizer
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
+import gc
 
 #tf.keras.backend.set_floatx('float32')
 
@@ -157,7 +158,7 @@ class MitigatedModels(GeneralModelClass):
         res = (self.lamb) * sum
         return res
 
-    def get_best_idx(self, losses: list, cics: list, tau=0.1):
+    def get_best_idx(self, losses: list, cics: list, tau=0.2):
         tmp_losses = losses.copy()
         n_ls = math.ceil(len(losses) * tau)
 
@@ -206,32 +207,49 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[4],
+        batches=[8, 32],
         lrs=[1e-3, 1e-4, 1e-5],
-        fine_lrs=[1e-5, 1e-6],
-        epochs=30,
-        fine_epochs=10,
-        nDropouts=[0.4],
+        fine_lrs=[ 1e-6],
+        epochs=[30, 40] ,
+        fine_epochs=15,
+        nDropouts=[0.3, 0.4],
         g=0.1,
         save=False,
         path="./"
     ):
-        best_loss = np.inf
         losses = []
         cics = []
+
+    
+        # SHUFFLE DATA
+        zipped_data = list(zip(*TS))
+        # Shuffle the list of tuples
+        random.shuffle(zipped_data)
+        # Unzip back into separate lists
+        TS = tuple(map(list, zip(*zipped_data)))
+        zipped_data = list(zip(*VS))
+        # Shuffle the list of tuples
+        random.shuffle(zipped_data)
+        # Unzip back into separate lists
+        VS = tuple(map(list, zip(*zipped_data)))
+        del zipped_data
         
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-6, 1, 4)
+        lambdas = np.logspace(-4, 1, 4)
+        hyperparameters = []
+
         for lmb in lambdas:
             self.lamb = lmb
             for b in batches:
                 for lr in lrs:
+                  for ep in epochs:
                     for fine_lr in fine_lrs:
                         for nDropout in nDropouts:
-                            
                                 self.model = None
+                                tf.keras.backend.clear_session()
+                                gc.collect()
                                 print(
                                     f"Training with: lamb={lmb}, batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
                                 )
@@ -243,44 +261,41 @@ class MitigatedModels(GeneralModelClass):
                                     b,
                                     lr,
                                     fine_lr,
-                                    epochs,
+                                    ep,
                                     fine_epochs,
                                     nDropout,
                                     g=g,
                                 )
                                 loss = history.history["val_loss"][-1]
                                 CIC = self.get_cic(VS[0], VS[1])
-                                print(f"loss is {loss}, cic is {CIC}")
+                                print(f"loss is {loss}")
                                 losses.append(loss)
                                 cics.append(CIC)
-                                if loss < best_loss:
-                                    best_loss = loss
-                                    best_bs = b
-                                    best_lr = lr
-                                    best_fine_lr = fine_lr
-                                    best_nDropout = nDropout
+                                hyperparameters.append({
+                                    'batch_size': b,
+                                    'lr': lr,
+                                    'fine_lr': fine_lr,
+                                    'nDropout': nDropout,
+                                    'lambda': lmb,
+                                    'epochs': ep
+                                })
+                                
                                 self.model = None
                                 gc.collect()
 
         idx = self.get_best_idx(losses, cics)
+        Hstar = hyperparameters[idx]
         best_loss = losses[idx]
         best_CIC = cics[idx]
-        best_fine_lr_idx = idx % len(fine_lrs)
-        best_fine_lr = fine_lrs[best_fine_lr_idx]
-        best_lr_idx = math.floor(idx / len(fine_lrs)) % len(lrs)
-        best_lr = lrs[best_lr_idx]
-        best_bs_idx = math.floor(idx / (len(fine_lrs) * len(lrs))) % len(batches)
-        best_bs = batches[best_bs_idx]
-        best_lmb_idx = math.floor(idx / (len(fine_lrs) * len(batches) * len(lrs)))
-        best_lmb = lambdas[best_lmb_idx]
-
-        print(
-            f"best_fine_lr_idx = {best_fine_lr_idx}, best_fine_lr = {best_fine_lr}, best_lr_idx = {best_lr_idx}, best_lr = {best_lr}, best_bs_idx = {best_bs_idx}, best_bs = {best_bs}, best_lmb_idx = {best_lmb}"
-        )
+        best_fine_lr = hyperparameters[idx]['fine_lr']
+        best_lr = hyperparameters[idx]['lr']
+        best_bs = hyperparameters[idx]['batch_size']
+        best_lmb = hyperparameters[idx]['lambda']
+        best_epochs = hyperparameters[idx]['epochs']
 
         self.lamb = best_lmb
         print(
-            f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}, best lambda={best_lmb}, best CIC={best_CIC}"
+            f"loss*:{best_loss}, batch size*:{best_bs} lr*:{best_lr}, fine_lr*:{best_fine_lr}, dropout*:{best_nDropout}, lambda*={best_lmb}, epochs*={epochs}, CIC*={best_CIC}"#, best CIC={best_CIC}"
         )
         TS = TS + VS
         self.DL(
@@ -291,7 +306,7 @@ class MitigatedModels(GeneralModelClass):
             best_bs,
             best_lr,
             best_fine_lr,
-            epochs,
+            best_epochs,
             fine_epochs,
             best_nDropout,
             val=False,
@@ -424,8 +439,6 @@ class MitigatedModels(GeneralModelClass):
             # when we unfreeze the base model for fine-tuning, so we make sure that the
             # base_model is running in inference mode here.
             x = base_model(x, training=False)
-                
-            #x = keras.layers.Conv2D(filters=4, kernel_size=(3,3), strides=(1,1), padding='same')(x)
             
             y = keras.layers.GlobalAveragePooling2D()(x)
 
@@ -456,9 +469,6 @@ class MitigatedModels(GeneralModelClass):
                 mode="auto",
             )
             callbacks = [early, lr_reduce]
-
-            # Enable eager execution explicitly (if not already enabled)
-            #tf.config.run_functions_eagerly(True)
 
             
             self.model.compile(
