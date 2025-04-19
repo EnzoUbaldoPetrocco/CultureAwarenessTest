@@ -245,6 +245,7 @@ class PreprocessingClass:
         if n <= 0 or n == None:
             n = len(X)
         X = X[0:n]
+        X = np.asarray(X)
 
         shape = np.shape(X[0])
         suppress_output()

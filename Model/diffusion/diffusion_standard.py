@@ -674,9 +674,10 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.network.save( base_path +'diffusion_pretrained.h5')
                 self.ema_network.save( base_path +'ema_diffusion_pretrained.h5')
                     #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
+        train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
+        val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
         if parify_batches_diffusion==0:
-            train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
-            val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
+            
             TS = train_dataset.batch(batch_size, drop_remainder=True)
             VS = val_dataset.batch(batch_size, drop_remainder=True)
         else:

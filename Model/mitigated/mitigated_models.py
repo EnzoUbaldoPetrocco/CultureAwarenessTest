@@ -53,6 +53,7 @@ class MitigatedModels(GeneralModelClass):
         weights=None,
         imbalanced=0,
         diffusion=0,
+        parify_batches_diffusion=0
     ):
         """
         Initialization function for modeling mitigated ML models.
@@ -74,6 +75,7 @@ class MitigatedModels(GeneralModelClass):
         self.learning_rate = learning_rate
         self.weights=np.ones(self.n_cultures)
         self.diffusion=diffusion
+        self.parify_batches_diffusion=parify_batches_diffusion
         if weights is not None:
             self.weights=weights
 
@@ -98,6 +100,46 @@ class MitigatedModels(GeneralModelClass):
             losses.append(ls)
         cic = float(self.computeCIC(losses))
         return cic
+
+    def parify_batches(self, s, culture, batch_size):
+        indeces_per_culture = []
+        
+        for i in range(self.n_cultures):
+            c = np.zeros(self.n_cultures)
+            c[i] = 1.0
+            
+            vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+            n_samples_majority = len(vals)
+            indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+    
+
+        B = []
+        Blabel = []
+        DS = []
+        DSlabel = []
+        for i in range(n_samples_majority):
+            for j in range(self.n_cultures):
+                if len(B)>= batch_size:
+                    DS.append(np.asarray(B))
+                    B = []
+                    DSlabel.append(np.asarray(Blabel))
+                    Blabel = []
+
+                sample = np.asarray(s[0])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
+                label = np.asarray(s[1])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
+                B.append(cv2.resize(sample, (size, size), interpolation = cv2.INTER_CUBIC))
+                Blabel.append(label)
+
+        if len(B)>0:
+            for i in range(batch_size-len(B)):
+                j = i % self.n_cultures
+                rnd_index = np.random.randint(0, len(indeces_per_culture[j]))
+                B.append(s[0][indeces_per_culture[j][rnd_index]])
+                Blabel.append(s[1][indeces_per_culture[j][rnd_index]])
+            DS.append(np.asarray(B))
+            DSlabel.append(np.asarray(Blabel))
+
+        return DS, DSlabel
   
     def custom_loss(self):
         """
@@ -158,7 +200,7 @@ class MitigatedModels(GeneralModelClass):
         res = (self.lamb) * sum
         return res
 
-    def get_best_idx(self, losses: list, cics: list, tau=0.2):
+    def get_best_idx(self, losses: list, cics: list, tau=0.15):
         tmp_losses = losses.copy()
         n_ls = math.ceil(len(losses) * tau)
 
@@ -292,6 +334,7 @@ class MitigatedModels(GeneralModelClass):
         best_bs = hyperparameters[idx]['batch_size']
         best_lmb = hyperparameters[idx]['lambda']
         best_epochs = hyperparameters[idx]['epochs']
+        best_nDropout = hyperparameters[idx]['nDropout']
 
         self.lamb = best_lmb
         print(
@@ -378,15 +421,22 @@ class MitigatedModels(GeneralModelClass):
                 #print(f'Byes after imbalanced transformation: {pickle.dumps(TS)}')
                      
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
-            train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
             
+            if self.parify_batches_diffusion:
+                train_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(TS[0], self.majority, batch_size),self.parify_batches(TS[1], self.majority, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
+            else:
+                train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+
             del TS
 
             validation_generator = None
             if val:
                 #val_datagen = ImageDataGenerator()
                 #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
-                validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                if self.parify_batches_diffusion:
+                    validation_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(VS[0], self.majority, batch_size),self.parify_batches(VS[1], self.majority, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
+                else:
+                    validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
                 
                 del VS
 
@@ -450,9 +500,6 @@ class MitigatedModels(GeneralModelClass):
             
             self.model = keras.Model(inputs, output)
 
-            self.model.summary()
-
-            
 
             lr_reduce = ReduceLROnPlateau(
                 monitor=monitor_val,

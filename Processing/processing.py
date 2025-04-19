@@ -109,32 +109,52 @@ class ProcessingClass:
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-    def parify_batches(self, s, culture, hot_encoding):
+    def parify_batches(self, s, culture, hot_encoding, size):
+        #print(f"s is {s}")
+        #print(f"s[0] is {s[0]}")
+        #print(f"s[1] is {s[1]}")
         indeces_per_culture = []
+        batch_size = 64
         if hot_encoding:
-            n_samples_majority = len(np.where(s[1][:self.n_cultures]==culture))
             for i in range(self.n_cultures):
                 c = np.zeros(self.n_cultures)
                 c[i] = 1.0
-                indeces_per_culture.append([np.where(s[1][:self.n_cultures])==c])
+               
+                vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+                n_samples_majority = len(vals)
+                indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
         else:
-            n_samples_majority = len(np.where(s[1][self.n_cultures]==culture))
+            n_samples_majority = len(np.where(np.asarray(s[1], dtype=object)[self.n_cultures]==culture))
             for i in range(self.n_cultures):
-                indeces_per_culture.append([np.where(s[1][:self.n_cultures])==i])
+                indeces_per_culture.append([np.where(np.asarray(s[1], dtype=object)[:,1])==i])
+
         B = []
+        Blabel = []
         DS = []
+        DSlabel = []
         for i in range(n_samples_majority):
             for j in range(self.n_cultures):
-                if len(B)>= self.batch_size:
+                if len(B)>= batch_size:
                     DS.append(np.asarray(B))
                     B = []
-                sample = s[indeces_per_culture[j][i % len(s[indeces_per_culture[j]])]]
+                    DSlabel.append(np.asarray(Blabel))
+                    Blabel = []
+
+                sample = np.asarray(s[0])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
+                label = np.asarray(s[1])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
                 B.append(cv2.resize(sample, (size, size), interpolation = cv2.INTER_CUBIC))
+                Blabel.append(label)
 
         if len(B)>0:
+            for i in range(batch_size-len(B)):
+                j = i % self.n_cultures
+                rnd_index = np.random.randint(0, len(indeces_per_culture[j]))
+                B.append(s[0][indeces_per_culture[j][rnd_index]])
+                Blabel.append(s[1][indeces_per_culture[j][rnd_index]])
             DS.append(np.asarray(B))
+            DSlabel.append(np.asarray(Blabel))
 
-        return DS
+        return DS, DSlabel
 
     def prepare_data(
         self,
@@ -239,8 +259,19 @@ class ProcessingClass:
                                     for i in range(len(self.dataobj.Xv))
                                     if self.dataobj.yv[i] == j
                                 ]
-                                tempX = self.parify_batches(tempX, culture, False)
-                                tempXv = self.parify_batches(tempXv, culture, False)
+                                tempY = [
+                                    self.dataobj.y[i]
+                                    for i in range(len(self.dataobj.X))
+                                    if self.dataobj.y[i]== j
+                                ]
+                                tempYv = [
+                                    self.dataobj.yv[i]
+                                    for i in range(len(self.dataobj.Xv))
+                                    if self.dataobj.yv[i] == j
+                                ]
+                                print(tempX)
+                                tempX, _ = self.parify_batches((tempX, tempY), culture, False, size)
+                                tempXv, _ = self.parify_batches((tempXv, tempYv), culture, False, size)
                                 images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath)
                                 for img in images:
                                     img = np.asarray(img)
@@ -261,9 +292,19 @@ class ProcessingClass:
                                 cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
                                 for i in range(len(self.dataobj.Xv))
                                 if self.dataobj.yv[i][self.n_cultures] == j
+                            ]    
+                            tempY = [
+                                self.dataobj.y[i]
+                                for i in range(len(self.dataobj.X))
+                                if self.dataobj.y[i][self.n_cultures]== j
+                            ]
+                            tempYv = [
+                                self.dataobj.yv[i]
+                                for i in range(len(self.dataobj.Xv))
+                                if self.dataobj.yv[i][self.n_cultures] == j
                             ]     
-                            tempX = self.parify_batches(tempX, culture, True)
-                            tempXv = self.parify_batches(tempXv, culture, True)               
+                            tempX, _ = self.parify_batches((tempX, tempY), culture, True, size)
+                            tempXv, _ = self.parify_batches((tempXv, tempYv), culture, True, size)               
                             images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs, plot_imgs = True, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath)
                             for img in images:
                                 img = np.asarray(img)
@@ -640,7 +681,7 @@ class ProcessingClass:
             self.basePath = self.basePath + "DIFFUSION/"
             if only_minority_diffusion:
                 self.basePath = self.basePath + "ONLY_MIN/"
-            if parify_batches_diffusion:
+        if parify_batches_diffusion:
                 self.basePath = self.basePath + "PAR_BS/"
         if augment:
             if adversary:
@@ -746,7 +787,8 @@ class ProcessingClass:
                     n_cultures=n_cultures,
                     imbalanced=imbalanced,
                     diffusion=diffusion,
-                    weights=weights
+                    weights=weights,
+                    parify_batches_diffusion=parify_batches_diffusion
                 )
 
         self.model.standard = standard
