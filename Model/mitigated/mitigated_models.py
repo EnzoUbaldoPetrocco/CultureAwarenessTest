@@ -423,7 +423,7 @@ class MitigatedModels(GeneralModelClass):
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
             
             if self.parify_batches_diffusion:
-                train_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(TS[0], self.majority, batch_size),self.parify_batches(TS[1], self.majority, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
+                train_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(TS, self.culture, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
             else:
                 train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
 
@@ -434,7 +434,7 @@ class MitigatedModels(GeneralModelClass):
                 #val_datagen = ImageDataGenerator()
                 #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
                 if self.parify_batches_diffusion:
-                    validation_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(VS[0], self.majority, batch_size),self.parify_batches(VS[1], self.majority, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
+                    validation_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(VS, self.culture, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
                 else:
                     validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
                 
