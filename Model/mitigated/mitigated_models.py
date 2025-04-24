@@ -127,7 +127,7 @@ class MitigatedModels(GeneralModelClass):
 
                 sample = np.asarray(s[0])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
                 label = np.asarray(s[1])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
-                B.append(cv2.resize(sample, (size, size), interpolation = cv2.INTER_CUBIC))
+                B.append(sample)
                 Blabel.append(label)
 
         if len(B)>0:
