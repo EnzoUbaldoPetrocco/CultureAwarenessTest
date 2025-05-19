@@ -22,18 +22,21 @@ acc = tf.keras.metrics.BinaryAccuracy(
     name='binary_accuracy', dtype=None, threshold=0.5
 )
 
-percents = [0.2]
+percents = [0.05, 0.2]
 
 verbose_param = 0
 proportions = [0.7, 0.2, 0.1]
 cs = [0, 1, 2]
 lamps = [0, 1]
 oversamplings = [0]
-os_n = 150
+os_n = 1000
 adversarials = [1, 0]
 gain = np.logspace(-4, 0, 5)
-augments = [1, 0]
+augments = [0]
 class_divisions = [1, 0]
+standard= 1
+
+n_cultures = 3
 
 for lamp in lamps:
     for c in cs:
@@ -64,7 +67,10 @@ for lamp in lamps:
                                         g=g,
                                     )
                                     ls, vs, ts = pipe.preprocessing()
-                                    pipe.model_selection(ls, vs, 2, bc, acc)
+                                    n_out = 1
+                                    if standard>0:
+                                        n_out = n_cultures
+                                    pipe.model_selection((ls[0],list(np.asarray(ls[1], dtype=float)[:,n_cultures])), (vs[0],list(np.asarray(vs[1], dtype=float)[:,n_cultures])), 1, bc, acc)
                                     for culture in range(pipe.n_cultures):
                                         ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]
                                         res = pipe.error_estimation(ts[c])
@@ -93,7 +99,11 @@ for lamp in lamps:
                                             g=g,
                                         )
                                         ls, vs, ts = pipe.preprocessing()
-                                        pipe.model_selection(ls, vs, 2, bc, acc)
+                                        n_out = 1
+                                        if standard>0:
+                                            n_out = n_cultures
+                                        print(ls)
+                                        pipe.model_selection((ls[0],list(np.asarray(ls[1], dtype=float)[:,0:n_cultures])), (vs[0],list(np.asarray(vs[1], dtype=float)[:,0:n_cultures])), 1, bc, acc)
                                         for culture in range(pipe.n_cultures):
                                             ts[c][1] = np.asarray(ts[c][1])[pipe.n_cultures]
                                             res = pipe.error_estimation(ts[c])

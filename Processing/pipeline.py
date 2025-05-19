@@ -14,6 +14,7 @@ from random import randint
 from copy import deepcopy
 import json
 import gc
+from keras.regularizers import Regularizer
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -68,6 +69,21 @@ def get_culture_paths(ds_pt, lamp):
         ds_pt + "/carpets_stretched/japanese/100/RGB",
         ds_pt + "/carpets_stretched/scandinavian/100/RGB",
     ]
+
+class CustomReg(Regularizer):
+        def __init__(self, lamb, n_cultures):
+            self.lamb = lamb
+            self.n_cultures = n_cultures
+
+        def __call__(self, x):
+            
+            mean = tf.reshape(tf.reduce_mean(x, axis=1),  [-1, 1])
+            diff = tf.subtract(x, mean)
+            reg = tf.reduce_sum(tf.square(diff))
+            res = (self.lamb) * reg
+
+            return res
+
 
 
 class Pipeline:
@@ -162,6 +178,7 @@ class Pipeline:
         class_div=False,
         augment=False,
         g=0.01,
+        standard=0
     ):
         """
         Initialize the class ML Pipeline
@@ -217,6 +234,9 @@ class Pipeline:
         self.callbacks = None
         self.dataset = []
         self.base_path = None
+
+        # standard the opposite of regularizer
+        self.standard = standard
 
         if self.augment:
             self.data_augmentation = keras.Sequential(
@@ -276,8 +296,12 @@ class Pipeline:
         x = self.base_model(x, training=False)
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dropout(n_dropout)(x)  # Regularize with dropout
+
+        kernel_regularizer = None
+        if self.standard>0:
+            kernel_regularizer=CustomReg(self.lamb, self.n_cultures)
         if n_outs > 1:
-            outputs = keras.layers.Dense(n_outs, activation="softmax")(x)
+            outputs = keras.layers.Dense(n_outs, activation="softmax", kernel_regularizer=kernel_regularizer)(x)
         else:
             outputs = keras.layers.Dense(n_outs, activation="sigmoid")(x)
         self.model = keras.Model(inputs, outputs)
@@ -446,15 +470,53 @@ class Pipeline:
 
         """
         adv_samples = []
+        maj = np.zeros(self.n_cultures)
+        maj[self.majority_culture] = 1.0
+       
         for i in range(len(samples)):
-            adv_samples.append(
-                self.generate_adversarial_image_pgd(
-                    samples[i].astype(float), labels[i].astype(float), self.model
+           
+            if (labels[i].astype(float)==maj.astype(float)).all():
+                adv_samples.append(
+                    self.generate_adversarial_image_pgd(
+                        samples[i].astype(float), labels[i].astype(float), self.model
+                    )
                 )
-            )
 
         return adv_samples
 
+    
+    def reg_loss(self):
+        """
+        This function implements the loss and the regularizer of the mitigation stratyegy
+        :param out: related to the corresponding output to be optimized
+        :return loss function
+        """
+        n_cultures = self.n_cultures
+        lamb = self.lamb
+        #@tf.function
+        def loss(y_true, y_pred):
+            
+            bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures], tf.einsum('ij,ij->i', y_true[:, 0:n_cultures], y_pred))
+            return bc
+        return loss
+
+
+    def reg_accuracy(self):
+        #self.prev_accs = tf.ones(self.n_cultures)
+        n_cultures = self.n_cultures
+        #@tf.function
+        def accuracy(y_true, y_pred):
+            ## accuracy metric 
+            yc = y_true[:, 0:n_cultures]  # Assume yc is of shape [batch_size, n_cultures]
+            yt = y_true[:, n_cultures]    # Assume yt is of shape [batch_size, 1]
+            # Get indices where yc has the maximum value (class with highest probability)
+            preds = tf.einsum('ij,ij->i', yc, y_pred)
+            acc = tf.keras.metrics.binary_accuracy(yt, preds)
+            
+            return acc
+
+        return accuracy
+    
     def splitting_procedure(self):
         """
         Split dataset in learning, validation and test set
@@ -599,7 +661,7 @@ class Pipeline:
         monitor_val = "val_loss"
 
         for batch_size in np.logspace(3, 5, 3, base=2).astype(int):
-            for ne in np.logspace(1, 1.5, 2).astype(int):
+            for ne in np.logspace(1, 1.5, 3).astype(int):
                 for lr in np.logspace(-5, -3, 3):
                     for fine_lr in np.logspace(-6, -5, 2):
                         for n_dropout in [0.3, 0.4]:
