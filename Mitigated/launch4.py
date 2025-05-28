@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 17000
+memory_limit = 15000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -54,13 +54,13 @@ standard = 0
 
 verbose_param = 1
 n = 1000
-class_divisions = [1, 0]
+class_divisions = [ 0]
 imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
 cs = [2, 1, 0]
-lamps = [ 0, 1]
+lamps = [0]
 
 ep = eps[0]
 imb = 0
@@ -71,11 +71,10 @@ k = 1
 
 
 basePath = "./"
-for i in range(2):
- for percent in percents:
+for percent in percents:
     for lamp in lamps:
-          for c in cs:
-              for cl_div in class_divisions:
+        for c in cs:
+            if c in [0,1]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -96,11 +95,51 @@ for i in range(2):
                     gaug=g_aug,
                     adversary=adversary,
                     eps =ep,
-                    class_division=cl_div,
+                    
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=1-i,
+                    only_minority_diffusion=1,
                     parify_batches_diffusion=1
+
+                )
+                # NoAUg
+                print(f"Testing->aug={0};adv={0}")
+                procObj.test(
+                    standard=standard,
+                    culture=c,
+                    augment=0,
+                    gaug=0,
+                    adversary=0,
+                )
+                procObj.partial_clear(basePath)
+
+            if c in [1,2]:
+                procObj = ProcessingClass(
+                    shallow=0,
+                    lamp=lamp,
+                    gpu=False,
+                    memory_limit=memory_limit,
+                    basePath=basePath,
+                )
+                model = None
+                print(f"Training->aug={k%2};adv={floor(k/2)}")
+                procObj.process(
+                    standard=standard,
+                    type="DL",
+                    verbose_param=verbose_param,
+                    culture=c,
+                    percent=percent,
+                    n=n,
+                    augment=k % 2,
+                    gaug=g_aug,
+                    adversary=adversary,
+                    eps =ep,
+                    
+                    imbalanced=imb, 
+                    diffusion = diffusion,
+                    only_minority_diffusion=0,
+                    parify_batches_diffusion=0
+
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")
