@@ -65,13 +65,14 @@ lamps = [1]
 ep = eps[0]
 imb = 0
 
-diffusion = 1
+diffusion = 0
 adversary = 0
 k = 1
-
+parify_batches_diffusions = [0, 1]
 
 basePath = "./"
 for percent in percents:
+ for parify_batches_diffusion in parify_batches_diffusions:
     for lamp in lamps:
         for c in cs:
             for cl_div in class_divisions:
@@ -98,8 +99,8 @@ for percent in percents:
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=1,
-                    parify_batches_diffusion=1
+                    only_minority_diffusion=0,
+                    parify_batches_diffusion=parify_batches_diffusion
 
                 )
                 # NoAUg
