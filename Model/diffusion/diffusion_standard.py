@@ -15,6 +15,7 @@ import tensorflow_datasets as tfds
 import math
 from keras.models import Model
 import sys
+from Utils.FileManager.FileManager import FileManagerClass
 
 class AdamW(tf.keras.optimizers.Adam):
     def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
@@ -585,9 +586,10 @@ class DiffusionStandardModel(tf.keras.Model):
         timer.start()
         plt.show()
         plt.close()
+    
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './'): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -656,7 +658,7 @@ class DiffusionStandardModel(tf.keras.Model):
                         loss=tf.keras.losses.mean_absolute_error,
                     )
                 
-                self.img_name = "./PretrainedNetGeneration.png"
+                self.img_name = base_path + "/PretrainedNetGeneration.png"
                 self.fit(
                     flowers_dataset,
                     epochs=num_epochs_flowers,
@@ -669,14 +671,18 @@ class DiffusionStandardModel(tf.keras.Model):
                 del flowers_dataset
                 del val_flowers_dataset
                 
-                self.network.save('diffusion_pretrained.h5')
-                self.ema_network.save('ema_diffusion_pretrained.h5')
+                self.network.save( base_path +'diffusion_pretrained.h5')
+                self.ema_network.save( base_path +'ema_diffusion_pretrained.h5')
                     #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
-        
         train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
         val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
-        TS = train_dataset.batch(batch_size, drop_remainder=True)
-        VS = val_dataset.batch(batch_size, drop_remainder=True)
+        if parify_batches_diffusion==0:
+            
+            TS = train_dataset.batch(batch_size, drop_remainder=True)
+            VS = val_dataset.batch(batch_size, drop_remainder=True)
+        else:
+            TS = train_dataset
+            VS = val_dataset
         
         self.normalizer.adapt(train_dataset)
 
@@ -728,13 +734,15 @@ class DiffusionStandardModel(tf.keras.Model):
 
                     
                     print("Pretrained images generation")
-                    self.img_name = "./PretrainedNetGeneration.png"
+                    self.img_name =  base_path +"/PretrainedNetGeneration.png"
                     self.plot_images()
 
                     if lamp:
-                        self.img_name = f"./GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
+                        self.img_name =  base_path + f"/GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
                     else:
-                        self.img_name = f"./GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+                        self.img_name =  base_path +f"GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+                    fObj = FileManagerClass(self.img_name)
+                    del fObj
                     
                     history = self.fit(
                         TS,
@@ -776,7 +784,6 @@ class DiffusionStandardModel(tf.keras.Model):
             layer.trainable = False
 
         # run training and plot generated images periodically
-        
 
         #self.network.summary()
         #self.ema_network.summary()
@@ -788,9 +795,12 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.plot_images()
 
         if lamp:
-            self.img_name = f"./GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
+            self.img_name =  base_path +f"/GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
         else:
-            self.img_name = f"./GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+            self.img_name =  base_path +f"/GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+
+        fObj = FileManagerClass(self.img_name)
+        del fObj
         self.fit(
             TS,
             epochs=best_epochs,
