@@ -815,7 +815,7 @@ class Res2TabClass:
 
         AUG_X = errs[1 : element_percentage["g_augs"] + 1]
         AUG_Y = cics[1 : element_percentage["g_augs"] + 1]
-        plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="DA")
+        #plt.plot(AUG_X, AUG_Y, color=f"{names[j]}", label="DA")
         j = j + 3
 
        
