@@ -2,7 +2,6 @@
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
-import cv2
 
 sys.path.insert(1, "../")
 from GradCam.gradCam import GradCAM
@@ -15,6 +14,7 @@ import gc
 import random
 from datetime import datetime
 import numpy as np
+import cv2
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
@@ -25,7 +25,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 27000
+memory_limit = 10000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -59,15 +59,15 @@ imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [2, 1, 0]
-lamps = [1]
+cs = [ 0, 1, 2]
+lamps = [0, 1]
 
 ep = eps[0]
 imb = 0
 
 diffusion = 0
 adversary = 0
-k = 1
+ks = [ 0, 1]
 parify_batches_diffusions = [0, 1]
 
 basePath = "./"
@@ -75,6 +75,7 @@ for percent in percents:
  for parify_batches_diffusion in parify_batches_diffusions:
     for lamp in lamps:
         for c in cs:
+         for k in ks:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
                     shallow=0,
