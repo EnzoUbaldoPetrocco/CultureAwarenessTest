@@ -73,9 +73,9 @@ parify_batches_diffusions = [0, 1]
 basePath = "./"
 for percent in percents:
  for parify_batches_diffusion in parify_batches_diffusions:
+  for k in ks:
     for lamp in lamps:
         for c in cs:
-         for k in ks:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
                     shallow=0,
