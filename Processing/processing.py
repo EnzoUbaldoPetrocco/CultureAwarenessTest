@@ -14,6 +14,7 @@ from Model.diffusion.diffusion_standard import DiffusionStandardModel
 else:
     from Model.diffusion.diffusion_standard_new_tf import DiffusionStandardModel"""
 from Model.mitigated.mitigated_models import MitigatedModels
+from Model.mitigated.mitigated_models_advanced import MitigatedModels as MitigatedModelsAdvanced
 from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
 from Model.adversarial.adversarial import AdversarialStandard
@@ -584,6 +585,7 @@ class ProcessingClass:
         diffusion=0,
         only_minority_diffusion=0,
         parify_batches_diffusion=0,
+        mitigation_type=0
     ):
         """
         process function prepares the data and fit the model
@@ -776,20 +778,36 @@ class ProcessingClass:
                             path = self.basePath,                        
                         )
             else:
-                self.model = MitigatedModels(
-                    type=type,
-                    culture=culture,
-                    verbose_param=verbose_param,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    learning_rate=learning_rate,
-                    lambda_index=lambda_index,
-                    n_cultures=n_cultures,
-                    imbalanced=imbalanced,
-                    diffusion=diffusion,
-                    weights=weights,
-                    parify_batches_diffusion=parify_batches_diffusion
-                )
+                if mitigation_type==1:
+                    self.model = MitigatedModelsAdvanced(
+                        type=type,
+                        culture=culture,
+                        verbose_param=verbose_param,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        learning_rate=learning_rate,
+                        lambda_index=lambda_index,
+                        n_cultures=n_cultures,
+                        imbalanced=imbalanced,
+                        diffusion=diffusion,
+                        weights=weights,
+                        parify_batches_diffusion=parify_batches_diffusion
+                    )
+                else:   
+                    self.model = MitigatedModels(
+                        type=type,
+                        culture=culture,
+                        verbose_param=verbose_param,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        learning_rate=learning_rate,
+                        lambda_index=lambda_index,
+                        n_cultures=n_cultures,
+                        imbalanced=imbalanced,
+                        diffusion=diffusion,
+                        weights=weights,
+                        parify_batches_diffusion=parify_batches_diffusion
+                    )
 
         self.model.standard = standard
         self.model.fit(
