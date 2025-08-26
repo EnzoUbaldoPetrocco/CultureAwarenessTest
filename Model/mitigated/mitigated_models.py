@@ -279,7 +279,7 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-4, 1, 4)
+        lambdas = np.logspace(-4, 0, 3)
         hyperparameters = []
 
         for lmb in lambdas:

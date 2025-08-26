@@ -19,12 +19,12 @@ import cv2
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 3000
+memory_limit = 6000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
