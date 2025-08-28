@@ -2,7 +2,6 @@
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
-import cv2
 
 sys.path.insert(1, "../")
 from GradCam.gradCam import GradCAM
@@ -15,17 +14,17 @@ import gc
 import random
 from datetime import datetime
 import numpy as np
+import cv2
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 27000
+memory_limit = 6000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -59,7 +58,7 @@ imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [2, 1, 0]
+cs = [ 0, 1, 2]
 lamps = [1, 0]
 
 ep = eps[0]
@@ -67,15 +66,16 @@ imb = 0
 
 diffusion = 1
 adversary = 0
-k = 1
-
+ks = [1, 0]
+parify_batches_diffusions = [1, 0]
 
 basePath = "./"
-for i in range(2):
- for percent in percents:
+for percent in percents:
+ for parify_batches_diffusion in parify_batches_diffusions:
+  for k in ks:
     for lamp in lamps:
-          for c in cs:
-              for cl_div in class_divisions:
+        for c in cs:
+            for cl_div in class_divisions:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -99,7 +99,9 @@ for i in range(2):
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=1-i
+                    only_minority_diffusion=0,
+                    parify_batches_diffusion=parify_batches_diffusion,
+                    mitigation_type=1
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")

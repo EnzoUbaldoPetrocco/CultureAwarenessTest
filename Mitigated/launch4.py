@@ -19,12 +19,12 @@ import cv2
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 3000
+memory_limit = 9000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -64,16 +64,18 @@ lamps = [0, 1]
 ep = eps[0]
 imb = 0
 
-diffusion = 0
+diffusions = [1, 0]
 adversary = 0
-ks = [ 0, 1]
-parify_batches_diffusions = [0, 1]
+ks = [1, 0]
+parify_batches_diffusions = [1, 0]
 
 basePath = "./advanced/"
 for percent in percents:
+
  for parify_batches_diffusion in parify_batches_diffusions:
   for k in ks:
     for lamp in lamps:
+     for diffusion in diffusions:
         for c in cs:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
