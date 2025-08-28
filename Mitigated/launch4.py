@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 6000
+memory_limit = 9000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -64,10 +64,10 @@ lamps = [0, 1]
 ep = eps[0]
 imb = 0
 
-diffusions = [0, 1]
+diffusions = [1, 0]
 adversary = 0
-ks = [ 0, 1]
-parify_batches_diffusions = [0, 1]
+ks = [1, 0]
+parify_batches_diffusions = [1, 0]
 
 basePath = "./advanced/"
 for percent in percents:
