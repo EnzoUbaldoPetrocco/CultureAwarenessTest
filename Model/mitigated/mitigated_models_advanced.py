@@ -438,8 +438,7 @@ class MitigatedModels(GeneralModelClass):
             )
 
             print(f"aug is {aug}")
-            def preprocess(img, label):
-                return data_augmentation(img, training=aug), label
+            
                         
             if self.imbalanced:
                 #print(f'Byes before imbalanced transformation: {pickle.dumps(TS)}')

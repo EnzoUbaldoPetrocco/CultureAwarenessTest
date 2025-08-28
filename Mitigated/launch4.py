@@ -64,16 +64,18 @@ lamps = [0, 1]
 ep = eps[0]
 imb = 0
 
-diffusion = 0
+diffusions = [0, 1]
 adversary = 0
 ks = [ 0, 1]
 parify_batches_diffusions = [0, 1]
 
 basePath = "./advanced/"
 for percent in percents:
+
  for parify_batches_diffusion in parify_batches_diffusions:
   for k in ks:
     for lamp in lamps:
+     for diffusion in diffusions:
         for c in cs:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
