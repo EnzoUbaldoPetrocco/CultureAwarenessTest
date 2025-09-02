@@ -19,11 +19,11 @@ import numpy as np
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
-os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
+# os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_asyn"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 6800
+memory_limit = 3800
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -46,34 +46,34 @@ else:
     print("no gpus")
 
 
-percents = [ 0.2]
-standard = 1
+percents = [0.05]
+standard = 0
 # lamp = 1
 
 verbose_param = 1
 n = 1000
-class_divisions = [0,1]
-imbalances = [0,1]
-g_gaugs = np.logspace(-3, -1, 3)
+class_divisions = [ 0]
+imbalances = [0]
+g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
-ep = 0
-cs = [2,1,0]
-lamps = [1,0]
+g_aug = g_gaugs[0]
+cs = [2, 1, 0]
+lamps = [1, 0]
 
-diffusion = 0
+ep = eps[0]
+imb = 0
+
+diffusion = 1
 adversary = 0
 k = 1
 
 
-basePath = "./temps2/"
-
-
+basePath = "./advanced/"
 for i in range(2):
  for percent in percents:
     for lamp in lamps:
-        for imb in imbalances:
           for c in cs:
-            for g_aug in g_gaugs:
+              for cl_div in class_divisions:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -91,10 +91,13 @@ for i in range(2):
                     percent=percent,
                     n=n,
                     augment=k % 2,
+                    gaug=g_aug,
                     adversary=adversary,
+                    eps =ep,
+                    class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    gaug=g_aug
+                    only_minority_diffusion=1-i
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")
