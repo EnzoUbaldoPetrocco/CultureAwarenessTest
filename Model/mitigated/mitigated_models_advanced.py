@@ -364,7 +364,7 @@ class MitigatedModels(GeneralModelClass):
 
         self.lamb = best_lmb
         print(
-            f"loss*:{best_loss}, batch size*:{best_bs} lr*:{best_lr}, fine_lr*:{best_fine_lr}, dropout*:{best_nDropout}, lambda*={best_lmb}, epochs*={epochs}, CIC*={best_CIC}"#, best CIC={best_CIC}"
+            f"loss*:{best_loss}, batch size*:{best_bs} lr*:{best_lr}, fine_lr*:{best_fine_lr}, dropout*:{best_nDropout}, lambda*={best_lmb}, epochs*={best_epochs}, CIC*={best_CIC}"#, best CIC={best_CIC}"
         )
         TS = TS + VS
         self.DL(
