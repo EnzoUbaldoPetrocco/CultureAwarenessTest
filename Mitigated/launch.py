@@ -94,7 +94,7 @@ for i in range(2):
                     n=n,
                     augment=k % 2,
                     adversary=adversary,
-                    imbalanced=imb, 
+                    imbalanced=imb,
                     diffusion = diffusion,
                     gaug=g_aug
                 )
