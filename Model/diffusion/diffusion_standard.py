@@ -711,8 +711,8 @@ class DiffusionStandardModel(tf.keras.Model):
         # use Model Selection:
         if model_selection:
             best_kid = np.inf
-            for ep in [10, 30, 50]:
-                for l_r in np.logspace(-5.5, -4.5, 3):
+            for ep in [30, 50]:
+                for l_r in np.logspace(-5.5, -4.5, 2):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
                     self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
@@ -724,6 +724,8 @@ class DiffusionStandardModel(tf.keras.Model):
                             ),
                             loss=tf.keras.losses.mean_absolute_error,
                         )
+                    self.network.save( base_path +'/new/diffusion_pretrained.tf')
+                    self.ema_network.save( base_path +'/new/ema_diffusion_pretrained.tf')
                     #self.build((None, self.image_size, self.image_size, 3))
 
                     for layer in self.network.layers[0:int(len(self.network.layers)/2)]:

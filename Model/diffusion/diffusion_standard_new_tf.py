@@ -684,7 +684,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 )
 
                 import time
-                time.sleep(90000)
+                #time.sleep(90000)
                 flowers_dataset = prepare_dataset(f"train[{3.0*(i)}:{3.0*(i+1)}%]+test[{3.0*(i)}:{3.0*(i+1)}%]", image_size=self.image_size)
                 val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
 

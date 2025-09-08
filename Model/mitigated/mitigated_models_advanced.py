@@ -109,7 +109,8 @@ class MitigatedModels(GeneralModelClass):
             c[i] = 1.0
             
             vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
-            n_samples_majority = len(vals)
+            if i == culture:
+                n_samples_majority = len(vals)
             indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
     
 
@@ -305,7 +306,8 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-4, 1, 4)
+        #lambdas = np.logspace(-4, 1, 4)
+        lambdas = [0.01]
         hyperparameters = []
 
         for lmb in lambdas:
