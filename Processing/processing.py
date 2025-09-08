@@ -307,7 +307,7 @@ class ProcessingClass:
                                 img = np.asarray(img, dtype=np.float32)
                                 self.dataobj.X.append(img)
                                 c = random_culture(self.n_cultures, culture)
-                                lbl = list(np.zeros(self.n_cultures)) 
+                                lbl = list(np.zeros(self.n_cultures))
                                 lbl[c]=1.0
                                 lbl.append(j)
                                 self.dataobj.y.append(lbl)
