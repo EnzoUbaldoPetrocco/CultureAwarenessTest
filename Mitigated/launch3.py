@@ -67,9 +67,9 @@ imb = 0
 diffusion = 0
 adversary = 0
 ks = [1, 0]
-parify_batches_diffusions = [1, 0]
+parify_batches_diffusions = [0, 1]
 
-basePath = "./advanced/"
+basePath = "./try/"
 for percent in percents:
  for parify_batches_diffusion in parify_batches_diffusions:
   for k in ks:
@@ -101,7 +101,7 @@ for percent in percents:
                     diffusion = diffusion,
                     only_minority_diffusion=0,
                     parify_batches_diffusion=parify_batches_diffusion,
-                    mitigation_type=1
+                    mitigation_type=0
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")

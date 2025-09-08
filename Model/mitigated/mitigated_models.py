@@ -108,9 +108,11 @@ class MitigatedModels(GeneralModelClass):
             c = np.zeros(self.n_cultures)
             c[i] = 1.0
             
-            vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
-            n_samples_majority = len(vals)
-            indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+            vals = np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0]
+            indeces_per_culture.append(vals)
+            if i == culture:
+                n_samples_majority = len(vals)
+            
     
 
         B = []
@@ -124,7 +126,6 @@ class MitigatedModels(GeneralModelClass):
                     B = []
                     DSlabel.append(np.asarray(Blabel))
                     Blabel = []
-
                 sample = np.asarray(s[0])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
                 label = np.asarray(s[1])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
                 B.append(sample)
@@ -249,12 +250,12 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[8, 32],
-        lrs=[1e-3, 1e-4, 1e-5],
-        fine_lrs=[ 1e-6],
-        epochs=[30, 40] ,
+        batches=[32],
+        lrs=[1e-3, 1e-4],
+        fine_lrs=[1e-6],
+        epochs=[50],
         fine_epochs=15,
-        nDropouts=[0.3, 0.4],
+        nDropouts=[0.4],
         g=0.1,
         save=False,
         path="./"
@@ -279,7 +280,8 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-4, 0, 3)
+        #lambdas = np.logspace(-4, 1, 4)
+        lambdas = [0.01, 0.1]
         hyperparameters = []
 
         for lmb in lambdas:
@@ -338,7 +340,7 @@ class MitigatedModels(GeneralModelClass):
 
         self.lamb = best_lmb
         print(
-            f"loss*:{best_loss}, batch size*:{best_bs} lr*:{best_lr}, fine_lr*:{best_fine_lr}, dropout*:{best_nDropout}, lambda*={best_lmb}, epochs*={epochs}, CIC*={best_CIC}"#, best CIC={best_CIC}"
+            f"loss*:{best_loss}, batch size*:{best_bs} lr*:{best_lr}, fine_lr*:{best_fine_lr}, dropout*:{best_nDropout}, lambda*={best_lmb}, epochs*={best_epochs}, CIC*={best_CIC}"#, best CIC={best_CIC}"
         )
         TS = TS + VS
         self.DL(
@@ -405,7 +407,7 @@ class MitigatedModels(GeneralModelClass):
                     layers.RandomFlip("horizontal"),
                     layers.RandomRotation(0.01),
                     layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(0.01),
+                    #tf.keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
