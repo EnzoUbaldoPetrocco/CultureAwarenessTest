@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 9000
+memory_limit = 3000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -47,35 +47,33 @@ else:
     print("no gpus")
 
 
-percents = [0.05]
-standard = 0
+percents = [0.2]
+standard = 1
 # lamp = 1
 
 verbose_param = 1
 n = 1000
-class_divisions = [ 0]
+class_divisions = [ 0, 1]
 imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
-eps = np.logspace(-3, -1, 3)
+eps = np.logspace(-2, -1, 2)
 g_aug = g_gaugs[0]
-cs = [ 0, 1, 2]
-lamps = [0, 1]
+cs = [0, 1, 2]
+lamps = [1, 0]
 
 ep = eps[0]
 imb = 0
 
-diffusions = [1, 0]
+diffusion = 0
 adversary = 0
-ks = [1, 0]
-parify_batches_diffusions = [1, 0]
+ks = [0]
+parify_batches_diffusions = [0]
 
-basePath = "./advanced/"
+basePath = "./try/"
 for percent in percents:
-
- for parify_batches_diffusion in parify_batches_diffusions:
-  for k in ks:
+ for k in ks:
+  for parify_batches_diffusion in parify_batches_diffusions:
     for lamp in lamps:
-     for diffusion in diffusions:
         for c in cs:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
@@ -97,13 +95,13 @@ for percent in percents:
                     augment=k % 2,
                     gaug=g_aug,
                     adversary=adversary,
-                    eps =ep,
+                    eps =eps,
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
                     only_minority_diffusion=0,
                     parify_batches_diffusion=parify_batches_diffusion,
-                    mitigation_type=1
+                    mitigation_type=0
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")

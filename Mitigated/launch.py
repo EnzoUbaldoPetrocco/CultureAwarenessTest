@@ -58,7 +58,7 @@ imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [ 0, 1, 2]
+cs = [0, 1, 2]
 lamps = [1, 0]
 
 ep = eps[0]
