@@ -66,8 +66,8 @@ imb = 0
 
 diffusion = 0
 adversary = 0
-ks = [0, 1]
-parify_batches_diffusions = [1, 0]
+ks = [1, 0]
+parify_batches_diffusions = [0, 1]
 
 basePath = "./try/"
 for percent in percents:

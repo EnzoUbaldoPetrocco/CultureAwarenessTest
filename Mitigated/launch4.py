@@ -65,7 +65,7 @@ ep = eps[0]
 imb = 0
 
 diffusion = 0
-adversary = 0
+adversary = 1
 ks = [0]
 parify_batches_diffusions = [0]
 
@@ -75,6 +75,7 @@ for percent in percents:
   for parify_batches_diffusion in parify_batches_diffusions:
     for lamp in lamps:
         for c in cs:
+         for ep in eps:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
                     shallow=0,
@@ -95,7 +96,7 @@ for percent in percents:
                     augment=k % 2,
                     gaug=g_aug,
                     adversary=adversary,
-                    eps =eps,
+                    eps =ep,
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,

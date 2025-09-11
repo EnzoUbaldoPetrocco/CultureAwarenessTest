@@ -805,7 +805,7 @@ class AdversarialStandard(GeneralModelClass):
         :param complete: dummy argument
         """
         
-        elif self.type == "DL" or self.type == "RESNET":
+        if self.type == "DL" or self.type == "RESNET":
             self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
