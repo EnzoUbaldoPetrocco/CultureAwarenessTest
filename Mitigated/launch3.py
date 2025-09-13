@@ -99,7 +99,7 @@ for percent in percents:
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=0,
+                    only_minority_diffusion=1,
                     parify_batches_diffusion=parify_batches_diffusion,
                     mitigation_type=0
                 )
