@@ -58,8 +58,8 @@ imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [ 0, 1, 2]
-lamps = [1, 0]
+cs = [2, 1, 0]
+lamps = [ 1, 0]
 
 ep = eps[0]
 imb = 0
@@ -67,7 +67,7 @@ imb = 0
 diffusion = 1
 adversary = 0
 ks = [1, 0]
-parify_batches_diffusions = [0, 1]
+parify_batches_diffusions = [1, 0]
 
 basePath = "./try/"
 for percent in percents:

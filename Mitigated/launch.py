@@ -67,8 +67,8 @@ imb = 0
 
 diffusion = 1
 adversary = 0
-ks = [1, 0]
-parify_batches_diffusions = [0, 1]
+ks = [0, 1]
+parify_batches_diffusions = [1, 0]
 
 basePath = "./try/"
 for standard in standards:
