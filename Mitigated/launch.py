@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 6000
+memory_limit = 8000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -48,7 +48,8 @@ else:
 
 
 percents = [0.05]
-standard = 0
+standards = [1, 0]
+only_mins = [0, 1]
 # lamp = 1
 
 verbose_param = 1
@@ -58,24 +59,26 @@ imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [ 0, 1, 2]
+cs = [0, 1, 2]
 lamps = [1, 0]
 
 ep = eps[0]
 imb = 0
 
-diffusion = 0
+diffusion = 1
 adversary = 0
 ks = [0, 1]
 parify_batches_diffusions = [1, 0]
 
 basePath = "./try/"
-for percent in percents:
- for k in ks:
-  for parify_batches_diffusion in parify_batches_diffusions:
-    for lamp in lamps:
-        for c in cs:
-            for cl_div in class_divisions:
+for standard in standards:
+ for only_min in only_mins:
+  for percent in percents:
+   for k in ks:
+    for parify_batches_diffusion in parify_batches_diffusions:
+      for lamp in lamps:
+          for c in cs:
+              for cl_div in class_divisions:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -99,7 +102,7 @@ for percent in percents:
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=0,
+                    only_minority_diffusion=only_min,
                     parify_batches_diffusion=parify_batches_diffusion,
                     mitigation_type=0
                 )

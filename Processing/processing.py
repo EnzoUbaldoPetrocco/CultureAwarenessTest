@@ -122,7 +122,8 @@ class ProcessingClass:
                 c[i] = 1.0
                
                 vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
-                n_samples_majority = len(vals)
+                if i == culture:
+                    n_samples_majority = len(vals)
                 indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
         else:
             n_samples_majority = len(np.where(np.asarray(s[1], dtype=object)[self.n_cultures]==culture))

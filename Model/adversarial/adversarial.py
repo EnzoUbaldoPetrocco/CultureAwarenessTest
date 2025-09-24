@@ -4,11 +4,9 @@ import sys
 import time
 
 from matplotlib import pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
 
 sys.path.insert(1, "../")
 import numpy as np
-from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 import tensorflow as tf
 from tensorflow import keras
@@ -41,7 +39,7 @@ def restore_output():
 class AdversarialStandard(GeneralModelClass):
     def __init__(
         self,
-        type="SVC",
+        type="",
         points=50,
         kernel="linear",
         verbose_param=0,
@@ -59,11 +57,8 @@ class AdversarialStandard(GeneralModelClass):
         """
         Initialization function for modeling standard ML models.
         We have narrowed the problems to image classification problems.
-        I have implemented SVM (with linear and gaussian kernel) and Random Forest, using scikit-learn library;
         ResNet using Tensorflow library.
-        :param type: selects the algorithm "SVC", "RFC" and "RESNET" are possible values.
-        :param points: n of points in gridsearch for SVC and RFC
-        :param kernel: type of kernel for SVC: "linear" and "gaussian" are possible values.
+        :param type: selects the algorithm  "RESNET" are possible values.
         :param verbose_param: if enabled, the program logs more information
         :param learning_rate: hyperparameter for DL
         :param epochs: hyperparameter for DL
@@ -89,72 +84,7 @@ class AdversarialStandard(GeneralModelClass):
         if weights is not None:
             self.weights = weights
 
-    def SVC(self, TS):
-        """
-        This function performs the model selection on SVM for Classification
-        :param TS: union between training and validation set
-        :return the best model
-        """
-        if self.kernel == "rbf":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
-            grid = {"C": logspaceC, "kernel": [self.kernel], "gamma": logspaceGamma}
-        if self.kernel == "linear":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
-            grid = {"C": logspaceC, "kernel": [self.kernel]}
-
-        MS = GridSearchCV(
-            estimator=SVC(),
-            param_grid=grid,
-            scoring="balanced_accuracy",
-            cv=10,
-            verbose=self.verbose_param,
-        )
-        # training set is divided into (X,y)
-        TS = np.array(TS, dtype=object)
-        del TS
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
-        print("SVC TRAINING")
-        H = MS.fit(X, y)
-        # Check that C and gamma are not the extreme values
-        print(f"C best param {H.best_params_['C']}")
-        # print(f"gamma best param {H.best_params_['gamma']}")
-        self.model = H
-
-    def RFC(self, TS):
-        """
-        This function performs the model selection on Random Forest for Classification
-        :param TS: union between training and validation set
-        :return the best model
-        """
-        rfc = RandomForestClassifier(random_state=42)
-        logspace_max_depth = []
-        for i in np.logspace(0, 3, self.points):
-            logspace_max_depth.append(int(i))
-        param_grid = {
-            "n_estimators": [500],  # logspace_n_estimators,
-            "max_depth": logspace_max_depth,
-        }
-
-        CV_rfc = GridSearchCV(
-            estimator=rfc, param_grid=param_grid, cv=5, verbose=self.verbose_param
-        )
-        # training set is divided into (X,y)
-        TS = np.array(TS, dtype=object)
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
-        del TS
-        print("RFC TRAINING")
-        H = CV_rfc.fit(X, y)
-        # print(CV_rfc.best_params_)
-        self.model = H
-
+    
     def plot_images(self, generated_images, j=0, num_rows=3, num_cols=6):
         def close_event():
             plt.close()
@@ -519,6 +449,7 @@ class AdversarialStandard(GeneralModelClass):
             eps=eps,
             class_division=class_division,
         )
+
         
         tf.keras.backend.clear_session()
 
@@ -529,10 +460,10 @@ class AdversarialStandard(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-2, 1e-3, 1e-4, 1e-5],
+        lrs=[1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-5],
-        epochs=30,
-        fine_epochs=10,
+        epochs=50,
+        fine_epochs=12,
         nDropouts=[0.4],
         g=0.1,
         save=False,
@@ -873,11 +804,8 @@ class AdversarialStandard(GeneralModelClass):
         :param out_dir: if gradcam enabled, output directory of gradcam heatmap
         :param complete: dummy argument
         """
-        if self.type == "SVC":
-            self.SVC(TS)
-        elif self.type == "RFC":
-            self.RFC(TS)
-        elif self.type == "DL" or "RESNET":
+        
+        if self.type == "DL" or self.type == "RESNET":
             self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
