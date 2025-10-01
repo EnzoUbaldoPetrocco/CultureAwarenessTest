@@ -45,8 +45,8 @@ class StandardModels(GeneralModelClass):
         Initialization function for modeling standard ML models.
         We have narrowed the problems to image classification problems.
         I have implemented SVM (with linear and gaussian kernel) and Random Forest, using scikit-learn library;
-        ResNet using Tensorflow library.
-        :param type: selects the algorithm "SVC", "RFC" and "RESNET" are possible values.
+        EfficientNetV2M using Tensorflow library.
+        :param type: selects the algorithm "SVC", "RFC" and "EfficientNetV2M" are possible values.
         :param points: n of points in gridsearch for SVC and RFC
         :param kernel: type of kernel for SVC: "linear" and "gaussian" are possible values.
         :param verbose_param: if enabled, the program logs more information
@@ -411,7 +411,7 @@ class StandardModels(GeneralModelClass):
 
             
             # MODEL IMPLEMENTATION
-            base_model = keras.applications.ResNet50V2(
+            base_model = keras.applications.EfficientNetV2M(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
                 input_shape=shape,
                 include_top=False,
@@ -521,7 +521,7 @@ class StandardModels(GeneralModelClass):
             self.SVC(TS)
         elif self.type == "RFC":
             self.RFC(TS)
-        elif self.type == "DL" or "RESNET":
+        elif self.type == "DL" or "EfficientNetV2M":
             self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)
         else:
             self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)

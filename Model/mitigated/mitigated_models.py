@@ -58,7 +58,7 @@ class MitigatedModels(GeneralModelClass):
         """
         Initialization function for modeling mitigated ML models.
         We have narrowed the problems to image classification problems.
-        :param type: selects the algorithm even if up to now "RESNET" is the only possible value.
+        :param type: selects the algorithm even if up to now "EfficientNetV2M" is the only possible value.
         :param culture: selects the majority culture
         :param verbose_param: if enabled, the program logs more information
         :param learning_rate: hyperparameter for DL
@@ -465,7 +465,7 @@ class MitigatedModels(GeneralModelClass):
                         plt.show()
 
             # MODEL IMPLEMENTATION
-            base_model = keras.applications.ResNet50V2(
+            base_model = keras.applications.EfficientNetV2M50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
                 input_shape=shape,
                 include_top=False,
@@ -589,7 +589,7 @@ class MitigatedModels(GeneralModelClass):
             self.SVC(TS)
         elif self.type == "RFC":
             self.RFC(TS)
-        elif self.type == "DL" or "RESNET":
+        elif self.type == "DL" or "EfficientNetV2M":
             self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)
         else:
             self.ModelSelection(TS, VS, aug=aug, g=g, save=save, path=out_dir)

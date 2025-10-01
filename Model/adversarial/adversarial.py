@@ -57,8 +57,8 @@ class AdversarialStandard(GeneralModelClass):
         """
         Initialization function for modeling standard ML models.
         We have narrowed the problems to image classification problems.
-        ResNet using Tensorflow library.
-        :param type: selects the algorithm  "RESNET" are possible values.
+        EfficientNetV2M using Tensorflow library.
+        :param type: selects the algorithm  "EfficientNetV2M" are possible values.
         :param verbose_param: if enabled, the program logs more information
         :param learning_rate: hyperparameter for DL
         :param epochs: hyperparameter for DL
@@ -682,7 +682,7 @@ class AdversarialStandard(GeneralModelClass):
             #adversarial_model = None
 
             # MODEL IMPLEMENTATION
-            base_model = keras.applications.ResNet50V2(
+            base_model = keras.applications.EfficientNetV2M50V2(
                 weights="imagenet",  # Load weights pre-trained on ImageNet.
                 input_shape=shape,
                 include_top=False,
@@ -805,7 +805,7 @@ class AdversarialStandard(GeneralModelClass):
         :param complete: dummy argument
         """
         
-        if self.type == "DL" or self.type == "RESNET":
+        if self.type == "DL" or self.type == "EfficientNetV2M":
             self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
             """self.DL_model_selection(
                 TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir

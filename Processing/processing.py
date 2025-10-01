@@ -453,9 +453,7 @@ class ProcessingClass:
                                 lbl.append(j)
                                 self.dataobj.y.append(lbl)
                     
-            del diff_model   
-        
-        
+            del diff_model      
 
     def prepare_test(
         self,
@@ -823,7 +821,6 @@ class ProcessingClass:
         
         del c
         del aug
-
 
     def discriminator_test(self, augment, imbalanced, model, j=-1):
         discriminator_model = Discriminator(imbalanced=imbalanced)
