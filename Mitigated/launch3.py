@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 7200
+memory_limit = 7400
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -58,13 +58,13 @@ imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
-cs = [2, 1, 0]
-lamps = [0, 1]
+cs = [1, 0, 2]
+lamps = [1, 0]
 
 ep = eps[0]
 imb = 0
 
-diffusion = 1
+diffusions = [1, 0]
 adversary = 0
 ks = [1, 0]
 parify_batches_diffusions = [1, 0]
@@ -74,6 +74,7 @@ for percent in percents:
  for parify_batches_diffusion in parify_batches_diffusions:
   for k in ks:
     for lamp in lamps:
+     for diffusion in diffusions:
         for c in cs:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(

@@ -47,7 +47,7 @@ else:
     print("no gpus")
 
 
-percents = [0.2]
+percents = [0.2, 0.3]
 standard = 1
 # lamp = 1
 
@@ -55,28 +55,20 @@ verbose_param = 1
 n = 1000
 class_divisions = [ 0, 1]
 imbalances = [0]
-g_gaugs = np.logspace(-4, -1, 4)
-eps = np.logspace(-2, -1, 2)
-g_aug = g_gaugs[0]
 cs = [0, 1, 2]
 lamps = [0, 1]
 
-ep = eps[0]
+ep = 0.001
 imb = 0
 
-diffusion = 0
-adversary = 1
-ks = [0]
-parify_batches_diffusions = [0]
+adversaries = [1, 0]
 
 basePath = "./try/"
 for i in range(2):
  for percent in percents:
-  for k in ks:
-    for parify_batches_diffusion in parify_batches_diffusions:
-        for lamp in lamps:
+    for lamp in lamps:
          for c in cs:
-            for ep in eps:
+            for adversary in adversaries:
                 for cl_div in class_divisions:
                     procObj = ProcessingClass(
                         shallow=0,
@@ -86,7 +78,6 @@ for i in range(2):
                         basePath=basePath,
                     )
                     model = None
-                    print(f"Training->aug={k%2};adv={floor(k/2)}")
                     procObj.process(
                         standard=standard,
                         type="DL",
@@ -94,19 +85,12 @@ for i in range(2):
                         culture=c,
                         percent=percent,
                         n=n,
-                        augment=k % 2,
-                        gaug=g_aug,
                         adversary=adversary,
-                        eps =ep,
+                        eps = ep,
                         class_division=cl_div,
-                        imbalanced=imb, 
-                        diffusion = diffusion,
-                        only_minority_diffusion=0,
-                        parify_batches_diffusion=parify_batches_diffusion,
-                        mitigation_type=0
+                        imbalanced=imb,
                     )
                     # NoAUg
-                    print(f"Testing->aug={0};adv={0}")
                     procObj.test(
                         standard=standard,
                         culture=c,
