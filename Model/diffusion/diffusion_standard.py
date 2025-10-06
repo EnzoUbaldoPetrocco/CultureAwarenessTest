@@ -848,10 +848,44 @@ class DiffusionStandardModel(tf.keras.Model):
 
         generated_images = np.asarray(generated_images)
 
+        if plot_imgs:
+            self.plot_examples()
+
         del train_dataset
         del val_dataset
         del TS
         del VS
 
         return generated_images
+        
+    def plot_examples(self, diffusion_steps=10):
+            num_images = 1
+            initial_noise = tf.random.normal(
+            shape=(num_images, self.image_size, self.image_size, 3)
+            )
+            step_size = 1.0 / diffusion_steps
+            next_noisy_images = initial_noise
+            for step in range(diffusion_steps):
+                noisy_images = next_noisy_images
+                diffusion_times = tf.ones((num_images, 1, 1, 1)) - step * step_size
+                noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+                pred_noises, pred_images = self.denoise(
+                    noisy_images, noise_rates, signal_rates, training=False
+                )
+                next_diffusion_times = diffusion_times - step_size
+                next_noise_rates, next_signal_rates = self.diffusion_schedule(
+                    next_diffusion_times
+                )
+                next_noisy_images = (
+                    next_signal_rates * pred_images + next_noise_rates * pred_noises
+                )
+                imgs_to_plot = self.denormalize(pred_images)
+                
+                plt.figure(figsize=(3, 3))
+                plt.imshow(imgs_to_plot[0])
+                plt.axis("off")
+                plt.tight_layout()
+                plt.savefig(f"./Diffusion_step{step}.png")
+            return pred_images
+
         
