@@ -70,7 +70,7 @@ cs = [0, 1, 2]
 ks = [1]
 imb = 0
 basePath = "./Diff_step_plot/"
-lamp = 1
+lamp = 0
 
 
 procObj = ProcessingClass(
@@ -85,7 +85,7 @@ procObj.process(
     val_split=val_split,
     test_split=test_split,
     n=n,
-    augment=k,
+    augment=1,
     diffusion = 1
 )
 # NoAUg
