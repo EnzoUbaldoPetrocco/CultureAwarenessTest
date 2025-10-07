@@ -89,8 +89,9 @@ for lamp in lamps:
     prepObj = PreprocessingClass()
     for c in range(3):
         fig, ax = plt.subplots(nrows=2, ncols=3)
-        ax.set_axis_off()
         ax[0,0].imshow(images[c])
+        ax[0,0].get_yaxis().set_visible(False)
+        ax[0,0].get_xaxis().set_visible(False)
         print(images)
         for i, g in enumerate(np.logspace(-4, 0, 5)):
             row = 0 if i < 2 else 1
@@ -107,6 +108,8 @@ for lamp in lamps:
                     ]
                 )
             X_augmented = data_augmentation(tf.expand_dims(images[c], axis=0), training = True)
+            ax[row,col].get_yaxis().set_visible(False)
+            ax[row,col].get_xaxis().set_visible(False)
             ax[row, col].imshow(X_augmented[0])
         pt = basePath+f"/standard_augmentation/lamp={lamp}/culture={c}/img.pdf"
         fObj = FileManagerClass(pt)

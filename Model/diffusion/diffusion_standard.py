@@ -348,8 +348,8 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
                     [
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal"),
+                        layers.RandomRotation(0.05),
                         layers.GaussianNoise(0.0001),
-                        tf.keras.layers.RandomBrightness(0.0001),
                         layers.Rescaling(255.0),
                     ]
                 )
@@ -854,7 +854,7 @@ class DiffusionStandardModel(tf.keras.Model):
         del train_dataset
         del val_dataset
         del TS
-        del V
+        del VS
 
         return generated_images
         
