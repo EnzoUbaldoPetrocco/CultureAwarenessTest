@@ -858,7 +858,7 @@ class DiffusionStandardModel(tf.keras.Model):
 
         return generated_images
         
-    def plot_examples(self, base_path, culture, category, imb, diffusion_steps=10):
+    def plot_examples(self, base_path, culture, category, imb, diffusion_steps=kid_diffusion_steps):
         pt =  base_path +f"/GeneratedImages/Carpets{culture}_{category}_imb={imb}/"
         fObj = FileManagerClass(pt)
         del fObj
