@@ -250,12 +250,12 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[32],
+        batches=[16, 32],
         lrs=[1e-3, 1e-4],
         fine_lrs=[1e-6],
-        epochs=[50],
-        fine_epochs=15,
-        nDropouts=[0.4],
+        epochs=[45],
+        fine_epochs=13,
+        nDropouts=[0.35],
         g=0.1,
         save=False,
         path="./"
@@ -280,8 +280,8 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        #lambdas = np.logspace(-4, 1, 4)
-        lambdas = [0.01, 0.1]
+        lambdas = np.logspace(-3, 1, 4)
+        
         hyperparameters = []
 
         for lmb in lambdas:

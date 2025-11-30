@@ -175,7 +175,8 @@ class ProcessingClass:
         aug = 0,
         weights = 0,
         only_minority_diffusion=0,
-        parify_batches_diffusion=0
+        parify_batches_diffusion=0,
+        plt_imgs = False
     ):
         """
         This function prepares the data for training
@@ -205,7 +206,6 @@ class ProcessingClass:
             imbalanced=imbalanced,
 
         )
-        plt_imgs = True
         if augment:
             print("Training Augmentation...")
             suppress_output()
@@ -223,7 +223,7 @@ class ProcessingClass:
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
             size = 100
-            n_imgs = len(self.dataobj.X)//5
+            n_imgs = len(self.dataobj.X)//4
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
 
