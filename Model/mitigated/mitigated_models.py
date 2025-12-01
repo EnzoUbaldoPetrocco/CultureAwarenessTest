@@ -250,12 +250,12 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[16, 32],
-        lrs=[1e-3, 1e-4],
+        batches=[32],
+        lrs=[1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-6],
-        epochs=[45],
-        fine_epochs=13,
-        nDropouts=[0.35],
+        epochs=[40],
+        fine_epochs=12,
+        nDropouts=[0.3, 0.4],
         g=0.1,
         save=False,
         path="./"
@@ -494,7 +494,7 @@ class MitigatedModels(GeneralModelClass):
             y = keras.layers.GlobalAveragePooling2D()(x)
 
             
-            y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
+            #y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
             y = keras.layers.Flatten()(y)
             output = keras.layers.Dense(3, activation='sigmoid', name=f'pred_dense_layer', 
                                         kernel_regularizer=CustomReg(self.lamb, self.n_cultures))(y)

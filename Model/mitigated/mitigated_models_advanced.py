@@ -26,17 +26,17 @@ import gc
 #tf.keras.backend.set_floatx('float32')
 
 class CustomReg(Regularizer):
-        def __init__(self, lamb, n_cultures, best_weights):
-            self.lamb = tf.cast(lamb, dtype="float32")
+        def __init__(self, lamb, n_cultures):
+            self.lamb = lamb
             self.n_cultures = n_cultures
-            self.best_weights = best_weights
 
         def __call__(self, x):
-            mean = tf.reshape(self.best_weights,  [-1, 1])
+            
+            mean = tf.reshape(tf.reduce_mean(x, axis=1),  [-1, 1])
             diff = tf.subtract(x, mean)
             reg = tf.reduce_sum(tf.square(diff))
-            res = tf.multiply(self.lamb, reg)
-            #res = (self.lamb) * reg
+            res = (self.lamb) * reg
+
             return res
 
 class MitigatedModels(GeneralModelClass):
@@ -108,10 +108,11 @@ class MitigatedModels(GeneralModelClass):
             c = np.zeros(self.n_cultures)
             c[i] = 1.0
             
-            vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+            vals = np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0]
+            indeces_per_culture.append(vals)
             if i == culture:
                 n_samples_majority = len(vals)
-            indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+            
     
 
         B = []
@@ -125,7 +126,6 @@ class MitigatedModels(GeneralModelClass):
                     B = []
                     DSlabel.append(np.asarray(Blabel))
                     Blabel = []
-
                 sample = np.asarray(s[0])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
                 label = np.asarray(s[1])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
                 B.append(sample)
@@ -150,14 +150,29 @@ class MitigatedModels(GeneralModelClass):
         """
         n_cultures = self.n_cultures
         lamb = self.lamb
+        model = self.model
+        def reg():
+            chinese_weights = model.get_layer('pred_dense_layer_0').kernel
+            french_weights = model.get_layer('pred_dense_layer_1').kernel
+            turkish_weights = model.get_layer('pred_dense_layer_2').kernel
+
+            # Concatenate these three weight tensors into a single tensor
+            all_weights = tf.concat([chinese_weights, french_weights, turkish_weights], axis=0)
+
+            # Calculate the mean of these concatenated weights
+            mean_all_weights = tf.reduce_mean(all_weights)
+
+            # Compute the regularization term
+            regularization_term = tf.reduce_sum(tf.square(all_weights - mean_all_weights))
+
+            return regularization_term
         #@tf.function
         def loss(y_true, y_pred):
-            
             bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures], tf.einsum('ij,ij->i', y_true[:, 0:n_cultures], y_pred))
+            # Access kernel weights of the three culture-specific output layers
+            l = tf.add(bc, tf.multiply(self.lamb, reg()))
             return bc
         return loss
-    
-    
 
     def custom_accuracy(self):
         #self.prev_accs = tf.ones(self.n_cultures)
@@ -173,30 +188,6 @@ class MitigatedModels(GeneralModelClass):
             
             return acc
 
-        return accuracy
-    
-    def all_loss(self):
-        """
-        This function implements the loss and the regularizer of the mitigation stratyegy
-        The first part in which the model is trained with all the samples
-        :param out: related to the corresponding output to be optimized
-        :return loss function
-        """
-        n_cultures = self.n_cultures
-        #@tf.function
-        def loss(y_true, y_pred):
-            bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures],  y_pred[:,0])
-            return bc
-        return loss
-    
-    def all_accuracy(self):
-        #self.prev_accs = tf.ones(self.n_cultures)
-        n_cultures = self.n_cultures
-        #@tf.function
-        def accuracy(y_true, y_pred):
-            ## accuracy metric 
-            acc = tf.keras.metrics.binary_accuracy(y_true[:, n_cultures] , y_pred[:,0])
-            return acc
         return accuracy
     
     def ImbalancedTransformation(self, TS):
@@ -276,11 +267,11 @@ class MitigatedModels(GeneralModelClass):
         VS,
         aug,
         show_imgs=False,
-        batches=[8, 32],
+        batches=[32],
         lrs=[1e-3, 1e-4, 1e-5],
-        fine_lrs=[ 1e-6],
-        epochs=[30, 40] ,
-        fine_epochs=15,
+        fine_lrs=[1e-6],
+        epochs=[40],
+        fine_epochs=12,
         nDropouts=[0.3, 0.4],
         g=0.1,
         save=False,
@@ -306,8 +297,8 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        #lambdas = np.logspace(-4, 1, 4)
-        lambdas = [0.01]
+        lambdas = np.logspace(-3, 1, 4)
+        
         hyperparameters = []
 
         for lmb in lambdas:
@@ -433,7 +424,7 @@ class MitigatedModels(GeneralModelClass):
                     layers.RandomFlip("horizontal"),
                     layers.RandomRotation(0.01),
                     layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(0.01),
+                    #tf.keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),
                 ]
@@ -516,116 +507,17 @@ class MitigatedModels(GeneralModelClass):
             # when we unfreeze the base model for fine-tuning, so we make sure that the
             # base_model is running in inference mode here.
             x = base_model(x, training=False)
+            
             y = keras.layers.GlobalAveragePooling2D()(x)
 
             
-            y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
+            #y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
             y = keras.layers.Flatten()(y)
-
-            ## Concept: I will train the model using all the samples
-            # then, I will get those weights and I will use for the regularizer
-            # the regularizer form will be: 
-            # sum_i || w_i - mean(w_best) ||^2
-            # where w_best are the weights obtained by training the model with all the samples
-            # and w_i are the weights of each output layer
-
-            output = keras.layers.Dense(1, activation='sigmoid', name=f'pred_dense_layer')(y)
-            self.model = keras.Model(inputs, output)
-            lr_reduce = ReduceLROnPlateau(
-                monitor=monitor_val,
-                factor=0.2,
-                patience=5,
-                verbose=self.verbose_param,
-                min_lr=1e-9,
-            )
-            early = EarlyStopping(
-                monitor=monitor_val,
-                min_delta=0.001,
-                patience=10,
-                verbose=self.verbose_param,
-                mode="auto",
-            )
-            callbacks = [early, lr_reduce]
-
+            outputs = []
+            for i in self.n_cultures:
+                outputs.append(keras.layers.Dense(1, activation='sigmoid', name=f'pred_dense_layer_{i}')(y))
             
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(lr),
-                loss=[self.all_loss()],
-                metrics=[self.all_accuracy()],
-                #run_eagerly=True
-            )
-            self.model.fit(
-                train_generator,
-                epochs=epochs,
-                validation_data=validation_generator,
-                verbose=self.verbose_param,
-                callbacks=callbacks,
-                shuffle=True
-            )
-            base_model.trainable = True
-            # self.model.summary()
-
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-                loss=[self.all_loss()],
-                metrics=[self.all_accuracy()],
-                #run_eagerly=True
-            )
-
-            history = self.model.fit(
-                train_generator,
-                epochs=fine_epochs,
-                validation_data=validation_generator,
-                verbose=self.verbose_param,
-                callbacks=callbacks,
-                shuffle=True
-            )
-            
-            ## Here I do as I did before but I change the output layer
-            # I have to change the regularizer and save the weights of the previous layers
-            weights = self.model.layers[-1].weights[0]
-            #print(f"Weights shape is {weights.shape}")
-            #print(f"Weights are {weights}")
-            del self.model
-            tf.keras.backend.clear_session()
-            gc.collect()
-            
-            # MODEL IMPLEMENTATION
-            base_model = keras.applications.ResNet50V2(
-                weights="imagenet",  # Load weights pre-trained on ImageNet.
-                input_shape=shape,
-                include_top=False,
-            )  # Do not include the ImageNet classifier at the top.
-
-            # Freeze the base_model
-            base_model.trainable = False
-
-            # Create  model on top
-            inputs = keras.Input(shape=shape)
-            # Pre-trained Xception weights requires that input be scaled
-            # from (0, 255) to a range of (-1., +1.), the rescaling layer
-            # outputs: `(inputs * scale) + offset`
-            scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
-            if aug:
-                x = data_augmentation(inputs)   # Apply random data augmentation
-                x = scale_layer(x)
-            else:
-                x = scale_layer(inputs)
-
-            # The base model contains batchnorm layers. We want to keep them in inference mode
-            # when we unfreeze the base model for fine-tuning, so we make sure that the
-            # base_model is running in inference mode here.
-            x = base_model(x, training=False)
-            y = keras.layers.GlobalAveragePooling2D()(x)
-
-            
-            y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
-            y = keras.layers.Flatten()(y)
-
-            output = keras.layers.Dense(3, activation='sigmoid', name=f'pred_dense_layer', 
-                                        kernel_regularizer=CustomReg(self.lamb, self.n_cultures, weights))(y)
-            
-            self.model = keras.Model(inputs, output)
+            self.model = keras.Model(inputs, outputs = outputs)
 
 
             lr_reduce = ReduceLROnPlateau(

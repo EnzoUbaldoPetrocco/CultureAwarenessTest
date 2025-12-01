@@ -75,6 +75,9 @@ for percent in percents:
   for k in ks:
     for lamp in lamps:
      for diffusion in diffusions:
+      if diffusion and not k:
+        break
+      else:
         for c in cs:
             for cl_div in class_divisions:
                 procObj = ProcessingClass(
@@ -102,7 +105,7 @@ for percent in percents:
                     diffusion = diffusion,
                     only_minority_diffusion=1,
                     parify_batches_diffusion=parify_batches_diffusion,
-                    mitigation_type=0
+                    mitigation_type=1
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")

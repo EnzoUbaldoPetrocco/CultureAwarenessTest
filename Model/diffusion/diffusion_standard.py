@@ -602,7 +602,7 @@ class DiffusionStandardModel(tf.keras.Model):
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal"),
                         layers.GaussianNoise(0.01),
-                        tf.keras.layers.RandomBrightness(0.01),
+                        #tf.keras.layers.RandomBrightness(0.01),
                         layers.Rescaling(255.0),
                     ]
                 )
@@ -712,7 +712,7 @@ class DiffusionStandardModel(tf.keras.Model):
         if model_selection:
             best_kid = np.inf
             for ep in [30, 50]:
-                for l_r in np.logspace(-5.5, -4.5, 2):
+                for l_r in np.logspace(-5, -3, 3):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
                     self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
