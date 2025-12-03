@@ -589,7 +589,7 @@ class DiffusionStandardModel(tf.keras.Model):
     
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = False, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './'): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = False, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -847,6 +847,11 @@ class DiffusionStandardModel(tf.keras.Model):
                     generated_images.append(img*255)
 
         generated_images = np.asarray(generated_images)
+
+        self.network.save( base_path + f'{percent}/Lamps{culture}_{category}_imb={imb}' +'diffusion_pretrained.h5')
+        self.ema_network.save( base_path + f'{percent}/Lamps{culture}_{category}_imb={imb}' +'ema_diffusion_pretrained.h5')
+
+
 
         if plot_imgs:
             self.plot_examples(base_path, culture, category, imb)

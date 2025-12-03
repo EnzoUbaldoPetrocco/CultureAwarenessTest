@@ -20,7 +20,7 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
@@ -47,14 +47,14 @@ else:
     print("no gpus")
 
 
-percents = [0.05]
-standards = [1, 0]
-only_mins = [0, 1]
+percents = [0.2, 0.3]
+standards = [1]
+only_mins = [0]
 # lamp = 1
 
 verbose_param = 1
 n = 1000
-class_divisions = [ 0]
+class_divisions = [ 0, 1]
 imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
@@ -65,18 +65,20 @@ lamps = [1, 0]
 ep = eps[0]
 imb = 0
 
-diffusion = 1
-adversary = 0
-ks = [0, 1]
-parify_batches_diffusions = [1, 0]
+diffusion = 0
+adversaries = [1, 0]
+ks = [0]
+parify_batches_diffusions = [ 0]
 
 basePath = "./try/"
-for standard in standards:
- for only_min in only_mins:
-  for percent in percents:
-   for k in ks:
-    for parify_batches_diffusion in parify_batches_diffusions:
+for i in range(5):
+ for standard in standards:
+  for only_min in only_mins:
+   for percent in percents:
+    for k in ks:
+     for parify_batches_diffusion in parify_batches_diffusions:
       for lamp in lamps:
+        for adversary in adversaries:
           for c in cs:
               for cl_div in class_divisions:
                 procObj = ProcessingClass(

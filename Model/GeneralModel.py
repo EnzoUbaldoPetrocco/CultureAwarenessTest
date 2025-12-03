@@ -41,7 +41,13 @@ class GeneralModelClass:
         if self.model != None:
                 res = self.model.predict(np.asarray(X, dtype='int32'))
                 if not self.standard:
-                    res = res[:,out]
+                    #print("Res before")
+                    #print(res)
+                    #print(f"Out:")
+                    #print(out)
+                    res = np.asarray(res, dtype=np.float32)[out][:, 0]
+                    #print("Res after")
+                    #print(res)
                 return res
         else:
             print("Try fitting the model before")

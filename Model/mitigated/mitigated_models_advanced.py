@@ -19,9 +19,10 @@ import math
 import random
 from datetime import datetime
 from keras.regularizers import Regularizer
-random.seed(datetime.now().timestamp())
-tf.random.set_seed(datetime.now().timestamp())
+random.seed(int(datetime.now().timestamp()))
+tf.random.set_seed(int(datetime.now().timestamp()))
 import gc
+import time
 
 #tf.keras.backend.set_floatx('float32')
 
@@ -113,8 +114,6 @@ class MitigatedModels(GeneralModelClass):
             if i == culture:
                 n_samples_majority = len(vals)
             
-    
-
         B = []
         Blabel = []
         DS = []
@@ -142,36 +141,79 @@ class MitigatedModels(GeneralModelClass):
 
         return DS, DSlabel
   
+    def parify_batches_fast(self, s, culture, batch_size):
+
+        X = np.asarray(s[0])
+        y = np.asarray(s[1])
+
+        # Extract culture one-hot labels
+        culture_labels = y[:, :self.n_cultures]
+
+        # ---- 1. Compute indices per culture (vectorized) ----
+        indices_per_culture = [
+            np.where(culture_labels[:, i] == 1)[0]
+            for i in range(self.n_cultures)
+        ]
+
+        # Number of samples in majority culture
+        n_majority = len(indices_per_culture[culture])
+
+        # ---- 2. Generate balanced indices using modular trick ----
+        all_indices = []
+        for i in range(self.n_cultures):
+            idxs = indices_per_culture[i]
+            # repeat idxs until reaching n_majority
+            tiled = np.resize(idxs, n_majority)
+            all_indices.append(tiled)
+
+        # Shape becomes (n_cultures, n_majority)
+        all_indices = np.stack(all_indices, axis=1)
+        # Flatten → balanced sample order
+        final_indices = all_indices.reshape(-1)
+
+        # ---- 3. Shuffle to avoid culture blocks ----
+        np.random.shuffle(final_indices)
+
+        # ---- 4. Slice X and y using final indices ----
+        X_balanced = X[final_indices]
+        y_balanced = y[final_indices]
+
+        return X_balanced, y_balanced
+
+
+    import tensorflow as tf
+
     def custom_loss(self):
-        """
-        This function implements the loss and the regularizer of the mitigation stratyegy
-        :param out: related to the corresponding output to be optimized
-        :return loss function
-        """
         n_cultures = self.n_cultures
         lamb = self.lamb
         model = self.model
+
         def reg():
             chinese_weights = model.get_layer('pred_dense_layer_0').kernel
             french_weights = model.get_layer('pred_dense_layer_1').kernel
             turkish_weights = model.get_layer('pred_dense_layer_2').kernel
-
-            # Concatenate these three weight tensors into a single tensor
             all_weights = tf.concat([chinese_weights, french_weights, turkish_weights], axis=0)
-
-            # Calculate the mean of these concatenated weights
             mean_all_weights = tf.reduce_mean(all_weights)
-
-            # Compute the regularization term
             regularization_term = tf.reduce_sum(tf.square(all_weights - mean_all_weights))
-
             return regularization_term
-        #@tf.function
-        def loss(y_true, y_pred):
-            bc = tf.keras.losses.binary_crossentropy(y_true[:, n_cultures], tf.einsum('ij,ij->i', y_true[:, 0:n_cultures], y_pred))
-            # Access kernel weights of the three culture-specific output layers
-            l = tf.add(bc, tf.multiply(self.lamb, reg()))
-            return bc
+
+        def loss(y_true, y_pred_list):
+            # Concatenate outputs
+            y_pred = tf.concat(y_pred_list, axis=1)  # shape: (batch_size, n_cultures)
+            y_true_label = y_true[:, n_cultures]
+            culture_selector = y_true[:, 0:n_cultures]
+
+            # Select prediction
+            selected_y_pred = tf.reduce_sum(culture_selector * y_pred, axis=1)
+
+
+            bc = tf.keras.losses.binary_crossentropy(y_true_label, selected_y_pred)
+            mean_bc = tf.reduce_mean(bc)
+
+            # Total loss
+            total_loss = mean_bc + lamb * reg()
+            return total_loss
+
         return loss
 
     def custom_accuracy(self):
@@ -180,11 +222,14 @@ class MitigatedModels(GeneralModelClass):
         #@tf.function
         def accuracy(y_true, y_pred):
             ## accuracy metric 
-            yc = y_true[:, 0:n_cultures]  # Assume yc is of shape [batch_size, n_cultures]
-            yt = y_true[:, n_cultures]    # Assume yt is of shape [batch_size, 1]
-            # Get indices where yc has the maximum value (class with highest probability)
-            preds = tf.einsum('ij,ij->i', yc, y_pred)
-            acc = tf.keras.metrics.binary_accuracy(yt, preds)
+            y_pred = tf.concat(y_pred, axis=1)  # shape: (batch_size, n_cultures)
+            y_true_label = y_true[:, n_cultures]
+            culture_selector = y_true[:, 0:n_cultures]
+
+            # Select prediction
+            selected_y_pred = tf.reduce_sum(culture_selector * y_pred, axis=1)
+
+            acc = tf.keras.metrics.binary_accuracy(y_true_label, selected_y_pred)
             
             return acc
 
@@ -268,11 +313,11 @@ class MitigatedModels(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-3, 1e-4, 1e-5],
+        lrs=[1e-5, 1e-4, 1e-3],
         fine_lrs=[1e-6],
-        epochs=[40],
+        epochs=[38],
         fine_epochs=12,
-        nDropouts=[0.3, 0.4],
+        nDropouts=[0.3],
         g=0.1,
         save=False,
         path="./"
@@ -297,7 +342,7 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-3, 1, 4)
+        lambdas = np.logspace(-3, 0, 3)
         
         hyperparameters = []
 
@@ -327,7 +372,12 @@ class MitigatedModels(GeneralModelClass):
                                     nDropout,
                                     g=g,
                                 )
-                                loss = history.history["val_loss"][-1]
+                                #loss = history.history["val_loss"][-1]
+                                err_0 = 1-history.history["val_pred_dense_layer_0_accuracy"][-1]
+                                err_1 = 1-history.history["val_pred_dense_layer_1_accuracy"][-1]
+                                err_2 = 1-history.history["val_pred_dense_layer_2_accuracy"][-1]
+                                loss = (err_0 + err_1 + err_2)/3
+
                                 CIC = self.get_cic(VS[0], VS[1])
                                 print(f"loss is {loss}")
                                 losses.append(loss)
@@ -431,6 +481,7 @@ class MitigatedModels(GeneralModelClass):
             )
 
             print(f"aug is {aug}")
+            seed = int(time.time() % 2**31)
             
                         
             if self.imbalanced:
@@ -441,10 +492,17 @@ class MitigatedModels(GeneralModelClass):
             #train_generator = train_datagen.flow(x=tf.constant(TS[0], dtype="float32"), y=tf.constant(TS[1], dtype="float32"), batch_size=batch_size)
             
             if self.parify_batches_diffusion:
-                train_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(TS, self.culture, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
+                Xb, yb = self.parify_batches_fast(TS, self.culture, batch_size)
+                train_generator = tf.data.Dataset.from_tensor_slices((Xb, yb)) \
+                                            .batch(batch_size) \
+                                            .prefetch(tf.data.AUTOTUNE)
+                #train_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(TS, self.culture, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
             else:
-                train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
-
+    
+                #train_generator = tf.data.Dataset.from_tensor_slices((tf.constant(TS[0], dtype=tf.float32), tf.constant(TS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                train_generator = tf.data.Dataset.from_tensor_slices(
+                            (tf.convert_to_tensor(TS[0]), tf.convert_to_tensor(TS[1]))
+                        ).batch(batch_size).prefetch(tf.data.AUTOTUNE)
             del TS
 
             validation_generator = None
@@ -452,13 +510,20 @@ class MitigatedModels(GeneralModelClass):
                 #val_datagen = ImageDataGenerator()
                 #validation_generator = val_datagen.flow(x=Xv, y=yv, batch_size=batch_size)
                 if self.parify_batches_diffusion:
-                    validation_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(VS, self.culture, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
+                    Xb, yb = self.parify_batches_fast(VS, self.culture, batch_size)
+                    
+                    validation_generator = tf.data.Dataset.from_tensor_slices((Xb, yb)) \
+                                            .batch(batch_size) \
+                                            .prefetch(tf.data.AUTOTUNE)
+                    #validation_generator = tf.data.Dataset.from_tensor_slices(self.parify_batches(VS, self.culture, batch_size)).prefetch(tf.data.AUTOTUNE).cache()
                 else:
-                    validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
-                
-                del VS
+                    #validation_generator = tf.data.Dataset.from_tensor_slices((tf.constant(VS[0], dtype=tf.float32), tf.constant(VS[1], dtype=tf.float32))).batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
+                    validation_generator = tf.data.Dataset.from_tensor_slices(
+                            (tf.convert_to_tensor(VS[0]), tf.convert_to_tensor(VS[1]))
+                        ).batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
-            tf.keras.backend.clear_session()            
+                del VS
+         
 
             # DIVIDE IN BATCHES
             if aug:
@@ -514,7 +579,7 @@ class MitigatedModels(GeneralModelClass):
             #y = keras.layers.Dropout(nDropout)(y)  # Regularize with dropout
             y = keras.layers.Flatten()(y)
             outputs = []
-            for i in self.n_cultures:
+            for i in range(self.n_cultures):
                 outputs.append(keras.layers.Dense(1, activation='sigmoid', name=f'pred_dense_layer_{i}')(y))
             
             self.model = keras.Model(inputs, outputs = outputs)
@@ -539,8 +604,8 @@ class MitigatedModels(GeneralModelClass):
             
             self.model.compile(
                 optimizer=keras.optimizers.Adam(lr),
-                loss=[self.custom_loss()],
-                metrics=[self.custom_accuracy()],
+                loss=self.custom_loss(),
+                metrics=self.custom_accuracy(),
                 #run_eagerly=True
             )
 
@@ -556,16 +621,14 @@ class MitigatedModels(GeneralModelClass):
             #ws2 = np.linalg.norm(self.model.layers[-1].weights[0])
             #print(f"Same = {ws2==ws}")
 
-            tf.keras.backend.clear_session()
-
             # FINE TUNING
             base_model.trainable = True
             # self.model.summary()
 
             self.model.compile(
                 optimizer=keras.optimizers.Adam(fine_lr),  # Low learning rate
-                loss=[self.custom_loss()],
-                metrics=[self.custom_accuracy()],
+                loss=self.custom_loss(),
+                metrics=self.custom_accuracy(),
                 #run_eagerly=True
             )
 

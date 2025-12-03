@@ -269,7 +269,7 @@ class ProcessingClass:
                                 print(tempX)
                                 tempX, _ = self.parify_batches((tempX, tempY), culture, False, size)
                                 tempXv, _ = self.parify_batches((tempXv, tempYv), culture, False, size)
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath)
+                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
                                 for img in images:
                                     img = np.asarray(img)
                                     img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -302,7 +302,7 @@ class ProcessingClass:
                             ]     
                             tempX, _ = self.parify_batches((tempX, tempY), culture, True, size)
                             tempXv, _ = self.parify_batches((tempXv, tempYv), culture, True, size)               
-                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath)
+                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath, onlymin=only_minority_diffusion)
                             for img in images:
                                 img = np.asarray(img)
                                 img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -329,7 +329,7 @@ class ProcessingClass:
                                         for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
                                             tempXv.append(cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
                             
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath)
+                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath, onlymin=only_minority_diffusion)
                                 for img in images:
                                     img = np.asarray(img)
                                     img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -350,7 +350,7 @@ class ProcessingClass:
                                     for i in range(len(self.dataobj.Xv))
                                     if self.dataobj.yv[i] == j and self.dataobj.y[i][0]==culture
                                 ]
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath)
+                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath, onlymin=only_minority_diffusion)
                                 for img in images:
                                     img = np.asarray(img)
                                     img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -371,7 +371,7 @@ class ProcessingClass:
                                 for i in range(len(self.dataobj.Xv))
                                 if self.dataobj.yv[i][self.n_cultures] == j and np.argmax(self.dataobj.y[i][0:self.n_cultures])==culture
                             ]                    
-                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath)
+                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
                             for img in images:
                                 img = np.asarray(img)
                                 img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -398,7 +398,7 @@ class ProcessingClass:
                                         for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
                                             tempXv.append(cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
                             
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath)
+                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
                                 for img in images:
                                     img = np.asarray(img)
                                     img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -419,7 +419,7 @@ class ProcessingClass:
                                     for i in range(len(self.dataobj.Xv))
                                     if self.dataobj.yv[i] == j
                                 ]
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath)
+                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
                                 for img in images:
                                     img = np.asarray(img)
                                     img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -442,7 +442,7 @@ class ProcessingClass:
                                 for i in range(len(self.dataobj.Xv))
                                 if self.dataobj.yv[i][self.n_cultures] == j
                             ]                    
-                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath)
+                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
                             for img in images:
                                 img = np.asarray(img)
                                 img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
@@ -740,6 +740,7 @@ class ProcessingClass:
                         class_division=class_division,
                         only_imb_imgs=only_imb_imgs,
                         path = self.basePath,
+                        culture = culture
                     )
                     
                 else:
