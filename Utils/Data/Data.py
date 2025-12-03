@@ -253,7 +253,7 @@ class PreprocessingClass:
                 [
                     layers.RandomFlip("horizontal"),
                     layers.RandomRotation(0.01),
-                    layers.GaussianNoise(g),
+                    layers.GaussianNoise(0.01),
                     #tf.keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),

@@ -206,7 +206,6 @@ class MitigatedModels(GeneralModelClass):
             # Select prediction
             selected_y_pred = tf.reduce_sum(culture_selector * y_pred, axis=1)
 
-
             bc = tf.keras.losses.binary_crossentropy(y_true_label, selected_y_pred)
             mean_bc = tf.reduce_mean(bc)
 
@@ -313,11 +312,11 @@ class MitigatedModels(GeneralModelClass):
         aug,
         show_imgs=False,
         batches=[32],
-        lrs=[1e-5, 1e-4, 1e-3],
+        lrs=[8e-5, 8e-4],
         fine_lrs=[1e-6],
         epochs=[38],
         fine_epochs=12,
-        nDropouts=[0.3],
+        nDropouts=[0.35],
         g=0.1,
         save=False,
         path="./"
@@ -342,7 +341,7 @@ class MitigatedModels(GeneralModelClass):
         TS = (list(np.array(TS[0], dtype=np.float32)), TS[1])
         VS = (list(np.array(VS[0], dtype=np.float32)), VS[1])
 
-        lambdas = np.logspace(-3, 0, 3)
+        lambdas = np.logspace(-2, 1, 3)
         
         hyperparameters = []
 
@@ -473,7 +472,7 @@ class MitigatedModels(GeneralModelClass):
                 [
                     layers.RandomFlip("horizontal"),
                     layers.RandomRotation(0.01),
-                    layers.GaussianNoise(g),
+                    layers.GaussianNoise(0.01),
                     #tf.keras.layers.RandomBrightness(0.01),
                     layers.RandomZoom(g, g),
                     layers.Resizing(shape[0], shape[1]),

@@ -53,7 +53,7 @@ standard = 0
 
 verbose_param = 1
 n = 1000
-class_divisions = [ 0]
+class_divisions = [ 0, 1]
 imbalances = [0]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
@@ -66,7 +66,7 @@ imb = 0
 
 diffusions = [0, 1]
 adversary = 0
-ks = [0, 1]
+ks = [0]
 parify_batches_diffusions = [0, 1]
 
 basePath = "./try2/"
@@ -80,7 +80,6 @@ for percent in percents:
       else:
         for c in cs:
             for cl_div in class_divisions:
-             
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
