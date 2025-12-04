@@ -205,7 +205,7 @@ class StandardModels(GeneralModelClass):
         batches=[32],
         lrs=[8e-5, 8e-4],
         fine_lrs=[1e-6],
-        epochs=[38],
+        epochs=38,
         fine_epochs=12,
         nDropouts=[0.35],
         g=0.1,
@@ -247,6 +247,7 @@ class StandardModels(GeneralModelClass):
                                 print(
                                     f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
                                 )
+                                
                                 history = self.DL(
                                     TS,
                                     VS,
