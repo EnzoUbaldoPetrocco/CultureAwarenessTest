@@ -64,10 +64,11 @@ lamps = [0, 1]
 ep = eps[0]
 imb = 0
 
-diffusions = [0, 1]
+diffusions = [1]
 adversary = 0
-ks = [0]
+ks = [1]
 parify_batches_diffusions = [0, 1]
+only_min=0
 
 basePath = "./try2/"
 for percent in percents:
@@ -103,7 +104,7 @@ for percent in percents:
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=1,
+                    only_minority_diffusion=only_min,
                     parify_batches_diffusion=parify_batches_diffusion,
                     mitigation_type=1
                 )
