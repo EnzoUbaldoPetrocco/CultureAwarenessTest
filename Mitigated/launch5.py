@@ -62,21 +62,21 @@ cs = [ 0, 1, 2]
 lamps = [0, 1]
 ep = eps[0]
 
-diffusions = [0,1]
-adversaries = [0,1]
+diffusions = [1, 0]
+adversaries = [1, 0]
 ks = [1]
 parify_batches_diffusions = [0, 1]
 only_mins = [0, 1]
 
 basePath = "./try2/"
 for i in range(2):
- for adv in adversaries:
-  for percent in percents:
-   for parify_batches_diffusion in parify_batches_diffusions:
+ for parify_batches_diffusion in parify_batches_diffusions:
+  for adv in adversaries:
+   for percent in percents:
     for k in ks:
       for lamp in lamps:
        for diffusion in diffusions:
-        if (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv):
+        if (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
           break
         else:
           for c in cs:
