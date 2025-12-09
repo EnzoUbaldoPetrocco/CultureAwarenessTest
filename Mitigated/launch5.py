@@ -53,7 +53,7 @@ standard = 1
 
 verbose_param = 1
 n = 1000
-class_divisions = [ 0]
+class_divisions = [0, 1]
 imb = 0
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
@@ -66,7 +66,7 @@ diffusions = [1, 0]
 adversaries = [1, 0]
 ks = [1]
 parify_batches_diffusions = [0, 1]
-only_mins = [0, 1]
+only_mins = [0]
 
 basePath = "./try2/"
 for i in range(2):
