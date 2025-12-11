@@ -62,10 +62,10 @@ cs = [ 0, 1, 2]
 lamps = [0, 1]
 ep = eps[0]
 
-diffusions = [1, 0]
-adversaries = [1, 0]
-ks = [1]
-parify_batches_diffusions = [0, 1]
+diffusions = [0]
+adversaries = [1]
+ks = [0]
+parify_batches_diffusions = [0]
 only_mins = [0]
 
 basePath = "./try2/"
