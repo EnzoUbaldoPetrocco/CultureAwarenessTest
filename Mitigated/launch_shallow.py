@@ -24,9 +24,9 @@ tf.random.set_seed(datetime.now().timestamp())
 
 
 
-percents = [0.05, 0.1, 0.2, 0.5]
+percents = [0.0, 0.01, 0.05, 0.1, 0.2, 0.5]
 standard = 1
-tps = ["SVC", "RFC"]
+tps = ["SVC", "RFC", "DL"]
 kernels = ["linear", "rbf"]
 points = 10
 # lamp = 1
@@ -51,8 +51,8 @@ for i in range(5):
                 procObj = ProcessingClass(
                     shallow=shallow,
                     lamp=lamp,
-                    gpu=False,
-                    memory_limit=0,
+                    gpu=True,
+                    memory_limit=3200,
                     basePath=basePath,
                 )
                 model = None
