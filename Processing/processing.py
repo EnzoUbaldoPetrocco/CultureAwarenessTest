@@ -646,6 +646,11 @@ class ProcessingClass:
         else:
             if standard:
                 self.basePath = self.basePath + "STD/" + type
+                if type!="DL":
+                    if type=="SVC":
+                        self.basePath = self.basePath + f"/K={kernel}/P={points}/"
+                    else:
+                        self.basePath = self.basePath + f"/P={points}/"
             else:
                 self.basePath = self.basePath + "MIT/" + type
 
@@ -805,8 +810,8 @@ class ProcessingClass:
 
         self.model.standard = standard
         self.model.fit(
-            (self.dataobj.X, self.dataobj.y),
-            (self.dataobj.Xv, self.dataobj.yv),
+            TS=(self.dataobj.X, self.dataobj.y),
+            VS=(self.dataobj.Xv, self.dataobj.yv),
             eps=eps,
             gradcam=gradcam,
             out_dir=self.basePath,

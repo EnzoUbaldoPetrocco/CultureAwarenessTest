@@ -30,7 +30,7 @@ class StandardModels(GeneralModelClass):
     def __init__(
         self,
         type="SVC",
-        points=50,
+        points=10,
         kernel="linear",
         verbose_param=0,
         learning_rate=1e-3,
@@ -75,9 +75,9 @@ class StandardModels(GeneralModelClass):
         :return the best model
         """
         if self.kernel == "rbf":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
+            logspaceC = np.logspace(-4, 3, int(np.sqrt(self.points)))  # np.logspace(-2,2,self.points)
             logspaceGamma = np.logspace(
-                -4, 3, self.points
+                -4, 3, int(np.sqrt(self.points))
             )  # np.logspace(-2,2,self.points)
             grid = {"C": logspaceC, "kernel": [self.kernel], "gamma": logspaceGamma}
         if self.kernel == "linear":
@@ -91,14 +91,14 @@ class StandardModels(GeneralModelClass):
             estimator=SVC(),
             param_grid=grid,
             scoring="balanced_accuracy",
-            cv=10,
+            cv=5,
             verbose=self.verbose_param,
         )
         # training set is divided into (X,y)
         TS = np.array(TS, dtype=object)
+        X = list(TS[0])
+        y = list(TS[1])
         del TS
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
         print("SVC TRAINING")
         H = MS.fit(X, y)
         # Check that C and gamma are not the extreme values
@@ -114,10 +114,10 @@ class StandardModels(GeneralModelClass):
         """
         rfc = RandomForestClassifier(random_state=42)
         logspace_max_depth = []
-        for i in np.logspace(0, 3, self.points):
+        for i in np.logspace(1, 3, self.points):
             logspace_max_depth.append(int(i))
         param_grid = {
-            "n_estimators": [500],  # logspace_n_estimators,
+            "n_estimators": [300],  # logspace_n_estimators,
             "max_depth": logspace_max_depth,
         }
 
@@ -126,8 +126,8 @@ class StandardModels(GeneralModelClass):
         )
         # training set is divided into (X,y)
         TS = np.array(TS, dtype=object)
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
+        X = list(TS[0])
+        y = list(TS[1])
         del TS
         print("RFC TRAINING")
         H = CV_rfc.fit(X, y)
