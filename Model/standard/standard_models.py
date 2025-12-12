@@ -74,17 +74,13 @@ class StandardModels(GeneralModelClass):
         :param TS: union between training and validation set
         :return the best model
         """
-        if self.kernel == "rbf":
-            logspaceC = np.logspace(-4, 3, int(np.sqrt(self.points)))  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, int(np.sqrt(self.points))
+        logspaceC = np.logspace(-2, 4, self.points)  # np.logspace(-2,2,self.points)
+        logspaceGamma = np.logspace(
+                -4, 2, int(np.sqrt(self.points))
             )  # np.logspace(-2,2,self.points)
+        if self.kernel == "rbf":
             grid = {"C": logspaceC, "kernel": [self.kernel], "gamma": logspaceGamma}
         if self.kernel == "linear":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
             grid = {"C": logspaceC, "kernel": [self.kernel]}
 
         MS = GridSearchCV(
