@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 7000
+memory_limit = 9000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -48,7 +48,7 @@ else:
 
 
 percents = [0.05]
-standard = 1
+standards = [0, 1]
 # lamp = 1
 
 verbose_param = 1
@@ -62,18 +62,16 @@ cs = [ 0, 1, 2]
 lamps = [0, 1]
 ep = eps[0]
 
-diffusions = [0]
-adversaries = [1]
-ks = [0]
-parify_batches_diffusions = [0]
+diffusions = [1]
+k = 1
+adv = 0
+parify_batches_diffusion = 0
 only_mins = [0]
 
 basePath = "./try2/"
 for i in range(2):
- for parify_batches_diffusion in parify_batches_diffusions:
-  for adv in adversaries:
+ for standard in standards:
    for percent in percents:
-    for k in ks:
       for lamp in lamps:
        for diffusion in diffusions:
         if (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
