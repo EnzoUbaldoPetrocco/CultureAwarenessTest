@@ -1,0 +1,26 @@
+{
+  "lamp": 0,
+  "dataset": "carpet_dataset",
+  "total_images": 5940,
+  "num_classes": 6,
+  "mean_intra_class_distance": 61.07289347423983,
+  "mean_inter_class_distance": 16.788490295410156,
+  "separation_ratio": 0.2748926625277946,
+  "silhouette_score": -0.010250403545796871,
+  "class_names": {
+    "0": "Culture_0_label:0",
+    "1": "Culture_0_label:1",
+    "2": "Culture_1_label:0",
+    "3": "Culture_1_label:1",
+    "4": "Culture_2_label:0",
+    "5": "Culture_2_label:1"
+  },
+  "intra_distances": {
+    "0": 66.81912894097997,
+    "1": 60.990962022074235,
+    "2": 67.28623778965279,
+    "3": 57.61284000511848,
+    "4": 56.416264537503835,
+    "5": 57.31192755010967
+  }
+}
