@@ -26,9 +26,9 @@ tf.random.set_seed(datetime.now().timestamp())
 
 percents = [0.0, 0.01, 0.05, 0.1, 0.2, 0.5]
 standard = 1
-tps = ["SVC", "RFC", "DL"]
+tps = ["SVC"]
 kernels = ["linear", "rbf"]
-points = 10
+points = 7
 # lamp = 1
 
 verbose_param = 1
