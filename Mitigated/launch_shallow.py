@@ -26,7 +26,7 @@ tf.random.set_seed(datetime.now().timestamp())
 
 percents = [0.0, 0.01, 0.05, 0.1, 0.2, 0.5]
 standard = 1
-tps = ["SVC"]
+tps = ["DL"]
 kernels = ["linear", "rbf"]
 points = 7
 # lamp = 1
@@ -34,7 +34,7 @@ points = 7
 verbose_param = 1
 n = 1000
 cs = [0, 1, 2]
-lamps = [1]
+lamps = [1, 0]
 
 
 basePath = "./first_comparing_with_teacher/"
@@ -43,7 +43,6 @@ for i in range(5):
       for lamp in lamps:
         for c in cs:
           for tp in tps:
-            for kernel in kernels:
                 if tp == "DL":
                    shallow=0
                 else:
@@ -52,21 +51,19 @@ for i in range(5):
                     shallow=shallow,
                     lamp=lamp,
                     gpu=True,
-                    memory_limit=3200,
+                    memory_limit=3500,
                     basePath=basePath,
                 )
-                model = None
-                print(f"Training->Model={tp};kernel={kernel}")
+                print(f"Training->Model={tp}")
                 procObj.process(
                     standard=standard,
                     type=tp,
-                    kernel=kernel,
                     points = points,
                     verbose_param=verbose_param,
                     culture=c,
                     percent=percent,
                     n=n,
-                    mitigation_type=0
+                    mitigation_type=1
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")
@@ -77,6 +74,8 @@ for i in range(5):
                     gaug=0,
                     adversary=0,
                 )
-                procObj.partial_clear(basePath)
+                del procObj
+                gc.collect()
+                tf.keras.backend.clear_session()
                     
                         
