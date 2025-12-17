@@ -67,7 +67,7 @@ imb = 0
 diffusions = [0,1]
 adversary = 0
 ks = [0,1]
-parify_batches_diffusions = [0, 1]
+parify_batches_diffusions = [1]
 only_min=0
 
 basePath = "./try2/"
