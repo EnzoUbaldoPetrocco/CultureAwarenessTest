@@ -349,7 +349,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal"),
                         layers.RandomRotation(0.05),
-                        layers.GaussianNoise(0.0001),
+                        layers.GaussianNoise(0.01),
                         layers.Rescaling(255.0),
                     ]
                 )

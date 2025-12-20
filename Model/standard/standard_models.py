@@ -4,13 +4,15 @@ import sys
 
 from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline, make_pipeline
 
 from Model.diffusion.diffusion_standard import DiffusionStandardModel
 
 sys.path.insert(1, "../")
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, KFold
 import tensorflow as tf
 from tensorflow import keras
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
@@ -30,7 +32,7 @@ class StandardModels(GeneralModelClass):
     def __init__(
         self,
         type="SVC",
-        points=50,
+        points=10,
         kernel="linear",
         verbose_param=0,
         learning_rate=1e-3,
@@ -74,35 +76,35 @@ class StandardModels(GeneralModelClass):
         :param TS: union between training and validation set
         :return the best model
         """
+        logspaceC = np.logspace(-2, 4, self.points)  # np.logspace(-2,2,self.points)
+        logspaceGamma = np.logspace(
+                -4, 2, int(np.sqrt(self.points))
+            )  # np.logspace(-2,2,self.points)
         if self.kernel == "rbf":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
-            grid = {"C": logspaceC, "kernel": [self.kernel], "gamma": logspaceGamma}
+            grid = {"svc__C": logspaceC, "svc__kernel": [self.kernel], "svc__gamma": logspaceGamma}
         if self.kernel == "linear":
-            logspaceC = np.logspace(-4, 3, self.points)  # np.logspace(-2,2,self.points)
-            logspaceGamma = np.logspace(
-                -4, 3, self.points
-            )  # np.logspace(-2,2,self.points)
-            grid = {"C": logspaceC, "kernel": [self.kernel]}
+            grid = {"svc__C": logspaceC, "svc__kernel": [self.kernel]}
+
+        pipe = Pipeline([
+            ("scaler", StandardScaler()),
+            ("svc", SVC())
+        ])
+
 
         MS = GridSearchCV(
-            estimator=SVC(),
+            estimator=pipe,
             param_grid=grid,
             scoring="balanced_accuracy",
-            cv=10,
+            cv=KFold(n_splits=5, shuffle=True, random_state=42),
             verbose=self.verbose_param,
+            n_jobs=-1
         )
         # training set is divided into (X,y)
-        TS = np.array(TS, dtype=object)
-        del TS
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
+        X, y = TS
         print("SVC TRAINING")
         H = MS.fit(X, y)
         # Check that C and gamma are not the extreme values
-        print(f"C best param {H.best_params_['C']}")
+        print(f"Best params {H.best_params_}")
         # print(f"gamma best param {H.best_params_['gamma']}")
         self.model = H
 
@@ -112,26 +114,29 @@ class StandardModels(GeneralModelClass):
         :param TS: union between training and validation set
         :return the best model
         """
-        rfc = RandomForestClassifier(random_state=42)
+        
         logspace_max_depth = []
-        for i in np.logspace(0, 3, self.points):
+        for i in np.logspace(1, 3, self.points):
             logspace_max_depth.append(int(i))
         param_grid = {
-            "n_estimators": [500],  # logspace_n_estimators,
-            "max_depth": logspace_max_depth,
+            "rfc__n_estimators": [300],  # logspace_n_estimators,
+            "rfc__max_depth": logspace_max_depth,
         }
 
+        pipe = Pipeline([
+            ("scaler", StandardScaler()),
+            ("rfc", RandomForestClassifier(random_state=42))
+        ])
+
         CV_rfc = GridSearchCV(
-            estimator=rfc, param_grid=param_grid, cv=5, verbose=self.verbose_param
+            estimator=pipe, param_grid=param_grid,
+            cv=KFold(n_splits=5, shuffle=True, random_state=42), verbose=self.verbose_param, n_jobs=-1
         )
         # training set is divided into (X,y)
-        TS = np.array(TS, dtype=object)
-        X = list(TS[:, 0])
-        y = list(TS[:, 1])
-        del TS
+        X, y = TS
         print("RFC TRAINING")
         H = CV_rfc.fit(X, y)
-        # print(CV_rfc.best_params_)
+        print(CV_rfc.best_params_)
         self.model = H
 
     def create_adversarial_pattern(self, model, input_image, input_label):
