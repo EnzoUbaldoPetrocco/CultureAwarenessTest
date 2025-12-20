@@ -847,9 +847,11 @@ class DiffusionStandardModel(tf.keras.Model):
                     generated_images.append(img*255)
 
         generated_images = np.asarray(generated_images)
-
-        self.network.save( base_path + f'{percent}/Lamps{culture}_{category}_imb={imb}' +'diffusion_pretrained.h5')
-        self.ema_network.save( base_path + f'{percent}/Lamps{culture}_{category}_imb={imb}' +'ema_diffusion_pretrained.h5')
+        net_path = f'{percent}/Lamps{culture}_{category}_imb={imb}'
+        if only_min:
+            net_path += 'only_min'
+        self.network.save( base_path + net_path +'diffusion_pretrained.h5')
+        self.ema_network.save( base_path + net_path +'ema_diffusion_pretrained.h5')
 
 
 
