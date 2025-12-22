@@ -21,7 +21,8 @@ tf.random.set_seed(datetime.now().timestamp())
 
 
 # tf.config.set_soft_device_placement(True)
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 percents = [0.0, 0.01, 0.05, 0.1, 0.2, 0.5]
@@ -51,7 +52,7 @@ for i in range(5):
                     shallow=shallow,
                     lamp=lamp,
                     gpu=True,
-                    memory_limit=3500,
+                    memory_limit=8000,
                     basePath=basePath,
                 )
                 print(f"Training->Model={tp}")

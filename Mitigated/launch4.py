@@ -48,7 +48,7 @@ else:
 
 
 percent = 0.05
-standards = [0, 1]
+standard = 0
 # lamp = 1
 
 verbose_param = 1
@@ -64,16 +64,16 @@ lamps = [0, 1]
 ep = eps[0]
 imb = 0
 
-diffusions = [0,1]
+diffusions = [1]
 adversary = 0
-ks = [0,1]
-parify_batches_diffusions = [1]
-only_min=0
+ks = [1]
+parify_batches_diffusions = [0, 1]
+only_mins = [0, 1]
+
 
 basePath = "./try2/"
 for i in range(3):
- for standard in standards:
-  
+ for only_min in only_mins:
   for parify_batches_diffusion in parify_batches_diffusions:
    for k in ks:
     for lamp in lamps:
