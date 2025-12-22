@@ -48,13 +48,13 @@ else:
 
 
 percent = 0.05
-standard = 0
+standard = 1
 # lamp = 1
 
 verbose_param = 1
 n = 1000
 class_divisions = [ 0, 1]
-imbalances = [0]
+imbalances = [1]
 g_gaugs = np.logspace(-4, -1, 4)
 eps = np.logspace(-3, -1, 3)
 g_aug = g_gaugs[0]
@@ -62,13 +62,13 @@ cs = [ 0, 1, 2]
 lamps = [0, 1]
 
 ep = eps[0]
-imb = 0
+imb = 1
 
-diffusions = [1]
+diffusions = [0]
 adversary = 0
-ks = [1]
+ks = [0,1]
 parify_batches_diffusions = [0, 1]
-only_mins = [0, 1]
+only_mins = [0]
 
 
 basePath = "./try2/"

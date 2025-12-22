@@ -23,6 +23,7 @@ import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import random
 from datetime import datetime
+from math import ceil
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
@@ -310,7 +311,7 @@ class StandardModels(GeneralModelClass):
             img = X[i]
             label = Y[i]
             if label[0]<len(self.weights):
-             for i in range(int(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
+             for i in range(ceil(1/self.weights[label[0]])): # I use the inverse of the total proportion for augmenting the dataset
                 im = np.asarray(X[i])
                 newX.append(im) # I do not need culture for training 
                 newY.append(label[1])
