@@ -45,7 +45,7 @@ num_epochs = 75  # train for at least 50 epochs for good results
 num_epochs_flowers = 1
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
-kid_diffusion_steps = 15
+kid_diffusion_steps = 12
 plot_diffusion_steps = 15
 
 # sampling
@@ -779,11 +779,11 @@ class DiffusionStandardModel(tf.keras.Model):
         #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
         #self.ema_network.summary()
             
-        for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
-            layer.trainable = False
+        #for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
+        #    layer.trainable = False
             #print(layer.name)
-        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
-            layer.trainable = False
+        #for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
+        #    layer.trainable = False
 
         # run training and plot generated images periodically
 

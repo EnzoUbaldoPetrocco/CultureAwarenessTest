@@ -48,7 +48,7 @@ else:
 
 
 percent = 0.05
-standard = 1
+standards = [0, 1]
 # lamp = 1
 
 verbose_param = 1
@@ -60,7 +60,7 @@ eps = np.logspace(-2, -1, 2)
 cs = [ 0, 1, 2]
 lamps = [0, 1]
 
-diffusions = [0, 1]
+diffusions = [1, 0]
 ks = [0, 1]
 adv = 0
 parify_batches_diffusion = 0
@@ -69,9 +69,10 @@ only_mins = [0]
 basePath = "./try2/"
 for lamp in lamps:
   for diffusion in diffusions:
+   for standard in standards:
     for adv in [0, 1]:
      for k in ks:
-        if (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
+        if (adv and not standard) or (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
           break
         else:
             for c in cs:
