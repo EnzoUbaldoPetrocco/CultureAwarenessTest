@@ -176,7 +176,7 @@ class ProcessingClass:
         weights = 0,
         only_minority_diffusion=0,
         parify_batches_diffusion=0,
-        plt_imgs = False
+        plt_imgs = True
     ):
         """
         This function prepares the data for training
@@ -266,7 +266,6 @@ class ProcessingClass:
                                     for i in range(len(self.dataobj.Xv))
                                     if self.dataobj.yv[i] == j
                                 ]
-                                print(tempX)
                                 tempX, _ = self.parify_batches((tempX, tempY), culture, False, size)
                                 tempXv, _ = self.parify_batches((tempXv, tempYv), culture, False, size)
                                 images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
@@ -430,8 +429,7 @@ class ProcessingClass:
                     else:
                         for j in range(2):
                             print(f"second cycle")
-                            for i in range(len(self.dataobj.X)):
-                                print(self.dataobj.y[i])
+                            
                             tempX = [
                                 cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
                                 for i in range(len(self.dataobj.X))

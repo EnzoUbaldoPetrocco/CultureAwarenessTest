@@ -589,7 +589,7 @@ class DiffusionStandardModel(tf.keras.Model):
     
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = False, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -728,13 +728,18 @@ class DiffusionStandardModel(tf.keras.Model):
                     self.ema_network.save( base_path +'/new/ema_diffusion_pretrained.tf')
                     #self.build((None, self.image_size, self.image_size, 3))
 
-                    for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
+                    
+                    for layer in self.network.layers[0:int(len(self.network.layers)/6)]:
                         layer.trainable = False
-                        #print(layer.name)
-                    for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
+                    for layer in self.network.layers[2*int(len(self.network.layers)/3):int(len(self.network.layers))-1]:
+                        layer.trainable = False
+                    for layer in self.ema_network.layers[0:int(len(self.network.layers)/6)]:
+                        layer.trainable = False
+                    for layer in self.ema_network.layers[2*int(len(self.network.layers)/3):int(len(self.network.layers))-1]:
                         layer.trainable = False
 
-                    
+                    self.network.summary()
+
                     print("Pretrained images generation")
                     self.img_name =  base_path +"/PretrainedNetGeneration.png"
                     self.plot_images()
@@ -803,6 +808,9 @@ class DiffusionStandardModel(tf.keras.Model):
 
         fObj = FileManagerClass(self.img_name)
         del fObj
+
+        
+        
         self.fit(
             TS,
             epochs=best_epochs,
