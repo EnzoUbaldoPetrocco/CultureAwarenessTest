@@ -22,6 +22,7 @@ from datetime import datetime
 from PIL import Image
 from IPython.display import Image as IImage
 import copy
+from math import ceil
 
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
@@ -569,7 +570,7 @@ class AdversarialStandard(GeneralModelClass):
             img = X[i]
             label = Y[i]
             for j in range(
-                int(1 / self.weights[label.index(1.0)])
+                ceil(1 / self.weights[label.index(1.0)])
             ):  # I use the inverse of the total proportion for augmenting the dataset
                 newX.append(np.asarray(img))  
                 newY.append(np.asarray(label))
