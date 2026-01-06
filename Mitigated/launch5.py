@@ -70,7 +70,7 @@ basePath = "./try2/"
 for lamp in lamps:
   for diffusion in diffusions:
    for standard in standards:
-    for adv in [0, 1]:
+    for adv in [1]:
      for k in ks:
         if (adv and not standard) or (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
           break

@@ -16,6 +16,7 @@ import math
 from keras.models import Model
 import sys
 from Utils.FileManager.FileManager import FileManagerClass
+import random
 
 class AdamW(tf.keras.optimizers.Adam):
     def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
@@ -42,11 +43,11 @@ class AdamW(tf.keras.optimizers.Adam):
 dataset_name = "places365_small"
 dataset_repetitions = 5
 num_epochs = 75  # train for at least 50 epochs for good results
-num_epochs_flowers = 1
+num_epochs_flowers = 8
 # KID = Kernel Inception Distance, see related section
 kid_image_size = 75
-kid_diffusion_steps = 12
-plot_diffusion_steps = 15
+kid_diffusion_steps = 6
+plot_diffusion_steps = 12
 
 # sampling
 min_signal_rate = 0.02
@@ -353,7 +354,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
                         layers.Rescaling(255.0),
                     ]
                 )
-    noisy_images = data_augmentation(noisy_images)
+    #noisy_images = data_augmentation(noisy_images)
     
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
@@ -642,38 +643,41 @@ class DiffusionStandardModel(tf.keras.Model):
                 callbacks = [early, lr_reduce]
             
             tf_lr = transfer_learning_rate
-            for i in range(23):
-                flowers_dataset = prepare_dataset(f"train[{3.0*(i)}:{3.0*(i+1)}%]+test[{3.0*(i)}:{3.0*(i+1)}%]", image_size=self.image_size)
-                val_flowers_dataset = prepare_dataset(f"train[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]+test[{100-(1.0)*(i+1)}%:{100-(1.0)*(i)}]", image_size=self.image_size)
+            for j in range(num_epochs_flowers):
+                seq = list(range(15))
+                random.shuffle(seq)
+                for i in seq:
+                    flowers_dataset = prepare_dataset(f"train[{2*(i)}%:{2*(i+1)}%]", image_size=self.image_size)
+                    val_flowers_dataset = prepare_dataset(f"test[{100-(1)*(i+1)}%:{100-(1)*(i)}]", image_size=self.image_size)
 
-                # pixelwise mean absolute error is used as loss
-                # calculate mean and variance of training dataset for normalization
-                self.normalizer.adapt(flowers_dataset)
-                
-                
-                self.compile(
-                        optimizer=AdamW(
-                            learning_rate=tf_lr, weight_decay=weight_decay
-                        ),
-                        loss=tf.keras.losses.mean_absolute_error,
+                    # pixelwise mean absolute error is used as loss
+                    # calculate mean and variance of training dataset for normalization
+                    self.normalizer.adapt(flowers_dataset)
+                    
+                    self.compile(
+                            optimizer=AdamW(
+                                learning_rate=tf_lr, weight_decay=weight_decay
+                            ),
+                            loss=tf.keras.losses.mean_absolute_error,
+                        )
+                    
+                    self.img_name = base_path + "/PretrainedNetGeneration.png"
+                    self.fit(
+                        flowers_dataset,
+                        epochs=1,
+                        validation_data=val_flowers_dataset,
+                        callbacks=callbacks,
+                        shuffle=True
                     )
-                
-                self.img_name = base_path + "/PretrainedNetGeneration.png"
-                self.fit(
-                    flowers_dataset,
-                    epochs=num_epochs_flowers,
-                    validation_data=val_flowers_dataset,
-                    callbacks=callbacks,
-                    shuffle=True
-                )
-                tf_lr = tf_lr / 1.4
+                    tf_lr = tf_lr / 1.05
 
-                del flowers_dataset
-                del val_flowers_dataset
-                
-                self.network.save( base_path +'diffusion_pretrained.h5')
-                self.ema_network.save( base_path +'ema_diffusion_pretrained.h5')
-                    #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
+                    del flowers_dataset
+                    del val_flowers_dataset
+                    
+                    self.network.save( base_path +'diffusion_pretrained.h5')
+                    self.ema_network.save( base_path +'ema_diffusion_pretrained.h5')
+                        #self.network.save_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
+            
         train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
         val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
         if parify_batches_diffusion==0:
@@ -711,13 +715,28 @@ class DiffusionStandardModel(tf.keras.Model):
         # use Model Selection:
         if model_selection:
             best_kid = np.inf
-            for ep in [45]:
-                for l_r in np.logspace(-5, -3, 3):
+            for ep in [30, 50]:
+                for l_r in np.logspace(-6, -3, 4):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
                     self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
                     print('Loaded pretrained model')
                     #tf.config.run_functions_eagerly(True)
+
+                    #freeze = True
+                    #for layer in self.network.layers:
+                    #    if "transformer" in layer.name.lower():
+                    #        freeze = False
+                    #    layer.trainable = not freeze
+
+                    # Freeze early ~40%
+                    n = len(self.network.layers)
+                    for layer in self.network.layers[:int(0.3 * n)]:
+                        layer.trainable = False
+
+                    for layer in self.ema_network.layers[:int(0.3 * n)]:
+                        layer.trainable = False
+
                     self.compile(
                             optimizer=AdamW(
                                 learning_rate=l_r, weight_decay=weight_decay
@@ -729,14 +748,8 @@ class DiffusionStandardModel(tf.keras.Model):
                     #self.build((None, self.image_size, self.image_size, 3))
 
                     
-                    for layer in self.network.layers[0:int(len(self.network.layers)/6)]:
-                        layer.trainable = False
-                    for layer in self.network.layers[2*int(len(self.network.layers)/3):int(len(self.network.layers))-1]:
-                        layer.trainable = False
-                    for layer in self.ema_network.layers[0:int(len(self.network.layers)/6)]:
-                        layer.trainable = False
-                    for layer in self.ema_network.layers[2*int(len(self.network.layers)/3):int(len(self.network.layers))-1]:
-                        layer.trainable = False
+                    
+
 
                     self.network.summary()
 
@@ -908,5 +921,6 @@ class DiffusionStandardModel(tf.keras.Model):
                 fObj = FileManagerClass(savept)
                 del fObj
                 plt.savefig(savept)
+                plt.close()
 
         
