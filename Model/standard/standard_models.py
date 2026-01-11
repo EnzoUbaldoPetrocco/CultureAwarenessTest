@@ -212,7 +212,7 @@ class StandardModels(GeneralModelClass):
         lrs=[8e-5, 8e-4],
         fine_lrs=[1e-6],
         epochs=38,
-        fine_epochs=12,
+        fine_epochs=13,
         nDropouts=[0.35],
         g=0.1,
         save=False,

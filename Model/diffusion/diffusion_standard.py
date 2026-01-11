@@ -354,7 +354,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
                         layers.Rescaling(255.0),
                     ]
                 )
-    #noisy_images = data_augmentation(noisy_images)
+    noisy_images = data_augmentation(noisy_images)
     
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
@@ -715,8 +715,8 @@ class DiffusionStandardModel(tf.keras.Model):
         # use Model Selection:
         if model_selection:
             best_kid = np.inf
-            for ep in [30, 50]:
-                for l_r in np.logspace(-6, -3, 4):
+            for ep in [70]:
+                for l_r in np.logspace(-4, -2, 3):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
                     self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
@@ -731,10 +731,10 @@ class DiffusionStandardModel(tf.keras.Model):
 
                     # Freeze early ~40%
                     n = len(self.network.layers)
-                    for layer in self.network.layers[:int(0.3 * n)]:
+                    for layer in self.network.layers[:int(0.25 * n)]:
                         layer.trainable = False
 
-                    for layer in self.ema_network.layers[:int(0.3 * n)]:
+                    for layer in self.ema_network.layers[:int(0.25 * n)]:
                         layer.trainable = False
 
                     self.compile(
@@ -746,10 +746,6 @@ class DiffusionStandardModel(tf.keras.Model):
                     self.network.save( base_path +'/new/diffusion_pretrained.tf')
                     self.ema_network.save( base_path +'/new/ema_diffusion_pretrained.tf')
                     #self.build((None, self.image_size, self.image_size, 3))
-
-                    
-                    
-
 
                     self.network.summary()
 

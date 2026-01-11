@@ -69,7 +69,7 @@ adv = 0
 parify_batches_diffusion = 0
 only_mins = [0]
 
-basePath = "./try2_noaug_in_diff/"
+basePath = "./try3/"
 for lamp in lamps:
   for diffusion in diffusions:
    for standard in standards:
