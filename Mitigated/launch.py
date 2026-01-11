@@ -63,59 +63,56 @@ ep=eps[0]
 cs = [1, 2, 0]
 lamps = [0, 1]
 
-diffusions = [1]
-ks = [1]
+diffusion = 1
+k = 1
 adv = 0
 parify_batches_diffusion = 0
-only_mins = [0]
+only_min = 0
 
 basePath = "./try3/"
 for lamp in lamps:
-  for diffusion in diffusions:
    for standard in standards:
-     for k in ks:
         if (adv and not standard) or (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
           break
         else:
             for c in cs:
-                for only_min in only_mins:
-                                procObj = ProcessingClass(
-                                    shallow=0,
-                                    lamp=lamp,
-                                    gpu=False,
-                                    memory_limit=memory_limit,
-                                    basePath=basePath,
-                                )
-                                model = None
-                                print(f"Training->aug={k%2};adv={floor(k/2)}")
-                                procObj.process(
-                                    standard=standard,
-                                    type="DL",
-                                    verbose_param=verbose_param,
-                                    culture=c,
-                                    percent=percent,
-                                    n=n,
-                                    augment=k,
-                                    gaug=g_aug,
-                                    adversary=adv,
-                                    eps =ep,
-                                    class_division=cl_div,
-                                    imbalanced=imb, 
-                                    diffusion = diffusion,
-                                    only_minority_diffusion=only_min,
-                                    parify_batches_diffusion=parify_batches_diffusion,
-                                    mitigation_type=1,
+                procObj = ProcessingClass(
+                    shallow=0,
+                    lamp=lamp,
+                    gpu=False,
+                    memory_limit=memory_limit,
+                    basePath=basePath,
+                )
+                model = None
+                print(f"Training->aug={k%2};adv={floor(k/2)}")
+                procObj.process(
+                    standard=standard,
+                    type="DL",
+                    verbose_param=verbose_param,
+                    culture=c,
+                    percent=percent,
+                    n=n,
+                    augment=k,
+                    gaug=g_aug,
+                    adversary=adv,
+                    eps =ep,
+                    class_division=cl_div,
+                    imbalanced=imb, 
+                    diffusion = diffusion,
+                    only_minority_diffusion=only_min,
+                    parify_batches_diffusion=parify_batches_diffusion,
+                    mitigation_type=1,
 
-                                )
-                                # NoAUg
-                                print(f"Testing->aug={0};adv={0}")
-                                procObj.test(
-                                    standard=standard,
-                                    culture=c,
-                                    augment=0,
-                                    gaug=0,
-                                    adversary=0,
-                                )
-                                procObj.partial_clear(basePath)
-                                    
-                                        
+                )
+                # NoAUg
+                print(f"Testing->aug={0};adv={0}")
+                procObj.test(
+                    standard=standard,
+                    culture=c,
+                    augment=0,
+                    gaug=0,
+                    adversary=0,
+                )
+                procObj.partial_clear(basePath)
+                    
+                        

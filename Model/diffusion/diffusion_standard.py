@@ -715,7 +715,8 @@ class DiffusionStandardModel(tf.keras.Model):
         # use Model Selection:
         if model_selection:
             best_kid = np.inf
-            for ep in [70]:
+            ep = 60
+            for percentage in [0.2, 0.4, 0.48]:
                 for l_r in np.logspace(-4, -2, 3):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
@@ -731,10 +732,10 @@ class DiffusionStandardModel(tf.keras.Model):
 
                     # Freeze early ~40%
                     n = len(self.network.layers)
-                    for layer in self.network.layers[:int(0.25 * n)]:
+                    for layer in self.network.layers[:int(percentage * n)]:
                         layer.trainable = False
 
-                    for layer in self.ema_network.layers[:int(0.25 * n)]:
+                    for layer in self.ema_network.layers[:int(percentage * n)]:
                         layer.trainable = False
 
                     self.compile(
