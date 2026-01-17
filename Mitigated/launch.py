@@ -24,7 +24,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 10000
+memory_limit = 14000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -48,7 +48,7 @@ else:
 
 
 percent = 0.05
-standards = [0, 1]
+standard = 0
 # lamp = 1
 
 verbose_param = 1
@@ -66,16 +66,13 @@ lamps = [0, 1]
 diffusion = 1
 k = 1
 adv = 0
-parify_batches_diffusion = 0
-only_min = 0
+parify_batches_diffusion = 1
 
 basePath = "./try3/"
-for lamp in lamps:
-   for standard in standards:
-        if (adv and not standard) or (diffusion and not k) or (diffusion and imb) or (diffusion and adv) or (not diffusion and not adv) or (k and adv) or (adv and parify_batches_diffusion):
-          break
-        else:
-            for c in cs:
+for i in range(3):
+    for lamp in lamps:
+        for c in cs:
+            for only_min in [0,1]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -102,7 +99,6 @@ for lamp in lamps:
                     only_minority_diffusion=only_min,
                     parify_batches_diffusion=parify_batches_diffusion,
                     mitigation_type=1,
-
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")
@@ -114,5 +110,5 @@ for lamp in lamps:
                     adversary=0,
                 )
                 procObj.partial_clear(basePath)
-                    
-                        
+                            
+                                

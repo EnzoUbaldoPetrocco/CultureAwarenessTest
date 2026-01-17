@@ -254,7 +254,7 @@ class MitigatedModels(GeneralModelClass):
         lrs=[1e-3, 1e-4, 1e-5],
         fine_lrs=[1e-6],
         epochs=[40],
-        fine_epochs=13,
+        fine_epochs=15,
         nDropouts=[0.3, 0.4],
         g=0.1,
         save=False,

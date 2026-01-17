@@ -345,7 +345,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
     e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
 
-    data_augmentation = keras.Sequential(
+    """data_augmentation = keras.Sequential(
                     [
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal"),
@@ -354,7 +354,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
                         layers.Rescaling(255.0),
                     ]
                 )
-    noisy_images = data_augmentation(noisy_images)
+    noisy_images = data_augmentation(noisy_images)"""
     
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
@@ -712,11 +712,12 @@ class DiffusionStandardModel(tf.keras.Model):
             ]
         else:
             callbacks = [early, lr_reduce]
+        n = len(self.network.layers)
         # use Model Selection:
         if model_selection:
             best_kid = np.inf
-            ep = 60
-            for percentage in [0.2, 0.4, 0.48]:
+            ep = 70
+            for percentage in [0]:
                 for l_r in np.logspace(-4, -2, 3):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
@@ -731,7 +732,7 @@ class DiffusionStandardModel(tf.keras.Model):
                     #    layer.trainable = not freeze
 
                     # Freeze early ~40%
-                    n = len(self.network.layers)
+                    
                     for layer in self.network.layers[:int(percentage * n)]:
                         layer.trainable = False
 
@@ -773,12 +774,28 @@ class DiffusionStandardModel(tf.keras.Model):
                         best_kid = kid
                         best_epochs = ep
                         best_lr = l_r
+                        best_percentage = percentage
+
+                        print(f"Best kid: {best_kid}, best epoch: {best_epochs}, best lr: {best_lr}, best_percentage: {best_percentage}")
 
                         #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
         else:
             best_epochs = num_epochs
             best_lr = learning_rate
+            best_percentage = 0.4
 
+        for layer in self.network.layers[:int(best_percentage * n)]:
+            layer.trainable = False
+
+        for layer in self.ema_network.layers[:int(best_percentage * n)]:
+            layer.trainable = False
+
+        self.compile(
+                optimizer=AdamW(
+                    learning_rate=l_r, weight_decay=weight_decay
+                ),
+                loss=tf.keras.losses.mean_absolute_error,
+            )
         print(f'Fnal Training with epochs: {best_epochs}, and lr: {best_lr}')
         self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
         self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
@@ -883,7 +900,7 @@ class DiffusionStandardModel(tf.keras.Model):
 
         return generated_images
         
-    def plot_examples(self, base_path, culture, category, imb, diffusion_steps=kid_diffusion_steps):
+    def plot_examples(self, base_path, culture, category, imb, diffusion_steps=plot_diffusion_steps):
         pt =  base_path +f"/GeneratedImages/Carpets{culture}_{category}_imb={imb}/"
         fObj = FileManagerClass(pt)
         del fObj
