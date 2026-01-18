@@ -61,7 +61,7 @@ eps = np.logspace(-2, -1, 2)
 g_aug = g_augs[1]
 ep=eps[0]
 cs = [1, 2, 0]
-lamps = [0, 1]
+lamps = [1, 0]
 
 diffusion = 1
 k = 1
@@ -80,7 +80,6 @@ for i in range(3):
                     memory_limit=memory_limit,
                     basePath=basePath,
                 )
-                model = None
                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                 procObj.process(
                     standard=standard,
@@ -109,6 +108,7 @@ for i in range(3):
                     gaug=0,
                     adversary=0,
                 )
+                
                 procObj.partial_clear(basePath)
                             
                                 
