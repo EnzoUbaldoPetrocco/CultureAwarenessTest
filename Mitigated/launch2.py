@@ -109,5 +109,6 @@ for i in range(3):
                                     adversary=0,
                                 )
                                 procObj.partial_clear(basePath)
+                                gc.collect()
                                     
                                         
