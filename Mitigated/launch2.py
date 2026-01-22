@@ -48,7 +48,7 @@ else:
 
 
 percent = 0.05
-standards = [0]
+standard = 0
 # lamp = 1
 
 verbose_param = 1
@@ -72,43 +72,41 @@ only_mins = [0, 1]
 basePath = "./try3/"
 for i in range(3):
     for lamp in lamps:
-        for standard in standards:
             for c in cs:
                 for only_min in only_mins:
-                                procObj = ProcessingClass(
-                                    shallow=0,
-                                    lamp=lamp,
-                                    gpu=False,
-                                    memory_limit=memory_limit,
-                                    basePath=basePath,
-                                )
-                                model = None
-                                print(f"Training->aug={k%2};adv={floor(k/2)}")
-                                procObj.process(
-                                    standard=standard,
-                                    type="DL",
-                                    verbose_param=verbose_param,
-                                    culture=c,
-                                    percent=percent,
-                                    n=n,
-                                    augment=k,
-                                    gaug=g_aug,
-                                    diffusion = diffusion,
-                                    only_minority_diffusion=only_min,
-                                    parify_batches_diffusion=parify_batches_diffusion,
-                                    mitigation_type=1,
+                    procObj = ProcessingClass(
+                        shallow=0,
+                        lamp=lamp,
+                        gpu=False,
+                        memory_limit=memory_limit,
+                        basePath=basePath,
+                    )
+                    print(f"Training->aug={k%2};adv={floor(k/2)}")
+                    procObj.process(
+                        standard=standard,
+                        type="DL",
+                        verbose_param=verbose_param,
+                        culture=c,
+                        percent=percent,
+                        n=n,
+                        augment=k,
+                        gaug=g_aug,
+                        diffusion = diffusion,
+                        only_minority_diffusion=only_min,
+                        parify_batches_diffusion=parify_batches_diffusion,
+                        mitigation_type=1,
 
-                                )
-                                # NoAUg
-                                print(f"Testing->aug={0};adv={0}")
-                                procObj.test(
-                                    standard=standard,
-                                    culture=c,
-                                    augment=0,
-                                    gaug=0,
-                                    adversary=0,
-                                )
-                                procObj.partial_clear(basePath)
-                                gc.collect()
-                                    
-                                        
+                    )
+                    # NoAUg
+                    print(f"Testing->aug={0};adv={0}")
+                    procObj.test(
+                        standard=standard,
+                        culture=c,
+                        augment=0,
+                        gaug=0,
+                        adversary=0,
+                    )
+                    procObj.partial_clear(basePath)
+                    gc.collect()
+                        
+                            
