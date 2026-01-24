@@ -749,7 +749,7 @@ class DiffusionStandardModel(tf.keras.Model):
                     self.ema_network.save( base_path +'/new/ema_diffusion_pretrained.tf')
                     #self.build((None, self.image_size, self.image_size, 3))
 
-                    self.network.summary()
+                    #self.network.summary()
 
                     print("Pretrained images generation")
                     self.img_name =  base_path +"/PretrainedNetGeneration.png"
