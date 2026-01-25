@@ -241,15 +241,10 @@ class ProcessingClass:
             fObj = FileManagerClass(bpath+'/GeneratedImages/')
             del fObj
 
-            import numpy as np
-            import cv2
-
-            # --- Helper Logic ---
             is_parify = parify_batches_diffusion
             is_only_min = only_minority_diffusion
 
             for j in range(2):
-                # 1. Unified Data Filtering and Resizing
                 tempX, tempXv, tempY, tempYv = [], [], [], []
                 
                 # Filter Training Data
@@ -309,7 +304,7 @@ class ProcessingClass:
                             lbl[c] = 1.0
                             lbl.append(j)
                             self.dataobj.y.append(lbl)
-                            
+
             del diff_model   
         
         
