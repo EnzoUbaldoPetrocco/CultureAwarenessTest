@@ -17,6 +17,7 @@ from keras.models import Model
 import sys
 from Utils.FileManager.FileManager import FileManagerClass
 import random
+import csv
 
 class AdamW(tf.keras.optimizers.Adam):
     def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
@@ -590,7 +591,7 @@ class DiffusionStandardModel(tf.keras.Model):
     
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0, test_set=None): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -680,8 +681,7 @@ class DiffusionStandardModel(tf.keras.Model):
             
         train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
         val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
-        if parify_batches_diffusion==0:
-            
+        if parify_batches_diffusion==0 or onlymin==1:
             TS = train_dataset.batch(batch_size, drop_remainder=True)
             VS = val_dataset.batch(batch_size, drop_remainder=True)
         else:
@@ -799,7 +799,7 @@ class DiffusionStandardModel(tf.keras.Model):
         print(f'Fnal Training with epochs: {best_epochs}, and lr: {best_lr}')
         self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
         self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
-        print('Loaded pretrained model')
+        
         self.compile(
                 optimizer=AdamW(
                     learning_rate=best_lr, weight_decay=weight_decay
@@ -807,21 +807,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 loss=tf.keras.losses.mean_absolute_error,
             )
 
-        #self.network.summary()
-        #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
-        #self.ema_network.summary()
-            
-        #for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
-        #    layer.trainable = False
-            #print(layer.name)
-        #for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
-        #    layer.trainable = False
-
-        # run training and plot generated images periodically
-
-        #self.network.summary()
-        #self.ema_network.summary()
-
+        
         if get_pretrained:
             if plot_imgs:
                 print("Pretrained images generation")
@@ -845,29 +831,7 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks=callbacks,
             shuffle=True
         )
-        """
-        for layer in self.network.layers[0:int(len(self.network.layers))]:
-            layer.trainable = True
-        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers))]:
-            layer.trainable = True
-
-        # Fine tuning
         
-        self.compile(
-                optimizer=AdamW(
-                    learning_rate=learning_rate/100, weight_decay=weight_decay
-                ),
-                loss=tf.keras.losses.mean_absolute_error,
-            )
-
-        self.fit(
-            train_dataset,
-            epochs=num_epochs//3,
-            validation_data=val_dataset,
-            callbacks=callbacks,
-
-        )
-        """
         tot = 0
         generated_images = []
         for i in range(n_images//batch_size +1):
@@ -888,6 +852,20 @@ class DiffusionStandardModel(tf.keras.Model):
         self.network.save( base_path + net_path +'diffusion_pretrained.h5')
         self.ema_network.save( base_path + net_path +'ema_diffusion_pretrained.h5')
 
+        
+        if test_set:
+            fObj = FileManagerClass(net_path)
+
+            print(f"Length of test_set is: {len(test_set)}")
+            for i in range(len(test_set)):
+                TS_nor = tf.data.Dataset.from_tensor_slices(list(np.asarray(TS, dtype="float32") / 255.0))
+                print(np.shape(TS_nor))
+                res = self.test_step(TS_nor)
+                data = [
+                    ["kid", res]
+                ]
+                with open(net_path+f"kid_{i}.csv", "a", newline="", encoding="utf-8") as f:
+                    csv.writer(f).writerow(data_list)
 
 
         if plot_imgs:

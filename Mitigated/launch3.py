@@ -20,11 +20,11 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 9500
+memory_limit = 13000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -47,40 +47,32 @@ else:
     print("no gpus")
 
 
-percents = [0.05]
+percent = 0.05
 standard = 0
 # lamp = 1
 
 verbose_param = 1
 n = 1000
-class_divisions = [ 0]
-imbalances = [0]
-g_gaugs = np.logspace(-4, -1, 4)
-eps = np.logspace(-3, -1, 3)
-g_aug = g_gaugs[0]
-cs = [ 0, 1, 2]
+class_divisions = [0, 1]
+cl_div = 0
+imb = 0
+g_augs = np.logspace(-2, -1, 2)
+eps = np.logspace(-2, -1, 2)
+g_aug = g_augs[1]
+ep=eps[0]
+cs = [0, 1, 2]
 lamps = [0, 1]
 
-ep = eps[0]
-imb = 0
+diffusion = 1
+k = 1
+adv = 0
+parify_batches_diffusion = 1
 
-diffusions = [0, 1]
-adversary = 0
-ks = [1, 0]
-parify_batches_diffusions = [1, 0]
-
-basePath = "./try2/"
-for percent in percents:
- for parify_batches_diffusion in parify_batches_diffusions:
-  for k in ks:
+basePath = "./try3/"
+for i in range(3):
     for lamp in lamps:
-     for diffusion in diffusions:
-      if diffusion and not k:
-        break
-      else:
         for c in cs:
-            for cl_div in class_divisions:
-             
+            for only_min in [1, 0]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
@@ -88,7 +80,6 @@ for percent in percents:
                     memory_limit=memory_limit,
                     basePath=basePath,
                 )
-                model = None
                 print(f"Training->aug={k%2};adv={floor(k/2)}")
                 procObj.process(
                     standard=standard,
@@ -97,16 +88,16 @@ for percent in percents:
                     culture=c,
                     percent=percent,
                     n=n,
-                    augment=k % 2,
+                    augment=k,
                     gaug=g_aug,
-                    adversary=adversary,
+                    adversary=adv,
                     eps =ep,
                     class_division=cl_div,
                     imbalanced=imb, 
                     diffusion = diffusion,
-                    only_minority_diffusion=1,
+                    only_minority_diffusion=only_min,
                     parify_batches_diffusion=parify_batches_diffusion,
-                    mitigation_type=1
+                    mitigation_type=1,
                 )
                 # NoAUg
                 print(f"Testing->aug={0};adv={0}")
@@ -117,6 +108,8 @@ for percent in percents:
                     gaug=0,
                     adversary=0,
                 )
+
                 procObj.partial_clear(basePath)
-                    
-                        
+                gc.collect()
+                            
+                                
