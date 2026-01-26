@@ -66,7 +66,7 @@ lamps = [0, 1]
 diffusion = 1
 k = 1
 adv = 0
-parify_batches_diffusion = 1
+parify_batches_diffusion = 0
 
 basePath = "./try3/"
 for i in range(3):

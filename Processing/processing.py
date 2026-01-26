@@ -300,8 +300,6 @@ class ProcessingClass:
                         tempX.append(img)
                         tempY.append(self.dataobj.y[i])
 
-                print(f"\n\nlen of tempX after everything is: {len(tempX)}\n\n")
-
                 # Filter Validation Data (Repeat logic for Xv)
                 for i in range(len(self.dataobj.Xv)):
                     label_val_v = self.dataobj.yv[i] if standard else self.dataobj.yv[i][self.n_cultures]
@@ -315,7 +313,7 @@ class ProcessingClass:
                     for i in range(len(self.dataobj.Xt[k])):
                         label_val_v = self.dataobj.yt[k][i] if standard else self.dataobj.yt[k][i][self.n_cultures]
                         if label_val_v == j:
-                            img_v = cv2.resize(self.dataobj.Xt[k][i], (size, size), interpolation=cv2.INTER_CUBIC)/255.0
+                            img_v = cv2.resize(self.dataobj.Xt[k][i], (size, size), interpolation=cv2.INTER_CUBIC)
                             tempXt[k].append(img_v)
 
                 # 2. Apply Parify Batches if activated
@@ -323,7 +321,6 @@ class ProcessingClass:
                     # Pass True for adversarial (not standard) to match your logic
                     tempX, _ = self.parify_batches((tempX, tempY), culture, (not standard), size)
                     tempXv, _ = self.parify_batches((tempXv, tempYv), culture, (not standard), size)
-                    print(f"\n\nlen of tempX after is_parify: {len(tempX)}")
 
                 # 3. Model Training / Image Generation
                 if len(tempX) > 0:
@@ -332,7 +329,7 @@ class ProcessingClass:
                         percent=percent, lamp=self.lamp, culture=culture, category=j, 
                         imb=imbalanced, parify_batches_diffusion=is_parify, 
                         base_path=bpath, onlymin=is_only_min,
-                        test_set=self.dataobj.Xt.copy()
+                        test_set=tempXt
                     )
 
                     # 4. Post-processing and Appending

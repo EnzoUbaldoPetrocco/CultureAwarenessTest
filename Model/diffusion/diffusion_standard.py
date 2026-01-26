@@ -799,7 +799,7 @@ class DiffusionStandardModel(tf.keras.Model):
         print(f'Fnal Training with epochs: {best_epochs}, and lr: {best_lr}')
         self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
         self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
-        
+
         self.compile(
                 optimizer=AdamW(
                     learning_rate=best_lr, weight_decay=weight_decay
@@ -856,16 +856,19 @@ class DiffusionStandardModel(tf.keras.Model):
         if test_set:
             fObj = FileManagerClass(net_path)
 
-            print(f"Length of test_set is: {len(test_set)}")
             for i in range(len(test_set)):
-                TS_nor = tf.data.Dataset.from_tensor_slices(list(np.asarray(TS, dtype="float32") / 255.0))
-                print(np.shape(TS_nor))
-                res = self.test_step(TS_nor)
+                TS = test_set[i]
+                def normalize_img(image):
+                    return tf.cast(image, tf.float32) / 255.0
+
+                TS_nor = [normalize_img(img) for img in TS]
+                
+                kd = self.test_fin(TS_nor)
                 data = [
-                    ["kid", res]
+                    ["kid", kd]
                 ]
                 with open(net_path+f"kid_{i}.csv", "a", newline="", encoding="utf-8") as f:
-                    csv.writer(f).writerow(data_list)
+                    csv.writer(f).writerow(data)
 
 
         if plot_imgs:
@@ -877,6 +880,41 @@ class DiffusionStandardModel(tf.keras.Model):
         del VS
 
         return generated_images
+
+    def test_fin(self, images):
+        num_images = len(images)
+        # normalize images to have standard deviation of 1, like the noises
+        images = self.normalizer(images, training=False)
+        noises = tf.random.normal(shape=(num_images, self.image_size, self.image_size, 3))
+
+        # sample uniform random diffusion times
+        diffusion_times = tf.random.uniform(
+            shape=(num_images, 1, 1, 1), minval=0.0, maxval=1.0
+        )
+        noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+        # mix the images with noises accordingly
+        noisy_images = signal_rates * images + noise_rates * noises
+
+        # use the network to separate noisy images to their components
+        pred_noises, pred_images = self.denoise(
+            noisy_images, noise_rates, signal_rates, training=False
+        )
+
+        noise_loss = self.loss(noises, pred_noises)
+        image_loss = self.loss(images, pred_images)
+
+        self.image_loss_tracker.update_state(image_loss)
+        self.noise_loss_tracker.update_state(noise_loss)
+
+        # measure KID between real and generated images
+        # this is computationally demanding, kid_diffusion_steps has to be small
+        images = self.denormalize(images)
+        generated_images = self.generate(
+            num_images=num_images, diffusion_steps=kid_diffusion_steps
+        )
+        self.kid.update_state(images, generated_images)
+
+        return {m.name: m.result() for m in self.metrics}
         
     def plot_examples(self, base_path, culture, category, imb, diffusion_steps=plot_diffusion_steps):
         pt =  base_path +f"/GeneratedImages/Carpets{culture}_{category}_imb={imb}/"
