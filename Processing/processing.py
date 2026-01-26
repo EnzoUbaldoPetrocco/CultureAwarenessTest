@@ -111,52 +111,85 @@ class ProcessingClass:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     def parify_batches(self, s, culture, hot_encoding, size):
-        #print(f"s is {s}")
-        #print(f"s[0] is {s[0]}")
-        #print(f"s[1] is {s[1]}")
+        data_x = np.asarray(s[0])
+        data_y = np.asarray(s[1])
+        
         indeces_per_culture = []
         batch_size = 64
+        
+        # 1. Extract indices for each culture
         if hot_encoding:
             for i in range(self.n_cultures):
+                # Create the one-hot vector to match against
                 c = np.zeros(self.n_cultures)
                 c[i] = 1.0
-               
-                vals = (np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
-                if i == culture:
-                    n_samples_majority = len(vals)
-                indeces_per_culture.append(np.where((np.asarray(s[1], dtype=object)[:, :self.n_cultures] == c).all(axis=1))[0])
+                # Match rows where the first n_cultures columns equal the one-hot vector
+                idx = np.where((data_y[:, :self.n_cultures] == c).all(axis=1))[0]
+                indeces_per_culture.append(idx)
         else:
-            n_samples_majority = len(np.where(np.asarray(s[1], dtype=object)[self.n_cultures]==culture))
+            # Assume data_y is a 1D array of class integers or labels are in a specific column
+            # Adjust the index data_y[:, 0] if your labels are elsewhere
+            labels = data_y if data_y.ndim == 1 else data_y[:, 0]
             for i in range(self.n_cultures):
-                indeces_per_culture.append([np.where(np.asarray(s[1], dtype=object)[:,1])==i])
+                idx = np.where(labels == i)[0]
+                indeces_per_culture.append(idx)
 
-        B = []
-        Blabel = []
+        # Determine how many samples we take (based on the requested majority culture)
+        n_samples_majority = len(indeces_per_culture[culture])
+        
+        if n_samples_majority == 0:
+            return [], []
+
         DS = []
         DSlabel = []
+        B = []
+        Blabel = []
+
+        # 2. Build balanced batches
+        # We iterate based on the majority culture count to ensure parity
         for i in range(n_samples_majority):
             for j in range(self.n_cultures):
-                if len(B)>= batch_size:
-                    DS.append(np.asarray(B))
-                    B = []
-                    DSlabel.append(np.asarray(Blabel))
-                    Blabel = []
-
-                sample = np.asarray(s[0])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
-                label = np.asarray(s[1])[indeces_per_culture[j][i % len(indeces_per_culture[j])]]
-                B.append(cv2.resize(sample, (size, size), interpolation = cv2.INTER_CUBIC))
+                # Modular indexing handles cultures with fewer samples (oversampling)
+                current_culture_indices = indeces_per_culture[j]
+                if len(current_culture_indices) == 0: continue
+                
+                target_idx = current_culture_indices[i % len(current_culture_indices)]
+                
+                sample = data_x[target_idx]
+                label = data_y[target_idx]
+                
+                # Consistent resizing
+                resized_sample = cv2.resize(sample, (size, size), interpolation=cv2.INTER_CUBIC)
+                
+                B.append(resized_sample)
                 Blabel.append(label)
 
-        if len(B)>0:
-            for i in range(batch_size-len(B)):
-                j = i % self.n_cultures
-                rnd_index = np.random.randint(0, len(indeces_per_culture[j]))
-                B.append(s[0][indeces_per_culture[j][rnd_index]])
-                Blabel.append(s[1][indeces_per_culture[j][rnd_index]])
-            DS.append(np.asarray(B))
-            DSlabel.append(np.asarray(Blabel))
+                # Check if batch is full
+                if len(B) == batch_size:
+                    DS.append(np.array(B))
+                    DSlabel.append(np.array(Blabel))
+                    B, Blabel = [], []
+
+        # 3. Handle remaining samples to fill the last batch to batch_size
+        if len(B) > 0:
+            while len(B) < batch_size:
+                # Fill with random samples from any culture to maintain batch shape
+                j = len(B) % self.n_cultures
+                if len(indeces_per_culture[j]) > 0:
+                    rnd_idx = np.random.choice(indeces_per_culture[j])
+                    B.append(cv2.resize(data_x[rnd_idx], (size, size), interpolation=cv2.INTER_CUBIC))
+                    Blabel.append(data_y[rnd_idx])
+                else:
+                    # Fallback if a culture is completely empty
+                    rnd_idx = np.random.randint(0, len(data_x))
+                    B.append(cv2.resize(data_x[rnd_idx], (size, size), interpolation=cv2.INTER_CUBIC))
+                    Blabel.append(data_y[rnd_idx])
+                    
+            DS.append(np.array(B))
+            DSlabel.append(np.array(Blabel))
 
         return DS, DSlabel
+
 
     def prepare_data(
         self,
@@ -223,7 +256,7 @@ class ProcessingClass:
         if diffusion==1 and not discriminator:
             print(f"Diffusion")
             size = 100
-            n_imgs = len(self.dataobj.X)//4
+            n_imgs = len(self.dataobj.X)//25
             diff_model = DiffusionStandardModel(image_size=size)
             init_shape = np.shape(self.dataobj.X[0])[0:2]
 
@@ -241,217 +274,81 @@ class ProcessingClass:
             fObj = FileManagerClass(bpath+'/GeneratedImages/')
             del fObj
 
-            if parify_batches_diffusion:
-                # TODO: modify this
-                ########################################################################################
-                    if standard and (not adversarial):
-                            for j in range(2):
-                                tempX = [
-                                    cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                    for i in range(len(self.dataobj.X))
-                                    if self.dataobj.y[i]== j
-                                ]
-                                tempXv = [
-                                    cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                    for i in range(len(self.dataobj.Xv))
-                                    if self.dataobj.yv[i] == j
-                                ]
-                                tempY = [
-                                    self.dataobj.y[i]
-                                    for i in range(len(self.dataobj.X))
-                                    if self.dataobj.y[i]== j
-                                ]
-                                tempYv = [
-                                    self.dataobj.yv[i]
-                                    for i in range(len(self.dataobj.Xv))
-                                    if self.dataobj.yv[i] == j
-                                ]
-                                tempX, _ = self.parify_batches((tempX, tempY), culture, False, size)
-                                tempXv, _ = self.parify_batches((tempXv, tempYv), culture, False, size)
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
-                                for img in images:
-                                    img = np.asarray(img)
-                                    img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                    img = np.asarray(img, dtype=np.float32)
-                                    self.dataobj.X.append(img)
-                                    self.dataobj.y.append(j)
+            is_parify = parify_batches_diffusion
+            is_only_min = only_minority_diffusion
 
-                    else:
-                        for j in range(2):
-                            
-                            tempX = [
-                                cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                for i in range(len(self.dataobj.X))
-                                if self.dataobj.y[i][self.n_cultures]== j
-                            ]
-                            tempXv = [
-                                cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                for i in range(len(self.dataobj.Xv))
-                                if self.dataobj.yv[i][self.n_cultures] == j
-                            ]    
-                            tempY = [
-                                self.dataobj.y[i]
-                                for i in range(len(self.dataobj.X))
-                                if self.dataobj.y[i][self.n_cultures]== j
-                            ]
-                            tempYv = [
-                                self.dataobj.yv[i]
-                                for i in range(len(self.dataobj.Xv))
-                                if self.dataobj.yv[i][self.n_cultures] == j
-                            ]     
-                            tempX, _ = self.parify_batches((tempX, tempY), culture, True, size)
-                            tempXv, _ = self.parify_batches((tempXv, tempYv), culture, True, size)               
-                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath, onlymin=only_minority_diffusion)
-                            for img in images:
-                                img = np.asarray(img)
-                                img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                img = np.asarray(img, dtype=np.float32)
-                                self.dataobj.X.append(img)
-                                c = random_culture(self.n_cultures, culture)
-                                lbl = list(np.zeros(self.n_cultures))
-                                lbl[c]=1.0
-                                lbl.append(j)
-                                self.dataobj.y.append(lbl)
-            else: 
-                if only_minority_diffusion:
-                    if standard and (not adversarial):
-                        if imbalanced:
-                            for j in range(2):
-                                tempX = []
-                                tempXv = []
-                                for i in range(len(self.dataobj.X)):
-                                    if self.dataobj.y[i][1]== j and self.dataobj.y[i][0]==culture:
-                                        for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
-                                            tempX.append(cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
-                                for i in range(len(self.dataobj.Xv)):
-                                    if self.dataobj.yv[i][1]== j and self.dataobj.y[i][0]==culture:
-                                        for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
-                                            tempXv.append(cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
-                            
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath, onlymin=only_minority_diffusion)
-                                for img in images:
-                                    img = np.asarray(img)
-                                    img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                    img = np.asarray(img, dtype=np.float32)
-                                    self.dataobj.X.append(img)
-                                    c = random_culture(self.n_cultures, culture)
-                                    self.dataobj.y.append([c, j]) # I do not invent a new culture anymore as I need to use the information in mitigation
-
-                        else:
-                            for j in range(2):
-                                tempX = [
-                                    cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                    for i in range(len(self.dataobj.X))
-                                    if self.dataobj.y[i]== j and self.dataobj.y[i][0]==culture
-                                ]
-                                tempXv = [
-                                    cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                    for i in range(len(self.dataobj.Xv))
-                                    if self.dataobj.yv[i] == j and self.dataobj.y[i][0]==culture
-                                ]
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion,  base_path=bpath, onlymin=only_minority_diffusion)
-                                for img in images:
-                                    img = np.asarray(img)
-                                    img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                    img = np.asarray(img, dtype=np.float32)
-                                    self.dataobj.X.append(img)
-                                    self.dataobj.y.append(j)
-
-                    else:
-                        for j in range(2):
-                            
-                            tempX = [
-                                cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                for i in range(len(self.dataobj.X))
-                                if self.dataobj.y[i][self.n_cultures]== j and np.argmax(self.dataobj.y[i][0:self.n_cultures])==culture
-                            ]
-                            tempXv = [
-                                cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                for i in range(len(self.dataobj.Xv))
-                                if self.dataobj.yv[i][self.n_cultures] == j and np.argmax(self.dataobj.y[i][0:self.n_cultures])==culture
-                            ]                    
-                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
-                            for img in images:
-                                img = np.asarray(img)
-                                img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                img = np.asarray(img, dtype=np.float32)
-                                self.dataobj.X.append(img)
-                                c = random_culture(self.n_cultures, culture)
-                                lbl = list(np.zeros(self.n_cultures)) # Generated images are equidistant from the cultures
-                                lbl[c]=1.0
-                                lbl.append(j)
-                                self.dataobj.y.append(lbl)
+            for j in range(2):
+                tempX, tempXv, tempY, tempYv, tempXt = [], [], [], [], []
+                
+                # Filter Training Data
+                for i in range(len(self.dataobj.X)):
+                    # Extract the categorical label (j) based on format
+                    label_val = self.dataobj.y[i] if standard else self.dataobj.y[i][self.n_cultures]
                     
-                else:
-                    if standard and (not adversarial):
-                        if imbalanced:
-                            for j in range(2):
-                                tempX = []
-                                tempXv = []
-                                for i in range(len(self.dataobj.X)):
-                                    if self.dataobj.y[i][1]== j:
-                                        for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
-                                            tempX.append(cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
-                                for i in range(len(self.dataobj.Xv)):
-                                    if self.dataobj.yv[i][1]== j:
-                                        for i in range(int(1/weights[self.dataobj.y[i][0]])): # I use the inverse of the total proportion for augmenting the dataset
-                                            tempXv.append(cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)) 
-                            
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
-                                for img in images:
-                                    img = np.asarray(img)
-                                    img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                    img = np.asarray(img, dtype=np.float32)
-                                    self.dataobj.X.append(img)
-                                    c = random_culture(self.n_cultures, culture)
-                                    self.dataobj.y.append([c, j]) # I have to invent another culture
-
+                    # Check conditions: Correct category AND (if only_min, must NOT be the majority culture)
+                    match_cat = (label_val == j)
+                    match_culture = True
+                    if is_only_min:
+                        if standard:
+                            # Assuming standard mode stores culture in a secondary structure or index 0
+                            match_culture = (self.dataobj.y[i][0] != culture) if isinstance(self.dataobj.y[i], list) else True
                         else:
-                            for j in range(2):
-                                tempX = [
-                                    cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                    for i in range(len(self.dataobj.X))
-                                    if self.dataobj.y[i]== j
-                                ]
-                                tempXv = [
-                                    cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                    for i in range(len(self.dataobj.Xv))
-                                    if self.dataobj.yv[i] == j
-                                ]
-                                images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
-                                for img in images:
-                                    img = np.asarray(img)
-                                    img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                    img = np.asarray(img, dtype=np.float32)
-                                    self.dataobj.X.append(img)
-                                    self.dataobj.y.append(j)
+                            match_culture = (np.argmax(self.dataobj.y[i][0:self.n_cultures]) != culture)
 
-                    else:
-                        for j in range(2):
-                            print(f"second cycle")
-                            
-                            tempX = [
-                                cv2.resize(self.dataobj.X[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                for i in range(len(self.dataobj.X))
-                                if self.dataobj.y[i][self.n_cultures]== j
-                            ]
-                            tempXv = [
-                                cv2.resize(self.dataobj.Xv[i], (size, size), interpolation = cv2.INTER_CUBIC)
-                                for i in range(len(self.dataobj.Xv))
-                                if self.dataobj.yv[i][self.n_cultures] == j
-                            ]                    
-                            images = diff_model.learn_on_custom_dataset(tempX, tempXv, n_images = n_imgs,  plot_imgs = plt_imgs, aug=aug, percent=percent, lamp=self.lamp, culture=culture, category=j, imb=imbalanced, parify_batches_diffusion=parify_batches_diffusion, base_path=bpath, onlymin=only_minority_diffusion)
-                            for img in images:
-                                img = np.asarray(img)
-                                img = cv2.resize(img,  init_shape, interpolation = cv2.INTER_CUBIC)
-                                img = np.asarray(img, dtype=np.float32)
-                                self.dataobj.X.append(img)
-                                c = random_culture(self.n_cultures, culture)
-                                lbl = list(np.zeros(self.n_cultures)) 
-                                lbl[c]=1.0
-                                lbl.append(j)
-                                self.dataobj.y.append(lbl)
-                    
+                    if match_cat and match_culture:
+                        img = cv2.resize(self.dataobj.X[i], (size, size), interpolation=cv2.INTER_CUBIC)
+                        tempX.append(img)
+                        tempY.append(self.dataobj.y[i])
+
+                # Filter Validation Data (Repeat logic for Xv)
+                for i in range(len(self.dataobj.Xv)):
+                    label_val_v = self.dataobj.yv[i] if standard else self.dataobj.yv[i][self.n_cultures]
+                    if label_val_v == j:
+                        img_v = cv2.resize(self.dataobj.Xv[i], (size, size), interpolation=cv2.INTER_CUBIC)
+                        tempXv.append(img_v)
+                        tempYv.append(self.dataobj.yv[i])
+
+                for k in range(len(self.dataobj.Xt)):
+                    tempXt.append([])
+                    for i in range(len(self.dataobj.Xt[k])):
+                        label_val_v = self.dataobj.yt[k][i] if standard else self.dataobj.yt[k][i][self.n_cultures]
+                        if label_val_v == j:
+                            img_v = cv2.resize(self.dataobj.Xt[k][i], (size, size), interpolation=cv2.INTER_CUBIC)
+                            tempXt[k].append(img_v)
+
+                # 2. Apply Parify Batches if activated
+                if is_parify and len(tempX) and (not (is_only_min)) > 0:
+                    # Pass True for adversarial (not standard) to match your logic
+                    tempX, _ = self.parify_batches((tempX, tempY), culture, (not standard), size)
+                    tempXv, _ = self.parify_batches((tempXv, tempYv), culture, (not standard), size)
+
+                # 3. Model Training / Image Generation
+                if len(tempX) > 0:
+                    images = diff_model.learn_on_custom_dataset(
+                        tempX, tempXv, n_images=n_imgs, plot_imgs=plt_imgs, aug=aug, 
+                        percent=percent, lamp=self.lamp, culture=culture, category=j, 
+                        imb=imbalanced, parify_batches_diffusion=is_parify, 
+                        base_path=bpath, onlymin=is_only_min,
+                        test_set=tempXt
+                    )
+
+                    # 4. Post-processing and Appending
+                    for img in images:
+                        img = cv2.resize(np.asarray(img, dtype=np.float32), init_shape, interpolation=cv2.INTER_CUBIC)
+                        self.dataobj.X.append(img)
+                        
+                        if standard and (not adversarial):
+                            self.dataobj.y.append(j)
+                        else:
+                            # Generate adversarial multi-label
+                            c = random_culture(self.n_cultures, culture)
+                            lbl = list(np.zeros(self.n_cultures))
+                            lbl[c] = 1.0
+                            lbl.append(j)
+                            self.dataobj.y.append(lbl)
+                else: 
+                    print(f"\n\n\n\nnPay Attention len tempX is 0!!!!\n\n\n\n")
+
             del diff_model   
         
         

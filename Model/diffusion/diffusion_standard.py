@@ -17,6 +17,7 @@ from keras.models import Model
 import sys
 from Utils.FileManager.FileManager import FileManagerClass
 import random
+import csv
 
 class AdamW(tf.keras.optimizers.Adam):
     def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
@@ -345,7 +346,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
     e = layers.Lambda(sinusoidal_embedding, output_shape=(1, 1, 32))(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
 
-    data_augmentation = keras.Sequential(
+    """data_augmentation = keras.Sequential(
                     [
                         layers.Rescaling(1.0/255.0),
                         layers.RandomFlip("horizontal"),
@@ -354,7 +355,7 @@ def get_network(image_size, widths, block_depth, attention_type="transformer", p
                         layers.Rescaling(255.0),
                     ]
                 )
-    #noisy_images = data_augmentation(noisy_images)
+    noisy_images = data_augmentation(noisy_images)"""
     
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
@@ -590,7 +591,7 @@ class DiffusionStandardModel(tf.keras.Model):
     
 
 
-    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0): 
+    def learn_on_custom_dataset(self, train_dataset, val_dataset, n_images = 100, plot_imgs = True, aug=False, save=True, get_pretrained=True, percent=0.0, lamp=False, culture=0, category=0, imb=0, model_selection=True, parify_batches_diffusion=0, base_path = './', onlymin=0, test_set=None): 
         # below tensorflow 2.9:
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
@@ -680,8 +681,7 @@ class DiffusionStandardModel(tf.keras.Model):
             
         train_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(train_dataset, dtype="float32") / 255.0))
         val_dataset = tf.data.Dataset.from_tensor_slices(list(np.asarray(val_dataset, dtype="float32") / 255.0))
-        if parify_batches_diffusion==0:
-            
+        if parify_batches_diffusion==0 or onlymin==1:
             TS = train_dataset.batch(batch_size, drop_remainder=True)
             VS = val_dataset.batch(batch_size, drop_remainder=True)
         else:
@@ -712,11 +712,13 @@ class DiffusionStandardModel(tf.keras.Model):
             ]
         else:
             callbacks = [early, lr_reduce]
+        n = len(self.network.layers)
         # use Model Selection:
         if model_selection:
             best_kid = np.inf
-            for ep in [30, 50]:
-                for l_r in np.logspace(-6, -3, 4):
+            ep = 70
+            for percentage in [0]:
+                for l_r in np.logspace(-4, -2, 3):
                     print(f"training with epochs = {ep}, learning rate = {l_r}")
                     self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
                     self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
@@ -730,11 +732,11 @@ class DiffusionStandardModel(tf.keras.Model):
                     #    layer.trainable = not freeze
 
                     # Freeze early ~40%
-                    n = len(self.network.layers)
-                    for layer in self.network.layers[:int(0.3 * n)]:
+                    
+                    for layer in self.network.layers[:int(percentage * n)]:
                         layer.trainable = False
 
-                    for layer in self.ema_network.layers[:int(0.3 * n)]:
+                    for layer in self.ema_network.layers[:int(percentage * n)]:
                         layer.trainable = False
 
                     self.compile(
@@ -747,11 +749,7 @@ class DiffusionStandardModel(tf.keras.Model):
                     self.ema_network.save( base_path +'/new/ema_diffusion_pretrained.tf')
                     #self.build((None, self.image_size, self.image_size, 3))
 
-                    
-                    
-
-
-                    self.network.summary()
+                    #self.network.summary()
 
                     print("Pretrained images generation")
                     self.img_name =  base_path +"/PretrainedNetGeneration.png"
@@ -776,16 +774,32 @@ class DiffusionStandardModel(tf.keras.Model):
                         best_kid = kid
                         best_epochs = ep
                         best_lr = l_r
+                        best_percentage = percentage
+
+                        print(f"Best kid: {best_kid}, best epoch: {best_epochs}, best lr: {best_lr}, best_percentage: {best_percentage}")
 
                         #self.network.load_weights('./diffusion_pretrained/checkpoints/my_checkpoint')
         else:
             best_epochs = num_epochs
             best_lr = learning_rate
+            best_percentage = 0.4
 
+        for layer in self.network.layers[:int(best_percentage * n)]:
+            layer.trainable = False
+
+        for layer in self.ema_network.layers[:int(best_percentage * n)]:
+            layer.trainable = False
+
+        self.compile(
+                optimizer=AdamW(
+                    learning_rate=l_r, weight_decay=weight_decay
+                ),
+                loss=tf.keras.losses.mean_absolute_error,
+            )
         print(f'Fnal Training with epochs: {best_epochs}, and lr: {best_lr}')
         self.network = tf.keras.models.load_model('diffusion_pretrained.h5')
         self.ema_network = tf.keras.models.load_model('ema_diffusion_pretrained.h5')
-        print('Loaded pretrained model')
+
         self.compile(
                 optimizer=AdamW(
                     learning_rate=best_lr, weight_decay=weight_decay
@@ -793,21 +807,7 @@ class DiffusionStandardModel(tf.keras.Model):
                 loss=tf.keras.losses.mean_absolute_error,
             )
 
-        #self.network.summary()
-        #tf.keras.utils.plot_model(self.network, show_shapes=True, to_file="attention_unet.png")
-        #self.ema_network.summary()
-            
-        #for layer in self.network.layers[0:int(len(self.network.layers)/2)]:
-        #    layer.trainable = False
-            #print(layer.name)
-        #for layer in self.ema_network.layers[0:int(len(self.ema_network.layers)/2)]:
-        #    layer.trainable = False
-
-        # run training and plot generated images periodically
-
-        #self.network.summary()
-        #self.ema_network.summary()
-
+        
         if get_pretrained:
             if plot_imgs:
                 print("Pretrained images generation")
@@ -831,29 +831,7 @@ class DiffusionStandardModel(tf.keras.Model):
             callbacks=callbacks,
             shuffle=True
         )
-        """
-        for layer in self.network.layers[0:int(len(self.network.layers))]:
-            layer.trainable = True
-        for layer in self.ema_network.layers[0:int(len(self.ema_network.layers))]:
-            layer.trainable = True
-
-        # Fine tuning
         
-        self.compile(
-                optimizer=AdamW(
-                    learning_rate=learning_rate/100, weight_decay=weight_decay
-                ),
-                loss=tf.keras.losses.mean_absolute_error,
-            )
-
-        self.fit(
-            train_dataset,
-            epochs=num_epochs//3,
-            validation_data=val_dataset,
-            callbacks=callbacks,
-
-        )
-        """
         tot = 0
         generated_images = []
         for i in range(n_images//batch_size +1):
@@ -874,6 +852,23 @@ class DiffusionStandardModel(tf.keras.Model):
         self.network.save( base_path + net_path +'diffusion_pretrained.h5')
         self.ema_network.save( base_path + net_path +'ema_diffusion_pretrained.h5')
 
+        
+        if test_set:
+            fObj = FileManagerClass(net_path)
+
+            for i in range(len(test_set)):
+                TS = test_set[i]
+                def normalize_img(image):
+                    return tf.cast(image, tf.float32) / 255.0
+
+                TS_nor = [normalize_img(img) for img in TS]
+                
+                kd = self.test_fin(TS_nor)
+                data = [
+                    ["kid", kd]
+                ]
+                with open(net_path+f"kid_{i}.csv", "a", newline="", encoding="utf-8") as f:
+                    csv.writer(f).writerow(data)
 
 
         if plot_imgs:
@@ -885,8 +880,43 @@ class DiffusionStandardModel(tf.keras.Model):
         del VS
 
         return generated_images
+
+    def test_fin(self, images):
+        num_images = len(images)
+        # normalize images to have standard deviation of 1, like the noises
+        images = self.normalizer(images, training=False)
+        noises = tf.random.normal(shape=(num_images, self.image_size, self.image_size, 3))
+
+        # sample uniform random diffusion times
+        diffusion_times = tf.random.uniform(
+            shape=(num_images, 1, 1, 1), minval=0.0, maxval=1.0
+        )
+        noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
+        # mix the images with noises accordingly
+        noisy_images = signal_rates * images + noise_rates * noises
+
+        # use the network to separate noisy images to their components
+        pred_noises, pred_images = self.denoise(
+            noisy_images, noise_rates, signal_rates, training=False
+        )
+
+        noise_loss = self.loss(noises, pred_noises)
+        image_loss = self.loss(images, pred_images)
+
+        self.image_loss_tracker.update_state(image_loss)
+        self.noise_loss_tracker.update_state(noise_loss)
+
+        # measure KID between real and generated images
+        # this is computationally demanding, kid_diffusion_steps has to be small
+        images = self.denormalize(images)
+        generated_images = self.generate(
+            num_images=num_images, diffusion_steps=kid_diffusion_steps
+        )
+        self.kid.update_state(images, generated_images)
+
+        return {m.name: m.result() for m in self.metrics}
         
-    def plot_examples(self, base_path, culture, category, imb, diffusion_steps=kid_diffusion_steps):
+    def plot_examples(self, base_path, culture, category, imb, diffusion_steps=plot_diffusion_steps):
         pt =  base_path +f"/GeneratedImages/Carpets{culture}_{category}_imb={imb}/"
         fObj = FileManagerClass(pt)
         del fObj
