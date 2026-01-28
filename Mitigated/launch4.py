@@ -67,7 +67,7 @@ diffusion = 1
 k = 1
 adv = 0
 parify_batches_diffusion = 0
-only_min = 0
+only_min = 1
 
 basePath = "./try3/"
 
