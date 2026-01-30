@@ -61,7 +61,7 @@ eps = np.logspace(-2, -1, 2)
 g_aug = g_augs[1]
 ep=eps[0]
 cs = [2, 1, 0]
-lamps = [1, 0]
+lamps = [0, 1]
 
 diffusion = 1
 k = 1

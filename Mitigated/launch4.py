@@ -57,8 +57,8 @@ class_divisions = [0, 1]
 cl_div = 0
 g_augs = np.logspace(-2, -1, 2)
 eps = np.logspace(-2, -1, 2)
-cs = [1, 0, 2]
-lamps = [0, 1]
+cs = [0, 2, 1]
+lamps = [1,0]
 
 g_aug = g_augs[1]
 ep = eps[0]
