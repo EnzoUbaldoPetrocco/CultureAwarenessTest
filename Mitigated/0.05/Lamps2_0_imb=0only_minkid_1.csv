@@ -10,3 +10,6 @@
 "['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.16389945>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.24454926>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=0.7403131>}]"
 "['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.16139607>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.239029>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=0.45718598>}]"
 "['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.09067299>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.15546958>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=2.399921>}]"
+"['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.1580685>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.25251538>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=0.45364365>}]"
+"['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.13123046>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.20034459>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=2.8438115>}]"
+"['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.09712095>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.16137911>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=3.0585554>}]"
