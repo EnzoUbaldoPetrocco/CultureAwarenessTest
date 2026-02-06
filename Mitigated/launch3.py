@@ -20,7 +20,7 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
@@ -63,7 +63,7 @@ ep=eps[0]
 cs = [0, 1, 2]
 lamps = [1, 0]
 
-diffusion = 0
+diffusion = 1
 k = 1
 adv = 0
 parify_batches_diffusion = 0
