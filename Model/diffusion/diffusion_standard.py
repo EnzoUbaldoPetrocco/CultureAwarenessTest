@@ -596,6 +596,7 @@ class DiffusionStandardModel(tf.keras.Model):
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
+        base_path = base_path + f'/parbs={parify_batches_diffusion}/'
         
         if aug:
             suppress_output()
