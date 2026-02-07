@@ -857,7 +857,7 @@ class DiffusionStandardModel(tf.keras.Model):
         if not diffusion_pretrained_path.exists():
             print("File diffusion_pretrained does not exists!")
             self.network.save( base_path + net_path +'diffusion_pretrained.h5')
-        if not ema_diffusion_pretrained_path.exists()
+        if not ema_diffusion_pretrained_path.exists():
             print("File ema_diffusion_pretrained does not exists!")
             self.ema_network.save( base_path + net_path +'ema_diffusion_pretrained.h5')
 
