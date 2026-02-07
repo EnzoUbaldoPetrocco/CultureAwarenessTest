@@ -20,11 +20,11 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 13000
+memory_limit = 8000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -48,7 +48,7 @@ else:
 
 
 percent = 0.05
-standard = 0
+standard = 1
 # lamp = 1
 
 verbose_param = 1
@@ -72,6 +72,7 @@ only_min=0
 basePath = "./try3/"
 for lamp in lamps:
     for c in cs:
+     for k in [0, 1]:
         for parify_batches_diffusion in [1, 0]:    
             for i in range(3):
                 procObj = ProcessingClass(
