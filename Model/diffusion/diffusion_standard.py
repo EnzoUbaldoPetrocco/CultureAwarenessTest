@@ -597,7 +597,6 @@ class DiffusionStandardModel(tf.keras.Model):
         # pip install tensorflow_addons
         # import tensorflow_addons as tfa
         # optimizer=tfa.optimizers.AdamW
-        base_path = base_path + f'/parbs={parify_batches_diffusion}/'
         
         if aug:
             suppress_output()
@@ -758,9 +757,9 @@ class DiffusionStandardModel(tf.keras.Model):
                     self.plot_images()
 
                     if lamp:
-                        self.img_name =  base_path + f"/GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
+                        self.img_name =  base_path + f"/GeneratedImages/{percent}/parbs={parify_batches_diffusion}/'Lamps{culture}_{category}_imb={imb}.png"
                     else:
-                        self.img_name =  base_path +f"GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+                        self.img_name =  base_path +f"GeneratedImages/{percent}/parbs={parify_batches_diffusion}/Carpets{culture}_{category}_imb={imb}.png"
                     fObj = FileManagerClass(self.img_name)
                     del fObj
                     
@@ -817,9 +816,9 @@ class DiffusionStandardModel(tf.keras.Model):
                 self.plot_images()
 
         if lamp:
-            self.img_name =  base_path +f"/GeneratedImages/{percent}/Lamps{culture}_{category}_imb={imb}.png"
+            self.img_name =  base_path +f"/GeneratedImages/{percent}/parbs={parify_batches_diffusion}/Lamps{culture}_{category}_imb={imb}.png"
         else:
-            self.img_name =  base_path +f"/GeneratedImages/{percent}/Carpets{culture}_{category}_imb={imb}.png"
+            self.img_name =  base_path +f"/GeneratedImages/{percent}/parbs={parify_batches_diffusion}/Carpets{culture}_{category}_imb={imb}.png"
 
         fObj = FileManagerClass(self.img_name)
         del fObj
@@ -848,7 +847,7 @@ class DiffusionStandardModel(tf.keras.Model):
                     generated_images.append(img*255)
 
         generated_images = np.asarray(generated_images)
-        net_path = f'{percent}/Lamps{culture}_{category}/imb={imb}/'
+        net_path = f'{percent}/parbs={parify_batches_diffusion}/Lamps{culture}_{category}/imb={imb}/'
         if onlymin:
             net_path += '/only_min/'
 

@@ -20,7 +20,7 @@ random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
@@ -60,8 +60,8 @@ g_augs = np.logspace(-2, -1, 2)
 eps = np.logspace(-2, -1, 2)
 g_aug = g_augs[1]
 ep=eps[0]
-cs = [1, 0, 2]
-lamps = [0, 1]
+cs = [0, 2, 1]
+lamps = [1, 0]
 
 diffusion = 1
 k = 1
@@ -72,7 +72,7 @@ basePath = "./try3/"
 for i in range(3):
     for lamp in lamps:
         for c in cs:
-            for only_min in [1, 0]:
+            for only_min in [0, 1]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
