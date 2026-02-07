@@ -18,6 +18,7 @@ import sys
 from Utils.FileManager.FileManager import FileManagerClass
 import random
 import csv
+from pathlib import Path
 
 class AdamW(tf.keras.optimizers.Adam):
     def __init__(self, learning_rate=0.001, weight_decay=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-7, **kwargs):
@@ -847,11 +848,18 @@ class DiffusionStandardModel(tf.keras.Model):
                     generated_images.append(img*255)
 
         generated_images = np.asarray(generated_images)
-        net_path = f'{percent}/Lamps{culture}_{category}_imb={imb}'
+        net_path = f'{percent}/Lamps{culture}_{category}/imb={imb}/'
         if onlymin:
-            net_path += 'only_min'
-        self.network.save( base_path + net_path +'diffusion_pretrained.h5')
-        self.ema_network.save( base_path + net_path +'ema_diffusion_pretrained.h5')
+            net_path += '/only_min/'
+
+        diffusion_pretrained_path = Path(base_path + net_path +'diffusion_pretrained.h5')
+        ema_diffusion_pretrained_path = Path(base_path + net_path +'ema_diffusion_pretrained.h5')
+        if not diffusion_pretrained_path.exists():
+            print("File diffusion_pretrained does not exists!")
+            self.network.save( base_path + net_path +'diffusion_pretrained.h5')
+        if not ema_diffusion_pretrained_path.exists()
+            print("File ema_diffusion_pretrained does not exists!")
+            self.ema_network.save( base_path + net_path +'ema_diffusion_pretrained.h5')
 
         
         if test_set:
