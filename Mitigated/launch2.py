@@ -63,7 +63,6 @@ ep=eps[0]
 cs = [2, 0, 1]
 lamps = [1, 0]
 
-diffusion = 0
 k = 0
 adv = 0
 parify_batches_diffusion = 0
@@ -73,7 +72,8 @@ basePath = "./try3/"
 for lamp in lamps:
     for c in cs:
      for standard in [0, 1]:
-        for parify_batches_diffusion in [0, 1]:
+      for diffusion in [0, 1]:
+       for only_min in [0,1]:
             for i in range(3):
                 procObj = ProcessingClass(
                     shallow=0,
