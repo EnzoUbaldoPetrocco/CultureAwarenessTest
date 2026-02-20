@@ -63,7 +63,7 @@ ep=eps[0]
 cs = [2, 0, 1]
 lamps = [1, 0]
 
-k = 0
+k = 1
 adv = 0
 parify_batches_diffusion = 0
 only_min=0
