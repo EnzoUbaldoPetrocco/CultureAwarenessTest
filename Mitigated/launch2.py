@@ -48,7 +48,7 @@ else:
 
 
 percent = 0.05
-standard = 1
+standard = 0
 # lamp = 1
 
 verbose_param = 1
@@ -73,7 +73,8 @@ basePath = "./try3/"
 for i in range(3):
   for lamp in lamps:
     for c in cs:
-      for standard in [0, 1]:
+        for parify_batches_diffusion in [0,1]:
+            for diffusion in [0,1]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
