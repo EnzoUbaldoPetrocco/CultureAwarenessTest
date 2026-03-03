@@ -66,14 +66,13 @@ lamps = [0, 1]
 diffusion = 0
 k = 1
 adv = 0
-parify_batches_diffusion = 0
+parify_batches_diffusion = 1
 only_min=0
 
 basePath = "./try3/"
 for i in range(3):
   for lamp in lamps:
     for c in cs:
-        for parify_batches_diffusion in [0,1]:
             for diffusion in [0,1]:
                 procObj = ProcessingClass(
                     shallow=0,
