@@ -60,8 +60,8 @@ g_augs = np.logspace(-2, -1, 2)
 eps = np.logspace(-2, -1, 2)
 g_aug = g_augs[1]
 ep=eps[0]
-cs = [1, 2, 0]
-lamps = [1, 0]
+cs = [2, 0, 1]
+lamps = [0, 1]
 
 diffusion = 0
 k = 1
@@ -73,7 +73,7 @@ basePath = "./try3/"
 for i in range(3):
   for lamp in lamps:
     for c in cs:
-            for diffusion in [0,1]:
+            for diffusion in [1, 0]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
