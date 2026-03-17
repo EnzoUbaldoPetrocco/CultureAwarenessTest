@@ -1,0 +1,24 @@
+\begin{table*}
+\caption{Results}
+\label{tab:Results}
+\begin{tabular}{lrrrrr}
+\toprule
+Method & ERR0 & ERR1 & ERR2 & ERR & CIC \\
+\midrule
+BAL + NOAUG & 27.00 & 13.00 & 40.50 & 26.83 & 13.83 \\
+BAL + STD + g=0.0001 & 29.50 & 10.50 & 34.33 & 24.78 & 14.28 \\
+BAL + ADV + CLSDIV + ep=0.01 & 26.62 & 11.62 & 38.38 & 25.54 & 13.92 \\
+BAL + ADV + NOCLSDIV + ep=0.0001 & 23.25 & 15.25 & 39.25 & 25.92 & 10.67 \\
+BAL + DIFF + NOCLSDIV + ep=0.0001 & 28.12 & 12.50 & 35.00 & 25.21 & 12.71 \\
+IMB + NOAUG + NOCLSDIV + ep=0.0001 & 25.75 & 13.60 & 38.10 & 25.82 & 12.22 \\
+IMB + STD + NOCLSDIV + g=0.0001 & 24.50 & 12.56 & 34.44 & 23.83 & 11.27 \\
+MIT + BAL + NOAUG + NOCLSDIV + g=0.0001 & 23.71 & 12.29 & 37.21 & 24.40 & 12.12 \\
+MIT + BAL + STDAUG + NOCLSDIV + g=0.0001 & 25.67 & 14.17 & 36.83 & 25.56 & 11.39 \\
+MIT + BAL + DIFF + STDAUG + g=0.0001 & 25.12 & 10.88 & 35.75 & 23.92 & 13.04 \\
+MIT + BAL + DIFF + ONLYMIN + STDAUG + g=0.0001 & 27.12 & 13.50 & 36.75 & 25.79 & 12.29 \\
+MIT + PARBS + NOAUG + ONLYMIN + STDAUG + g=0.0001 & 24.75 & 15.08 & 36.00 & 25.28 & 10.19 \\
+MIT + PARBS + STDAUG + ONLYMIN + STDAUG + g=0.0001 & 21.50 & 13.70 & 35.40 & 23.53 & 9.83 \\
+MIT + PARBS + DIFF + ONLYMIN + STDAUG + g=0.0001 & 25.00 & 13.62 & 32.75 & 23.79 & 10.17 \\
+\bottomrule
+\end{tabular}
+\end{table*}
