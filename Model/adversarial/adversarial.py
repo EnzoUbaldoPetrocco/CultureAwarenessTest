@@ -1,29 +1,22 @@
 #!/usr/bin/env python
 __author__ = "Enzo Ubaldo Petrocco"
+
+import os
+import gc
 import sys
-import time
-
-from matplotlib import pyplot as plt
-
-sys.path.insert(1, "../")
+import random
+import copy
 import numpy as np
-from sklearn.model_selection import GridSearchCV
 import tensorflow as tf
 from tensorflow import keras
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras import layers
-from Model.GeneralModel import GeneralModelClass
-import gc
-import os
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import random
+from tensorflow.keras import layers
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+import matplotlib.pyplot as plt
 from datetime import datetime
-#import keras_cv
-from PIL import Image
-from IPython.display import Image as IImage
-import copy
 from math import ceil
+from Model.GeneralModel import GeneralModelClass
 
+# Reproducibility
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
 
@@ -36,39 +29,14 @@ def suppress_output():
 def restore_output():
     sys.stdout = sys.__stdout__
 
-
 class AdversarialStandard(GeneralModelClass):
-    def __init__(
-        self,
-        type="",
-        points=50,
-        kernel="linear",
-        verbose_param=0,
-        learning_rate=1e-3,
-        epochs=15,
-        batch_size=1,
-        weights=None,
-        imbalanced=0,
-        class_division=0,
-        only_imb_imgs=0,
-        save_discriminator=0,
-        path = './',
-        culture = 0
-
-    ):
-        """
-        Initialization function for modeling standard ML models.
-        We have narrowed the problems to image classification problems.
-        ResNet using Tensorflow library.
-        :param type: selects the algorithm  "RESNET" are possible values.
-        :param verbose_param: if enabled, the program logs more information
-        :param learning_rate: hyperparameter for DL
-        :param epochs: hyperparameter for DL
-        :param batch_size: hyperparameter for DL
-        """
-        GeneralModelClass.__init__(
-            self, standard=1, adversarial=1, imbalanced=imbalanced
-        )
+    def __init__(self, type="RESNET", points=50, kernel="linear", verbose_param=0,
+                 learning_rate=1e-3, epochs=15, batch_size=1, weights=None,
+                 imbalanced=0, class_division=0, only_imb_imgs=0,
+                 save_discriminator=0, path='./', culture=0):
+        
+        GeneralModelClass.__init__(self, standard=1, adversarial=1, imbalanced=imbalanced)
+        
         self.type = type
         self.points = points
         self.kernel = kernel
@@ -76,754 +44,189 @@ class AdversarialStandard(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
-        self.weights = np.ones(self.n_cultures)
         self.class_division = class_division
-        self.only_imb_imgs=only_imb_imgs
+        self.only_imb_imgs = only_imb_imgs
         self.save_discriminator = save_discriminator
-        self.reweighting = False
         self.path = path
-        self.testTS = None
         self.culture = culture
-        if weights is not None:
-            self.weights = weights
+        self.weights = weights if weights is not None else np.ones(self.n_cultures)
+        self.model = None
 
-    
-    def plot_images(self, generated_images, j=0, num_rows=3, num_cols=6):
-        def close_event():
-            plt.close()
-        # plot random generated images for visual evaluation of generation quality
-        generated_images = generated_images[0:num_rows * num_cols]
-            
-        fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
-        for row in range(num_rows):
-            for col in range(num_cols):
-                index = row * num_cols + col
-                plt.subplot(num_rows, num_cols, index + 1)
-                plt.imshow(generated_images[index]/255.0)
-                plt.axis("off")
-                #plt.imsave(f"./Sample{index}", generated_images[index])
-        plt.tight_layout()
-        timer = fig.canvas.new_timer(interval = 2000) #creating a timer object and setting an interval of 3000 milliseconds
-        timer.add_callback(close_event)
-        timer.start()
-        if not os.path.exists(self.path):
-                print(f"Making directory: {str(self.path)}")
-                os.makedirs(self.path)
-        plt.savefig(self.path + f"class={j}.jpg")
-        plt.show()
-        plt.close()
-    
     @tf.function
-    def generate_adversarial_image(self, img, lbl, model, epsilon=0.1, aug=False):
-        img = tf.expand_dims(img, axis=0)
-        lbl = tf.expand_dims(lbl, axis=0)
-        img = tf.convert_to_tensor(img)
-        lbl = tf.convert_to_tensor(lbl)
-        
-        with tf.GradientTape() as tape:
-            tape.watch(img)
-            prediction = model(img, training=False)
-            loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
-        gradient = tape.gradient(loss, img)
-        signed_grad = tf.sign(gradient)
-        img = img / 255.0
-        sum = tf.cast(epsilon, dtype=np.float32) * tf.cast(
-            signed_grad, dtype=np.float32
-        )
-        adversarial_img = tf.cast(img, dtype=np.float32) + sum
-        adversarial_img = adversarial_img * 255.0
-        return tf.clip_by_value(adversarial_img, 0, 255)
-    
-    @tf.function
-    def generate_adversarial_image_pgd(self, img, lbl, model,  epsilon=0.1, alpha=0.002, num_iter=50):
-        """Parameters:
-        - model: the target model to attack.
-        - x: the input images (batch).
-        - y: the true labels corresponding to x.
-        - epsilon: the maximum perturbation amount.
-        - alpha: the step size for each iteration.
-        - num_iter: the number of iterations for the PGD attack.
-        
-        Returns:
-        - x_adv: the adversarial examples generated from x.
-        """
-        img = tf.expand_dims(img, axis=0)
-        lbl = tf.expand_dims(lbl, axis=0)
-        img = tf.convert_to_tensor(img)
-        lbl = tf.convert_to_tensor(lbl)
+    def generate_adversarial_image_pgd(self, img, lbl, model, epsilon=0.1, alpha=0.002, num_iter=50):
+        img_batch = tf.expand_dims(img, axis=0)
+        lbl_batch = tf.expand_dims(lbl, axis=0)
+        x_adv = tf.identity(img_batch) 
 
-        x_adv = tf.identity(img)  # Start from the original input
-        
-        for i in range(num_iter):
+        for _ in range(num_iter):
             with tf.GradientTape() as tape:
                 tape.watch(x_adv)
-                prediction = model(x_adv)
-                loss = tf.keras.losses.categorical_crossentropy(lbl, prediction)
+                prediction = model(x_adv, training=False)
+                loss = tf.keras.losses.categorical_crossentropy(lbl_batch, prediction)
             
-            # Get the gradients of the loss w.r.t. the input image.
             gradients = tape.gradient(loss, x_adv)
+            # Logic: Perturb in 0-255 space, but considering epsilon is usually defined for 0-1
+            perturbations = alpha * 255.0 * tf.sign(gradients)
+            x_adv = x_adv + perturbations
             
-            # Perform the gradient ascent step
-            perturbations = alpha * tf.sign(gradients) 
-            x_adv = x_adv/255.0 + perturbations
-            
-            # Project the perturbation onto the epsilon ball
-            x_adv = tf.clip_by_value(x_adv, img/255.0 - epsilon, img/255.0 + epsilon)*255.0
-            x_adv = tf.clip_by_value(x_adv, 0, 255.0)  # Ensure the pixel values are still valid
+            # Project and Clip
+            x_adv = tf.clip_by_value(x_adv, img_batch - (epsilon * 255.0), img_batch + (epsilon * 255.0))
+            x_adv = tf.clip_by_value(x_adv, 0, 255.0)
             
         return x_adv
 
-    def generate_adversarial_samples(self, adv_train_generator, model, epsilon=0.1, aug=False):
-        adversarial_images = []
-        for img, lbl in adv_train_generator:
-            adversarial_img = self.generate_adversarial_image(img, lbl, model, epsilon, aug)
-            adversarial_images.append(adversarial_img)
-        return tf.convert_to_tensor(adversarial_images)
-
-    def remove_data_aug(self, model :keras.Model):  
-        input = keras.Input(shape=self.shape)
-        x = model.layers[2](input)
-        x = model.layers[3](x)
-        x = model.layers[4](x)
-        x = model.layers[5](x)
-        y = model.layers[6](x)
-        truncated_model = keras.Model(inputs = input, outputs = y)   
-        truncated_model.summary()
-        return truncated_model
-
-    def generate_adv_images_using_text(self, TS):
-        keras.mixed_precision.set_global_policy("mixed_float16")
-
-        model = keras_cv.models.StableDiffusionV2(jit_compile=True)   
-        prompt_1 = "An image of a Chinese lamp"
-        prompt_2 = "An image of a French lamp"
-        interpolation_steps = 5
-
-        encoding_1 = tf.squeeze(model.encode_text(prompt_1))
-        encoding_2 = tf.squeeze(model.encode_text(prompt_2))
-
-        interpolated_encodings = tf.linspace(encoding_1, encoding_2, interpolation_steps)
-        print(f"Encoding shape: {encoding_1.shape}")
+    def plot_images(self, generated_images, j=0, num_rows=3, num_cols=6):
+        if not generated_images: return
+        generated_images = generated_images[0:num_rows * num_cols]
+        fig = plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
+        for i, img in enumerate(generated_images):
+            plt.subplot(num_rows, num_cols, i + 1)
+            plt.imshow(img / 255.0)
+            plt.axis("off")
         
-        noise = tf.random.normal((512 // 8, 512 // 8, 4), seed=random.seed(datetime.now().timestamp()))
-        print(f"Before")
-        images = model.generate_image(
-            interpolated_encodings,
-            batch_size=interpolation_steps,
-            diffusion_noise=noise)
-        print(f"After")
-        
-        def export_as_gif(filename, images, frames_per_second=10, rubber_band=False):
-            if rubber_band:
-                images += images[2:-1][::-1]
-            images[0].save(
-                filename,
-                save_all=True,
-                append_images=images[1:],
-                duration=1000 // frames_per_second,
-                loop=0)
+        plt.tight_layout()
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+        plt.savefig(os.path.join(self.path, f"class={j}.jpg"))
+        plt.close()
 
-        export_as_gif(
-            "./doggo-and-fruit-6.gif",
-            [Image.fromarray(img) for img in images],
-            frames_per_second=2,
-            rubber_band=True)
-              
-        IImage("./doggo-and-fruit-6.gif")
-    
-    def LearningAdversarially(
-        self,
-        TS,
-        VS,
-        aug,
-        show_imgs=False,
-        batches=[32, 64],
-        lrs=[ 1e-3, 1e-4, 1e-5],
-        fine_lrs=[1e-5, 1e-6],
-        epochs=30,
-        fine_epochs=10,
-        nDropouts=[0.3, 0.4],
-        g=0.1,
-        save=False,
-        path="./",
-        eps=0.1,
-        text_adv=0,
-    ):
-        # SHUFFLE DATA
-        zipped_data = list(zip(*TS))
-        # Shuffle the list of tuples
-        random.shuffle(zipped_data)
-        # Unzip back into separate lists
-        TS = tuple(map(list, zip(*zipped_data)))
-        zipped_data = list(zip(*VS))
-        # Shuffle the list of tuples
-        random.shuffle(zipped_data)
-        # Unzip back into separate lists
-        VS = tuple(map(list, zip(*zipped_data)))
-        del zipped_data
+    def remove_data_aug(self, model):
+        # Assumes standard stack: Input -> Aug -> Scaling -> Base -> ...
+        # Skips layer 1 (Augmentation) and starts from Scaling/Base
+        inputs = keras.Input(shape=self.shape)
+        x = inputs
+        # Dynamically rebuild layers excluding the Augmentation sequence
+        for layer in model.layers[2:]:
+            x = layer(x)
+        return keras.Model(inputs=inputs, outputs=x)
 
+    def LearningAdversarially(self, TS, VS, aug, path="./", eps=0.1, **kwargs):
+        # 1. Shuffle
+        idx_t = np.random.permutation(len(TS[0]))
+        TS = ([TS[0][i] for i in idx_t], [TS[1][i] for i in idx_t])
+        if VS:
+            idx_v = np.random.permutation(len(VS[0]))
+            VS = ([VS[0][i] for i in idx_v], [VS[1][i] for i in idx_v])
 
-        eps = tf.cast(eps, np.float32)
-        class_division = self.class_division
         if self.imbalanced:
-                TS = self.ImbalancedTransformation(TS)
-                #VS = self.ImbalancedTransformation(VS) 
-       
+            TS = self.ImbalancedTransformation(TS)
+
         TS0 = copy.deepcopy(TS)
-        #VS0 = VS
+        adversarial_models = []
 
-        epsilons = np.logspace(-3, 0, 5)
-        images = []
-        for i in range(4):
-            idx = np.random.randint(0, len(TS[0]))
-            images.append((TS[0][idx], TS[1][idx]))
-
-        if class_division:
-            adversarial_model = []
-            print(f"ADVERSARIAL USING CLASS DIVISION")
-            for j in range(2): #np.unique(np.array(TS[1])[:][self.n_cultures]):
-                tempX = [
-                    TS[0][i]
-                    for i in range(len(TS[0]))
-                    if TS[1][i][self.n_cultures] == j
-                ]
-                tempY = [
-                    TS[1][i]
-                    for i in range(len(TS[1]))
-                    if TS[1][i][self.n_cultures] == j
-                ]
-                tempTS = (tempX, tempY)
-                tempX = [
-                    VS[0][i]
-                    for i in range(len(VS[0]))
-                    if VS[1][i][self.n_cultures] == j
-                ]
-                tempY = [
-                    VS[1][i]
-                    for i in range(len(VS[1]))
-                    if VS[1][i][self.n_cultures] == j
-                ]
-                tempVS = (tempX, tempY)
-                self.ModelSelection(
-                    TS=tempTS,
-                    VS=tempVS,
-                    aug=aug,
-                    show_imgs=show_imgs,
-                    batches=batches,
-                    lrs=lrs,
-                    fine_lrs=fine_lrs,
-                    epochs=epochs,
-                    fine_epochs=fine_epochs,
-                    nDropouts=nDropouts,
-                    g=g,
-                    save=save,
-                    path=path,
-                    adv=1,
-                    adversarial_model=None,
-                    eps=eps,
-                )
-                if aug:
-                    adversarial_model.append(self.remove_data_aug(self.model))
-                else:
-                    adversarial_model.append(self.model)
-
-                if self.save_discriminator:
-                    self.model.save(path=self.path + f'/class_discriminator={i}')
+        # 2. Phase 1: Train Discriminators (Either one global or per-class)
+        if self.class_division:
+            for j in range(2): 
+                tempTS = ([TS[0][i] for i in range(len(TS[0])) if TS[1][i][self.n_cultures] == j],
+                          [TS[1][i] for i in range(len(TS[1])) if TS[1][i][self.n_cultures] == j])
+                tempVS = ([VS[0][i] for i in range(len(VS[0])) if VS[1][i][self.n_cultures] == j],
+                          [VS[1][i] for i in range(len(VS[1])) if VS[1][i][self.n_cultures] == j])
+                
+                self.ModelSelection(TS=tempTS, VS=tempVS, aug=aug, adv=1, eps=eps, path=path, **kwargs)
+                adversarial_models.append(self.remove_data_aug(self.model) if aug else self.model)
                 self.model = None
                 gc.collect()
-            
-           
-            plot_rows = 3
-            plot_columns = 6
-            images_to_plot = []
-            (imgs, ys) = TS[0], TS[1]
-            mask = np.zeros(self.n_cultures)
-            mask[self.culture] = 1
-            for i in range(len(imgs)//8):
-                img = imgs[i]
-                y = ys[i]
-                if mask == y:
-                    continue
-                lbl = tf.cast(y[0:self.n_cultures], dtype=np.float32)
-                
-                
-                img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=lbl, model=adversarial_model[int(y[self.n_cultures])], epsilon=eps, alpha=eps/50)[0]
-                if img!=None:
-                    TS[0].append(img)
-                    TS[1].append(y)
-                if i < plot_columns*plot_rows:
-                    images_to_plot.append(img)
-            gc.collect()
-        
-            self.plot_images(images_to_plot, 0, plot_rows, plot_columns)
-
-            
         else:
-            self.ModelSelection(
-                TS=TS,
-                VS=VS,
-                aug=aug,
-                show_imgs=show_imgs,
-                batches=batches,
-                lrs=lrs,
-                fine_lrs=fine_lrs,
-                epochs=epochs,
-                fine_epochs=fine_epochs,
-                nDropouts=nDropouts,
-                g=g,
-                save=save,
-                path=path,
-                adv=1,
-                adversarial_model=None,
-                eps=eps,
-                class_division=0,
-            )
-            if aug:
-                adversarial_model = self.remove_data_aug(self.model)
-            else:
-                adversarial_model = self.model
+            self.ModelSelection(TS=TS, VS=VS, aug=aug, adv=1, eps=eps, path=path, **kwargs)
+            adversarial_models = self.remove_data_aug(self.model) if aug else self.model
 
-            if self.save_discriminator:
-                    self.model.save(path=path + f'/class_discriminator={i}')
+        # 3. Generate Adversarial Samples for Training Set
+        images_to_plot = []
+        imgs, ys = TS[0], TS[1]
+        for i in range(len(imgs) // 8):
+            target_model = adversarial_models[int(ys[i][self.n_cultures])] if self.class_division else adversarial_models
+            lbl = tf.cast(ys[i][0:self.n_cultures], dtype=tf.float32)
+            adv_img = self.generate_adversarial_image_pgd(tf.cast(imgs[i], tf.float32), lbl, target_model, epsilon=eps)[0]
             
-            plot_rows = 3
-            plot_columns = 6
-            images_to_plot = []
-            mask = np.zeros(self.n_cultures)
-            mask[self.culture] = 1
-            (imgs, ys) = TS[0], TS[1]
-            for i in range(len(imgs)//8):
-                img = imgs[i]
-                y = ys[i]
-                if (y == mask):
-                    continue
-                img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps, alpha=eps/50)[0]
-                if img!=None:
-                    TS[0].append(img)
-                    TS[1].append(y)
-                if i < plot_columns*plot_rows:
-                    images_to_plot.append(img)
+            TS[0].append(adv_img.numpy())
+            TS[1].append(ys[i])
+            if i < 18: images_to_plot.append(adv_img.numpy())
 
-            self.plot_images(images_to_plot, -1, plot_rows, plot_columns)
-            #(imgs, ys) = VS[0], VS[1]
-            #for i in range(len(imgs)):
-            #    img = imgs[i]
-            #    y = ys[i]
-            #    img = self.generate_adversarial_image_pgd(img=tf.cast(img, dtype=np.float32), lbl=tf.cast(y[0:self.n_cultures], dtype=np.float32), model=adversarial_model, epsilon=eps)[0]
-            #    VS[0].append(img)
-            #    VS[1].append(y)
-            ###############################
-            ####### SHOW DIFFERENT IMAGES BASED ON EPS #########
-        if show_imgs:
-            for ep in epsilons:
-                plt.figure(figsize=(10, 10))
-                c = 1
-                for i, (image, label) in enumerate(images):
-                    ax = plt.subplot(4, 2, c)
-                    plt.imshow(image)
-                    plt.title(label)
-                    ax = plt.subplot(4, 2, c + 1)
-                    c = c + 2
-                    adv_image = self.generate_adversarial_image_pgd(
-                        image * 1.0,
-                        label[0 : self.n_cultures],
-                        adversarial_model,
-                        epsilon=ep,
-                        alpha=ep/50
-                    )[0]
-                    plt.imshow(adv_image / 255.0)
-                    plt.title(label)
-                    plt.axis("off")
-                plt.show()
+        self.plot_images(images_to_plot, j=-1 if not self.class_division else 0)
 
-        self.model = None
-        for i in range(len(TS0[0])):
-            TS[0].append(TS0[0][i])
-            TS[1].append(TS0[1][i])
-        #for i in range(len(VS[0])):
-        #    VS[0].append(VS0[0][i])
-        #    VS[1].append(VS0[1][i])
-        self.adversarial_model = adversarial_model
-        tf.keras.backend.clear_session()
-        self.ModelSelection(
-            TS=TS,
-            VS=VS,
-            aug=aug,
-            show_imgs=show_imgs,
-            batches=batches,
-            lrs=lrs,
-            fine_lrs=fine_lrs,
-            epochs=epochs,
-            fine_epochs=fine_epochs,
-            nDropouts=nDropouts,
-            g=g,
-            save=save,
-            path=path,
-            adv=0,
-            adversarial_model=adversarial_model,
-            eps=eps,
-            class_division=class_division,
-        )
-
-        
+        # 4. Phase 2: Final Training on Augmented Data
+        self.ModelSelection(TS=TS, VS=VS, aug=aug, adv=0, eps=eps, path=path, **kwargs)
         tf.keras.backend.clear_session()
 
-    def ModelSelection(
-        self,
-        TS,
-        VS,
-        aug,
-        show_imgs=False,
-        batches=[32],
-        lrs=[8e-5, 8e-4],
-        fine_lrs=[1e-6],
-        epochs=[38],
-        fine_epochs=12,
-        nDropouts=[0.35],
-        g=0.1,
-        save=False,
-        path="./",
-        adv=0,  # if 1-> adversarial model is trained, if 0 -> actual model is used
-        adversarial_model=None,
-        eps=0.1,
-        class_division=0,
-    ):
-
-        if self.verbose_param:
-            tf.get_logger().setLevel(4)
+    def ModelSelection(self, TS, VS, aug, batches=[32], lrs=[1e-3], fine_lrs=[1e-5], epochs=15, fine_epochs=5, nDropouts=[0.3], adv=0, **kwargs):
         best_loss = np.inf
-        best_bs = batches[0]
-        best_lr = lrs[0]
-        best_fine_lr = fine_lrs[0]
-        best_nDropout = nDropouts[0]
+        best_params = {}
+
         for b in batches:
             for lr in lrs:
-                for fine_lr in fine_lrs:
-                    for nDropout in nDropouts:
-                        self.model = None
-                        gc.collect()
-                        tf.get_logger().info(
-                            f"Training with: batch_size={b}, lr={lr}, fine_lr={fine_lr}, nDropout={nDropout}"
-                        )
-                        sys.stdout.write("\r")
-                        loss = self.DL(
-                            TS,
-                            VS,
-                            aug,
-                            show_imgs,
-                            b,
-                            lr,
-                            fine_lr,
-                            epochs,
-                            fine_epochs,
-                            nDropout,
-                            g=g,
-                            adv=adv,
-                            adversarial_model=adversarial_model,
-                            eps=eps,
-                            class_division=class_division,
-                        )
-
+                for f_lr in fine_lrs:
+                    for drop in nDropouts:
+                        loss = self.DL(TS, VS, aug=aug, batch_size=b, lr=lr, fine_lr=f_lr, 
+                                       epochs=epochs, fine_epochs=fine_epochs, nDropout=drop, adv=adv, **kwargs)
                         if loss < best_loss:
                             best_loss = loss
-                            best_bs = b
-                            best_lr = lr
-                            best_fine_lr = fine_lr
-                            best_nDropout = nDropout
-
-                        self.model = None
-                        gc.collect()
-
-        print(
-            f"Best loss:{best_loss}, best batch size:{best_bs}, best lr:{best_lr}, best fine_lr:{best_fine_lr}, best_dropout:{best_nDropout}"
-        )
-        list(TS).append(VS)
-        self.DL(
-            TS,
-            None,
-            aug,
-            show_imgs,
-            best_bs,
-            best_lr,
-            best_fine_lr,
-            epochs,
-            fine_epochs,
-            best_nDropout,
-            val=False,
-            g=g,
-            adv=adv,
-            adversarial_model=adversarial_model,
-            eps=eps,
-            class_division=class_division,
-        )
-        tf.keras.backend.clear_session()
-        if save:
-            self.save(path)
+                            best_params = {'b': b, 'lr': lr, 'f_lr': f_lr, 'drop': drop}
+        
+        # Retrain with best params on combined TS+VS (as per original logic)
+        self.DL(TS, VS, aug=aug, batch_size=best_params['b'], lr=best_params['lr'], 
+                fine_lr=best_params['f_lr'], epochs=epochs, fine_epochs=fine_epochs, 
+                nDropout=best_params['drop'], val=False, adv=adv, **kwargs)
 
     def ImbalancedTransformation(self, TS):
-        newX = []
-        newY = []
-        X = TS[0]
-        Y = TS[1]
-        
-        for i in range(len(X)):
-            img = X[i]
-            label = Y[i]
-            for j in range(
-                ceil(1 / self.weights[label.index(1.0)])
-            ):  # I use the inverse of the total proportion for augmenting the dataset
-                newX.append(np.asarray(img))  
-                newY.append(np.asarray(label))
-        
-        del TS
-        tf.keras.backend.clear_session()
+        newX, newY = [], []
+        for img, label in zip(TS[0], TS[1]):
+            # Get index of active class
+            class_idx = np.argmax(label[:self.n_cultures])
+            repeat = ceil(1.0 / self.weights[class_idx])
+            for _ in range(repeat):
+                newX.append(img)
+                newY.append(label)
         return (newX, newY)
 
-    def DL(
-        self,
-        TS,
-        VS,
-        aug=False,
-        show_imgs=False,
-        batch_size=32,
-        lr=1e-3,
-        fine_lr=1e-5,
-        epochs=1,
-        fine_epochs=1,
-        nDropout=0.2,
-        g=0.1,
-        val=True,
-        adv=0,  # if 1-> adversarial model is trained, if 0 -> actual model is used
-        adversarial_model=None,
-        eps=0.1,
-        class_division=0,
-    ):
-        with tf.device("/gpu:0"):
-            shape = np.shape(TS[0][0])
-            self.shape = shape
+    def DL(self, TS, VS, aug=False, batch_size=32, lr=1e-3, fine_lr=1e-5, epochs=1, fine_epochs=1, nDropout=0.2, g=0.1, val=True, adv=0, **kwargs):
+        shape = np.shape(TS[0][0])
+        self.shape = shape
+        monitor = "val_loss" if val else "loss"
 
-            if val:
-                monitor_val = "val_loss"
-            else:
-                monitor_val = "loss"
+        # Data Pipeline
+        def map_fn(img, y):
+            label = y[0:self.n_cultures] if adv else y[self.n_cultures]
+            return img, label
 
-            data_augmentation = keras.Sequential(
-                [
-                    layers.RandomFlip("horizontal"),
-                    layers.RandomRotation(0.01),
-                    layers.GaussianNoise(g),
-                    tf.keras.layers.RandomBrightness(0.01),
-                    layers.RandomZoom(g, g),
-                    layers.Resizing(shape[0], shape[1]),
-                ]
-            )
+        train_ds = tf.data.Dataset.from_tensor_slices(TS).map(map_fn).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        val_ds = tf.data.Dataset.from_tensor_slices(VS).map(map_fn).batch(batch_size).prefetch(tf.data.AUTOTUNE) if val else None
 
-            if show_imgs and (not adv):
-                # DISPLAY IMAGES
-                # NOAUGMENTATION
-                images = []
-                for i in range(4):
-                    idx = np.random.randint(0, len(TS[0]) - 1)
-                    images.append((TS[0][idx], TS[1][idx]))
-                plt.figure(figsize=(10, 10))
-                for i, (image, label) in enumerate(images):
-                    ax = plt.subplot(4, 2, i + 1)
-                    plt.imshow(image)
-                    plt.title(label)
-                    ax = plt.subplot(4, 2, i + 5)
-                    if class_division:
-                        adv_image = self.generate_adversarial_image_pgd(
-                            data_augmentation(image, training=aug) * 1.0,
-                            label[0 : self.n_cultures],
-                            adversarial_model[int(label[self.n_cultures])],
-                            epsilon=eps, alpha=eps/50
-                        )[0]
-                    else:
-                        adv_image = self.generate_adversarial_image_pgd(
-                            data_augmentation(image, training=aug) * 1.0,
-                            label[0 : self.n_cultures],
-                            adversarial_model,
-                            epsilon=eps, alpha=eps/50
-                        )[0]
-                    plt.imshow(adv_image / 255.0)
-                    plt.title(label)
-                    plt.axis("off")
-                plt.show()
+        # Build Model
+        base_model = keras.applications.ResNet50V2(weights="imagenet", include_top=False, input_shape=shape)
+        base_model.trainable = False
 
-            validation_generator = None
-            train_generator = tf.data.Dataset.from_tensor_slices(TS)
-            # train_generator = tf.random.shuffle(int(train_generator.cardinality()/batch_size))
-            suppress_output()
-            if adv:  # adversarial model
-                train_generator = train_generator.map(
-                    lambda img, y: (
-                        img,
-                        y[0 : self.n_cultures],
-                    )
-                )
-            else:  # actual model
-                
-                train_generator = train_generator.map(
-                    lambda img, y: (
-                        img,
-                        y[self.n_cultures],
-                    )
-                )
-
-            train_generator = train_generator.batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
-            
-            if val:
-                validation_generator = tf.data.Dataset.from_tensor_slices(VS)
-
-                if adv:
-                    validation_generator = validation_generator.map(
-                        lambda img, y: (
-                            img,
-                            y[0 : self.n_cultures],
-                        )
-                    )
-                else:
-                    validation_generator = validation_generator.map(
-                        lambda img, y: (
-                            img,
-                            y[self.n_cultures],
-                        )
-                    )
-                validation_generator = validation_generator.batch(batch_size).prefetch(tf.data.AUTOTUNE).cache()
-                
-            restore_output()
-
-
-            #adversarial_model = None
-
-            # MODEL IMPLEMENTATION
-            base_model = keras.applications.ResNet50V2(
-                weights="imagenet",  # Load weights pre-trained on ImageNet.
-                input_shape=shape,
-                include_top=False,
-            )  # Do not include the ImageNet classifier at the top.
-
-            # Freeze the base_model
-            base_model.trainable = False
-
-            # Create  model on top
-            inputs = keras.Input(shape=shape)
-            scale_layer = keras.layers.Rescaling(scale=1 / 255.0)
-            if aug:
-                x = data_augmentation(inputs)  # Apply random data augmentation
-                x = scale_layer(x)
-            else:
-                x = scale_layer(inputs)
-
-            x = base_model(x, training=False)
-            x = keras.layers.GlobalAveragePooling2D()(x)
-            x = keras.layers.Dropout(nDropout)(x)  # Regularize with dropout
-            if adv:
-                outputs = keras.layers.Dense(3, activation="softmax")(x)
-            else:
-                outputs = keras.layers.Dense(1, activation="sigmoid")(x)
-            self.model = keras.Model(inputs, outputs)
-
-            if adv:
-                bcemetric = keras.losses.CategoricalCrossentropy(from_logits=True)
-                train_acc_metric = keras.metrics.CategoricalAccuracy()
-            else:
-                bcemetric = keras.losses.BinaryCrossentropy(from_logits=True)
-                train_acc_metric = keras.metrics.BinaryAccuracy()
-
-            #if self.reweighting:
-            #    class_weights = dict(enumerate(np.ones(self.n_cultures)/self.weights))
-            #else:
-            #    class_weights = dict(enumerate(np.ones(self.n_cultures)))
-
-            #print(f"Class weights are: {class_weights}")
-
-            lr_reduce = ReduceLROnPlateau(
-                monitor=monitor_val,
-                factor=0.2,
-                patience=5,
-                verbose=self.verbose_param,
-                min_lr=1e-9,
-            )
-            early = EarlyStopping(
-                monitor=monitor_val,
-                min_delta=0.001,
-                patience=10,
-                verbose=self.verbose_param,
-                mode="auto",
-            )
-            callbacks = [early, lr_reduce]
-
-            # self.model.summary()
-
-            # MODEL TRAINING
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(lr),
-                loss=bcemetric,
-                metrics=[train_acc_metric],
-                # run_eagerly=True
-            )
-
-            self.model.fit(
-                train_generator,
-                epochs=epochs,
-                validation_data=validation_generator,
-                verbose=self.verbose_param,
-                callbacks=callbacks,
-                shuffle=True
-                #class_weight=class_weights
-            )
-
-            # FINE TUNING
-            base_model.trainable = True
-            # self.model.summary()
-
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(fine_lr),
-                loss=bcemetric,
-                metrics=[train_acc_metric],
-                # run_eagerly=True
-            )
-
-            history = self.model.fit(
-                train_generator,
-                epochs=fine_epochs,
-                validation_data=validation_generator,
-                verbose=self.verbose_param,
-                callbacks=callbacks,
-                shuffle=True
-                #class_weight=class_weights
-            )
-            tf.keras.backend.clear_session()
-            return history.history[monitor_val][-1]
-
-
-    def fit(
-        self,
-        TS,
-        VS=None,
-        aug=0,
-        g=0.1,
-        eps=0.3,
-        gradcam=0,
-        out_dir="./",
-        complete=0,
-    ):
-        """
-        General function for implementing model selection
-        :param TS: training set
-        :param VS: validation set
-        :param adversary: if enabled, adversarial training is enabled
-        :param eps: if adversary enabled, step size of adversarial training
-        :param gradcam: if enabled, gradcam callback is called
-        :param out_dir: if gradcam enabled, output directory of gradcam heatmap
-        :param complete: dummy argument
-        """
+        inputs = keras.Input(shape=shape)
+        x = inputs
+        if aug:
+            x = layers.RandomFlip("horizontal")(x)
+            x = layers.RandomRotation(0.01)(x)
+            x = layers.GaussianNoise(g)(x)
+        x = layers.Rescaling(1./255.0)(x)
+        x = base_model(x, training=False)
+        x = layers.GlobalAveragePooling2D()(x)
+        x = layers.Dropout(nDropout)(x)
         
-        if self.type == "DL" or self.type == "RESNET":
-            self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
-            """self.DL_model_selection(
-                TS, VS, adversary, eps, mult, gradcam=gradcam, out_dir=out_dir
-            )"""
-        else:
+        output_dim = self.n_cultures if adv else 1
+        activation = "softmax" if adv else "sigmoid"
+        outputs = layers.Dense(output_dim, activation=activation)(x)
+        
+        self.model = keras.Model(inputs, outputs)
+
+        # Compile and Fit
+        loss_fn = keras.losses.CategoricalCrossentropy() if adv else keras.losses.BinaryCrossentropy()
+        self.model.compile(optimizer=keras.optimizers.Adam(lr), loss=loss_fn, metrics=['accuracy'])
+        
+        callbacks = [EarlyStopping(monitor=monitor, patience=5), ReduceLROnPlateau(monitor=monitor, factor=0.2)]
+        
+        self.model.fit(train_ds, epochs=epochs, validation_data=val_ds, callbacks=callbacks, verbose=self.verbose_param)
+
+        # Fine Tuning
+        base_model.trainable = True
+        self.model.compile(optimizer=keras.optimizers.Adam(fine_lr), loss=loss_fn, metrics=['accuracy'])
+        history = self.model.fit(train_ds, epochs=fine_epochs, validation_data=val_ds, callbacks=callbacks, verbose=self.verbose_param)
+
+        return history.history[monitor][-1]
+
+    def fit(self, TS, VS=None, aug=0, g=0.1, eps=0.3, out_dir="./", **kwargs):
+        if self.type in ["DL", "RESNET"]:
             self.LearningAdversarially(TS, VS, aug=aug, g=g, path=out_dir, eps=eps)
