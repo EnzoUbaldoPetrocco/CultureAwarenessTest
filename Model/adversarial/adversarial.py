@@ -69,8 +69,10 @@ class AdversarialStandard(GeneralModelClass):
         lbl_batch = tf.expand_dims(lbl, axis=0)
         x_adv = tf.identity(img_batch) 
 
-        eps_255 = epsilon * 255.0
-        alpha_255 = alpha * 255.0
+        # --- FIX: Cast these to float32 explicitly ---
+        eps_255 = tf.cast(epsilon * 255.0, dtype=tf.float32)
+        alpha_255 = tf.cast(alpha * 255.0, dtype=tf.float32)
+        # ----------------------------------------------
 
         for _ in range(num_iter):
             with tf.GradientTape() as tape:
@@ -80,11 +82,12 @@ class AdversarialStandard(GeneralModelClass):
             
             gradients = tape.gradient(loss, x_adv)
             x_adv = x_adv + alpha_255 * tf.sign(gradients)
-            x_adv = tf.clip_by_value(x_adv, img_batch - eps_255, img_batch + eps_255)
-            x_adv = tf.clip_by_value(x_adv, 0, 255.0)
             
-        return x_adv # Shape (1, H, W, C)
-
+            # Now these subtractions/additions will work because both sides are float32
+            x_adv = tf.clip_by_value(x_adv, img_batch - eps_255, img_batch + eps_255)
+            x_adv = tf.clip_by_value(x_adv, 0.0, 255.0) # Also use 0.0 to ensure float
+            
+        return x_adv
     def plot_culture_transition(self, original, adversarial, culture_idx, main_class, index=0):
         """
         Saves comparison plots in a structured directory hierarchy.
