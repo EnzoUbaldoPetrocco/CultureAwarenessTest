@@ -16,8 +16,8 @@ from datetime import datetime
 import numpy as np
 import cv2
 
-random.seed(datetime.now().timestamp())
-tf.random.set_seed(datetime.now().timestamp())
+random.seed(int(datetime.now().timestamp()))
+tf.random.set_seed(int(datetime.now().timestamp()))
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
