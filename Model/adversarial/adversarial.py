@@ -61,7 +61,7 @@ class AdversarialStandard(GeneralModelClass):
         self.shape = None
 
     @tf.function
-    def generate_adversarial_image_pgd(self, img, lbl, model, epsilon=0.1, alpha=0.002, num_iter=50):
+    def generate_adversarial_image_pgd(self, img, lbl, model, epsilon=0.1, alpha=0.005, num_iter=40):
         """
         Generates adversarial images. Perturbations are calculated in 0-255 space.
         """
@@ -164,7 +164,7 @@ class AdversarialStandard(GeneralModelClass):
             adversarial_models = self.remove_data_aug(self.model) if aug else self.model
 
         self.adversarial_model = adversarial_models
-        
+
         # 3. Generate Adversarial Samples
         original_len = len(TS[0])
         for i in range(original_len // 4):
