@@ -163,6 +163,8 @@ class AdversarialStandard(GeneralModelClass):
             self.ModelSelection(TS=TS, VS=VS, aug=aug, adv=1, eps=eps, path=path, **kwargs)
             adversarial_models = self.remove_data_aug(self.model) if aug else self.model
 
+        self.adversarial_model = adversarial_models
+        
         # 3. Generate Adversarial Samples
         original_len = len(TS[0])
         for i in range(original_len // 4):
