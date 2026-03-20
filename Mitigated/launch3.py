@@ -59,7 +59,7 @@ imb = 0
 g_augs = np.logspace(-2, -1, 2)
 eps = np.logspace(-2, -1, 2)
 g_aug = g_augs[1]
-ep=eps[0]
+ep=0.2
 cs = [1, 2, 0]
 lamps = [0, 1]
 
@@ -71,7 +71,7 @@ only_min = 0
 standard = 1
 
 basePath = "./try3/"
-for i in range(5):
+for i in range(6):
   for lamp in lamps:
     for c in cs:
         for cl_div in [1, 0]:
