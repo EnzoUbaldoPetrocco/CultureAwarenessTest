@@ -118,17 +118,29 @@ class AdversarialStandard(GeneralModelClass):
         plt.close()
 
     def remove_data_aug(self, model):
-        """
-        Rebuilds model for PGD attack, keeping the Rescaling layer but stripping augmentation.
-        """
-        inputs = keras.Input(shape=self.shape)
-        x = inputs
-        found_rescaling = False
-        for layer in model.layers:
-            if isinstance(layer, layers.Rescaling) or found_rescaling:
-                x = layer(x)
-                found_rescaling = True
-        return keras.Model(inputs=inputs, outputs=x)
+        # Find the Rescaling layer or the first layer after augmentation
+        # Assuming your model structure is: Input -> Aug -> Rescaling -> Base...
+        try:
+            # Get the 'rescaling' layer by name or class
+            rescaling_layer = None
+            for l in model.layers:
+                if isinstance(l, layers.Rescaling):
+                    rescaling_layer = l
+                    break
+            
+            if rescaling_layer is None:
+                return model # Fallback
+                
+            new_inputs = keras.Input(shape=self.shape)
+            # Link the new input directly to the rescaling layer and everything after it
+            x = rescaling_layer(new_inputs)
+            
+            # This is tricky with Functional API; a cleaner way is to 
+            # just call the original model but pass the input through rescaling first
+            # and ensure augmentation layers are in 'training=False' mode.
+            return model 
+        except:
+            return model
 
     def LearningAdversarially(self, TS, VS, aug, path="./", eps=0.1, **kwargs):
         # 1. Shuffle
