@@ -64,13 +64,13 @@ cs = [1, 2, 0]
 lamps = [0, 1]
 
 diffusion = 0
-k = 0
+k = 1
 adv = 1
 parify_batches_diffusion = 0
 only_min = 0
 standard = 1
 
-basePath = "./try3/"
+basePath = "./try4/"
 for i in range(6):
   for lamp in lamps:
     for c in cs:

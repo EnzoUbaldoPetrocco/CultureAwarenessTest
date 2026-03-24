@@ -41,23 +41,12 @@ verbose_param = 1
 # Requirement: If DIFF=1, then Augment=1
 todo_configs = [
     # --- MIT Group (standard=0) ---
-    (0, 0, 1, 1, 1, 0, 1), # MIT -> CJ -> DIFF -> ONLYMIN -> STDAUG
-    (0, 0, 1, 0, 0, 0, 1), # MIT -> CJ -> STDAUG
     (0, 1, 0, 1, 1, 0, 1), # MIT -> LC -> DIFF -> ONLYMIN -> STDAUG
-    (0, 1, 0, 0, 0, 1, 1), # MIT -> LC -> PARBS -> STDAUG
-    (0, 1, 1, 1, 1, 0, 1), # MIT -> LF -> DIFF -> ONLYMIN -> STDAUG
-    (0, 1, 1, 1, 0, 0, 1), # MIT -> LF -> DIFF -> STDAUG
-    (0, 1, 2, 1, 1, 1, 1), # MIT -> LT -> DIFF -> ONLYMIN -> PARBS -> STDAUG (Updated Aug=1 for Diff)
 
     # --- NO MIT Group (standard=1) ---
     (1, 0, 0, 1, 1, 1, 1), # CI -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 0, 0, 1, 1, 0, 1), # CI -> DIFF -> ONLYMIN -> STDAUG
-    (1, 0, 1, 1, 1, 0, 1), # CJ -> DIFF -> ONLYMIN -> STDAUG
     (1, 0, 2, 1, 1, 1, 1), # CS -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 0, 2, 1, 1, 0, 1), # CS -> DIFF -> ONLYMIN -> STDAUG
-    (1, 1, 0, 1, 1, 1, 1), # LC -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 1, 1, 1, 1, 1, 1), # LF -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 1, 1, 0, 0, 0, 1), # LF -> STDAUG
+    (1, 1, 1, 1, 0, 0, 1), # LF -> DIFF -> STDAUG
     (1, 1, 2, 1, 1, 1, 1), # LT -> DIFF -> ONLYMIN -> PARBS -> STDAUG
 ]
 
