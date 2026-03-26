@@ -41,13 +41,18 @@ verbose_param = 1
 # Requirement: If DIFF=1, then Augment=1
 todo_configs = [
     # --- MIT Group (standard=0) ---
-    (0, 1, 0, 1, 1, 0, 1), # MIT -> LC -> DIFF -> ONLYMIN -> STDAUG
+    (0, 0, 0, 0, 0, 1, 1), # MIT -> CI -> DIFF -> PARBS -> STDAUG
+    (0, 0, 1, 0, 0, 1, 1), # MIT -> CI -> DIFF -> PARBS -> STDAUG
+    (0, 0, 2, 0, 0, 1, 1), # MIT -> CI -> DIFF -> PARBS -> STDAUG
+    (0, 1, 0, 0, 0, 1, 1), # MIT -> CI -> DIFF -> PARBS -> STDAUG
+    (0, 1, 1, 0, 0, 1, 1), # MIT -> CI -> DIFF -> PARBS -> STDAUG
+    (0, 1, 2, 0, 0, 1, 1), # MIT -> CI -> DIFF -> PARBS -> STDAUG
 
     # --- NO MIT Group (standard=1) ---
-    (1, 0, 0, 1, 1, 1, 1), # CI -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 0, 2, 1, 1, 1, 1), # CS -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 1, 1, 1, 0, 0, 1), # LF -> DIFF -> STDAUG
-    (1, 1, 2, 1, 1, 1, 1), # LT -> DIFF -> ONLYMIN -> PARBS -> STDAUG
+    #(1, 0, 0, 1, 1, 1, 1), # CI -> DIFF -> ONLYMIN -> PARBS -> STDAUG
+    #(1, 0, 2, 1, 1, 1, 1), # CS -> DIFF -> ONLYMIN -> PARBS -> STDAUG
+    #(1, 1, 1, 1, 0, 0, 1), # LF -> DIFF -> STDAUG
+    #(1, 1, 2, 1, 1, 1, 1), # LT -> DIFF -> ONLYMIN -> PARBS -> STDAUG
 ]
 
 # --- Execution Loop ---

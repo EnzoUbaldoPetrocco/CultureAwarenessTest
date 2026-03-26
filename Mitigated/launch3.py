@@ -47,7 +47,7 @@ else:
     print("no gpus")
 
 
-percent = 0.05
+percent = 0.2
 standard = 1
 # lamp = 1
 
@@ -64,7 +64,7 @@ cs = [1, 2, 0]
 lamps = [0, 1]
 
 diffusion = 0
-k = 1
+k = 0
 adv = 1
 parify_batches_diffusion = 0
 only_min = 0
@@ -74,6 +74,7 @@ basePath = "./try4/"
 for i in range(6):
   for lamp in lamps:
     for c in cs:
+     for adv in [0,1]:
         for cl_div in [1, 0]:
                 procObj = ProcessingClass(
                     shallow=0,
