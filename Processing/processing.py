@@ -48,46 +48,75 @@ def random_culture(n_cultures, culture):
 
 class ProcessingClass:
     """
-    ProcessingClass is a middleware that takes into account
-    the the processing modules for testing the models
+    Main pipeline orchestrator for data processing, model training, and evaluation.
+    
+    This class coordinates the complete workflow:
+    1. Data loading and preprocessing
+    2. Optional augmentation (classical or diffusion-based)
+    3. Model training with various strategies
+    4. Testing and evaluation
+    5. Result logging
+    
+    Supports multiple model types (standard, mitigated, discriminator, adversarial)
+    and augmentation strategies for bias mitigation research.
+    
+    Attributes:
+        dataobj: DataClass instance for data management
+        shallow (bool): Shallow learning (SVM) vs deep learning (ResNet)
+        lamp (bool): Use lamp dataset vs carpet dataset
+        basePath (str): Base output directory
     """
 
     def __init__(
         self, shallow, lamp, gpu=False, memory_limit=2700, basePath="./"
     ) -> None:
         """
-        init function initialize the dataset object and the gpu setup
-        :param shallow: if enabled, shallow learning mode is activated and
-        we can use models such as Linear SVM, Gaussian SVM, ... If so,
-        we have the images to be greyscale and then flattened, else, we can use
-        deep learning algorithms (such as RESNER), so we must have images as RGB
-        :param lamp: if enabled we get the images from lamp folder, else from carpet
-        folder
-        :param gpu: if enabled we use the gpu, else we use the cpu
+        Initialize the processing pipeline.
+        
+        Args:
+            shallow (bool): 
+                True = shallow learning (SVM, RFC with flattened grayscale images)
+                False = deep learning (ResNet with RGB images)
+            lamp (bool):
+                True = use lamp dataset
+                False = use carpet dataset
+            gpu (bool): Enable GPU acceleration for TensorFlow
+            memory_limit (int): GPU memory limit in MB
+            basePath (str): Base path for output files
+        
+        Sets up dataset paths, GPU configuration, and initializes DataClass
+        for image loading and preprocessing.
         """
+        # Load dataset paths based on learning type
         if shallow:
             strObj = ShallowStrings()
             if lamp:
                 paths = strObj.lamp_paths
             else:
+                # Shallow learning for carpets not implemented
                 paths = None
         else:
+            # Deep learning uses RGB images
             strObj = DeepStrings()
             if lamp:
                 paths = strObj.lamp_paths
             else:
                 paths = strObj.carpet_paths_str
+        
         if paths:
             self.dataobj = DataClass(paths)
         else:
             raise Exception("Carpet Problem has not been tackled in shallow learning")
+        
         self.shallow = shallow
         self.lamp = lamp
         self.basePath = basePath
+        
+        # Configure GPU if requested
         if gpu:
             gpus = tf.config.experimental.list_physical_devices("GPU")
             if gpus:
-                # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
+                # Set memory limit for GPU to prevent OOM errors
                 try:
                     tf.config.experimental.set_virtual_device_configuration(
                         gpus[0],
@@ -108,9 +137,33 @@ class ProcessingClass:
             else:
                 print("no gpus")
         else:
+            # Disable GPU: use CPU only
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     def parify_batches(self, s, culture, hot_encoding, size):
+        """
+        Create culture-balanced batches for training.
+        
+        This method ensures that each batch contains samples from all cultures in proportion
+        to the majority culture. This addresses cultural imbalance by forcing the model
+        to see all cultures equally during each training step.
+        
+        Args:
+            s (tuple): Data tuple (X, y) where X are images and y are labels
+            culture (int): Index of majority culture
+            hot_encoding (bool): Whether labels are one-hot encoded
+            size (int): Output image size (square images)
+        
+        Returns:
+            tuple: (batches_X, batches_y) - balanced batches of images and labels
+        
+        Strategy:
+            1. Extract indices for each culture from one-hot or label format
+            2. Sample culture-balanced examples: for each sample from majority culture,
+               include one sample from each other culture
+            3. Group samples into batches of 64
+            4. If any culture runs out of samples, oversample using modular indexing
+        """
         data_x = np.asarray(s[0])
         data_y = np.asarray(s[1])
         
@@ -153,12 +206,13 @@ class ProcessingClass:
                 current_culture_indices = indeces_per_culture[j]
                 if len(current_culture_indices) == 0: continue
                 
+                # Sample from culture j, cycling back to start if needed (oversampling)
                 target_idx = current_culture_indices[i % len(current_culture_indices)]
                 
                 sample = data_x[target_idx]
                 label = data_y[target_idx]
                 
-                # Consistent resizing
+                # Consistent resizing to target size
                 resized_sample = cv2.resize(sample, (size, size), interpolation=cv2.INTER_CUBIC)
                 
                 B.append(resized_sample)
@@ -212,21 +266,38 @@ class ProcessingClass:
         plt_imgs = True
     ):
         """
-        This function prepares the data for training
-
-        :param standard: if enabled, we prepare the dataset for
-        standard ML, else our mitigation strategy
-        :param culture: culture is an integer number from 0 to |C|-1,
-        that represents the majority culture used for training the dataset
-        :param percent: is the percentage of images from their dataset of the minority cultures
-        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
-        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
-        :param n: is the maximum number of images contained in each cultural dataset for each class
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
+        Prepare training data with optional augmentation and bias mitigation strategies.
+        
+        Loads data, applies culture-stratified splitting, and optionally applies:
+        - Classical augmentation (rotation, noise, brightness)
+        - Diffusion-based synthetic data generation for minority cultures
+        - Parified batches for culture-balanced training
+        
+        Args:
+            standard (int): 0=mitigated strategy, 1=standard model
+            culture (int): Index of majority culture (0 to n_cultures-1)
+            percent (float): Percentage of minority culture data to include (0-1)
+            val_split (float): Validation set ratio (0-1)
+            test_split (float): Test set ratio (0-1)
+            n (int): Maximum images per culture/class
+            augment (int): Enable classical augmentation
+            gaug (float): Classical augmentation gain
+            adversarial (int): Enable adversarial training
+            imbalanced (int): Enable imbalanced learning strategies
+            discriminator (int): Prepare for discriminator training
+            diffusion (int): Enable diffusion-based augmentation
+            only_minority_diffusion (int): Generate only for non-majority cultures
+            parify_batches_diffusion (int): Create culture-balanced batches
+            plt_imgs (bool): Plot sample images
+        
+        Data Preparation Pipeline:
+            1. Load images from disk for specified culture distribution
+            2. Split into train/validation/test sets (stratified by culture)
+            3. Optionally augment training data
+            4. Optionally generate synthetic images with diffusion
+            5. Store in self.dataobj for use in model training
         """
+        # Load and split data with specified cultural composition
         self.dataobj.prepare(
             standard=standard,
             culture=culture,

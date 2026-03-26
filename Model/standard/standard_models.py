@@ -30,6 +30,16 @@ tf.random.set_seed(datetime.now().timestamp())
 
 
 class StandardModels(GeneralModelClass):
+    """
+    Standard machine learning models without bias mitigation.
+    
+    Implements three model types:
+    - SVM (Support Vector Machine): Linear or RBF kernel
+    - RFC (Random Forest Classifier): Ensemble method
+    - DL (Deep Learning): ResNet50V2 with ImageNet pre-training
+    
+    Used as baselines for comparison with mitigated strategies.
+    """
     def __init__(
         self,
         type="SVC",
@@ -45,17 +55,22 @@ class StandardModels(GeneralModelClass):
         path = './'
     ):
         """
-        Initialization function for modeling standard ML models.
-        We have narrowed the problems to image classification problems.
-        I have implemented SVM (with linear and gaussian kernel) and Random Forest, using scikit-learn library;
-        ResNet using Tensorflow library.
-        :param type: selects the algorithm "SVC", "RFC" and "RESNET" are possible values.
-        :param points: n of points in gridsearch for SVC and RFC
-        :param kernel: type of kernel for SVC: "linear" and "gaussian" are possible values.
-        :param verbose_param: if enabled, the program logs more information
-        :param learning_rate: hyperparameter for DL
-        :param epochs: hyperparameter for DL
-        :param batch_size: hyperparameter for DL
+        Initialize standard model.
+        
+        Args:
+            type (str): Model type - "SVC" (SVM), "RFC" (Random Forest), or "DL" (ResNet)
+            points (int): GridSearch points for SVM/RFC hyperparameter tuning
+            kernel (str): SVM kernel - "linear" or "rbf" (RBF/Gaussian kernel)
+            verbose_param (int): Verbosity level for logging
+            learning_rate (float): Learning rate for deep learning models
+            epochs (int): Number of training epochs for deep learning
+            batch_size (int): Batch size for deep learning
+            weights (array): Optional sample weight vector
+            imbalanced (int): Handle data imbalance
+            diffusion (int): Use diffusion-augmented data
+            path (str): Base path for model files
+        
+        Note: All models inherit from GeneralModelClass with standard=1
         """
         GeneralModelClass.__init__(self, standard=1, imbalanced=imbalanced)
         self.type = type
@@ -65,8 +80,8 @@ class StandardModels(GeneralModelClass):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.batch_size = batch_size
-        self.weights=np.ones(self.n_cultures)
-        self.diffusion=diffusion
+        self.weights = np.ones(self.n_cultures)
+        self.diffusion = diffusion
         self.path = path
         if weights is not None:
             self.weights=weights
