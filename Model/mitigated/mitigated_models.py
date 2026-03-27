@@ -26,20 +26,66 @@ import gc
 #tf.keras.backend.set_floatx('float32')
 
 class CustomReg(Regularizer):
-        def __init__(self, lamb, n_cultures):
-            self.lamb = lamb
-            self.n_cultures = n_cultures
+    """
+    Custom regularizer for culture-bias mitigation.
+    
+    Minimizes the variance of culture-specific weight matrices by penalizing
+    deviations from the mean weight vector. This encourages the model to learn
+    similar decision boundaries for all cultures.
+    
+    Mathematical Formulation:
+        L_reg = λ * Σ_i ||w_i - mean(w)||²
+    
+    Where:
+        - w_i: weight matrix for culture i
+        - mean(w): average weight matrix across all cultures
+        - λ: regularization strength parameter
+    
+    This strategy aims to reduce per-culture accuracy disparities.
+    """
+    def __init__(self, lamb, n_cultures):
+        """
+        Initialize the custom regularizer.
+        
+        Args:
+            lamb (float): Regularization strength (λ parameter)
+            n_cultures (int): Number of cultures in dataset
+        """
+        self.lamb = lamb
+        self.n_cultures = n_cultures
 
-        def __call__(self, x):
-            
-            mean = tf.reshape(tf.reduce_mean(x, axis=1),  [-1, 1])
-            diff = tf.subtract(x, mean)
-            reg = tf.reduce_sum(tf.square(diff))
-            res = (self.lamb) * reg
+    def __call__(self, x):
+        """
+        Compute regularization penalty for weight matrix.
+        
+        Args:
+            x (Tensor): Weight matrix of shape [features, n_cultures]
+        
+        Returns:
+            Tensor: Scalar regularization penalty
+        """
+        # Compute mean weight across cultures
+        mean = tf.reshape(tf.reduce_mean(x, axis=1), [-1, 1])
+        # Compute deviations from mean
+        diff = tf.subtract(x, mean)
+        # Sum of squared deviations
+        reg = tf.reduce_sum(tf.square(diff))
+        # Apply regularization strength
+        res = (self.lamb) * reg
 
-            return res
+        return res
 
 class MitigatedModels(GeneralModelClass):
+    """
+    Mitigated models with custom bias reduction strategies.
+    
+    Implements culture-aware training using:
+    - Custom regularization to reduce per-culture weight variance
+    - Per-culture output heads for culture-specific predictions
+    - Culture-Inclusive loss (CIC) for fairness
+    
+    Aims to reduce cultural bias while maintaining overall performance.
+    """
     def __init__(
         self,
         type="DL",
@@ -56,15 +102,25 @@ class MitigatedModels(GeneralModelClass):
         parify_batches_diffusion=0
     ):
         """
-        Initialization function for modeling mitigated ML models.
-        We have narrowed the problems to image classification problems.
-        :param type: selects the algorithm even if up to now "RESNET" is the only possible value.
-        :param culture: selects the majority culture
-        :param verbose_param: if enabled, the program logs more information
-        :param learning_rate: hyperparameter for DL
-        :param epochs: hyperparameter for DL
-        :param batch_size: hyperparameter for DL
-        :param lambda_index: select the gain of the regularizer in a logspace(-3, 2, 31)
+        Initialize mitigated model with bias mitigation.
+        
+        Args:
+            type (str): Model architecture - "DL" for ResNet50V2 (only option currently)
+            culture (int): Index of majority culture
+            verbose_param (int): Verbosity level
+            epochs (int): Number of training epochs
+            batch_size (int): Batch size for training
+            learning_rate (float): Adam optimizer learning rate
+            lambda_index (int): Regularization strength index in [0, 31]
+                - Corresponds to logspace(-3, 2, 31)
+                - Higher index = stronger regularization
+            n_cultures (int): Number of cultures in dataset
+            weights (array): Optional sample weights
+            imbalanced (int): Handle imbalanced data
+            diffusion (int): Use diffusion-augmented data
+            parify_batches_diffusion (int): Use culture-balanced batches
+        
+        Note: All mitigated models inherit from GeneralModelClass with standard=0
         """
         GeneralModelClass.__init__(self, standard=0, n_cultures=n_cultures, imbalanced=imbalanced)
         self.type = type
