@@ -718,9 +718,9 @@ class ProcessingClass:
             self.prepare_test()
             if class_division:
                 for j in range(2):
-                    self.discriminator_test( augment, imbalanced, self.model.adversarial_model[j], j)
+                    self.discriminator_test( 0, imbalanced, self.model.adversarial_model[j], j)
             else:
-                self.discriminator_test( augment, imbalanced, self.model.adversarial_model)
+                self.discriminator_test( 0, imbalanced, self.model.adversarial_model)
         self.imbalanced = imbalanced
         
         del c
