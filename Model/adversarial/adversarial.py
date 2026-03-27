@@ -5,7 +5,6 @@ import os
 import gc
 import sys
 import random
-import copy
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -14,27 +13,22 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import matplotlib.pyplot as plt
 from datetime import datetime
 from math import ceil
-from Model.GeneralModel import GeneralModelClass
 import math
 
-# Use integer division or floor to be 100% sure no float-point noise remains
-seed_val = int(math.floor(datetime.now().timestamp()))
+# Import your base class
+from Model.GeneralModel import GeneralModelClass
 
+# Set seeds for reproducibility
+seed_val = int(math.floor(datetime.now().timestamp()))
 random.seed(seed_val)
 np.random.seed(seed_val)
 tf.random.set_seed(seed_val)
-
-# Extra safety for tf.data operations
 os.environ['PYTHONHASHSEED'] = str(seed_val)
 
-class NullWriter:
-    def write(self, _): pass
-
-def suppress_output():
-    sys.stdout = NullWriter()
-
-def restore_output():
-    sys.stdout = sys.__stdout__
+# Suppress annoying TF warnings about while_loops on the A100
+import logging
+tf.get_logger().setLevel(logging.ERROR)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class AdversarialStandard(GeneralModelClass):
     def __init__(self, type="RESNET", points=50, kernel="linear", verbose_param=0,
@@ -63,53 +57,52 @@ class AdversarialStandard(GeneralModelClass):
     @tf.function
     def generate_adversarial_image_pgd(self, img, lbl, model, epsilon=0.1, alpha=0.005, num_iter=40):
         """
-        Generates adversarial images. Perturbations are calculated in 0-255 space.
+        Calculates PGD perturbations. 
+        Uses training=False to bypass Random Layers (Flip, Rotation, Noise).
         """
+        # Ensure we have a batch dimension (1, H, W, C)
         img_batch = tf.expand_dims(img, axis=0) 
         lbl_batch = tf.expand_dims(lbl, axis=0)
         x_adv = tf.identity(img_batch) 
 
-        # --- FIX: Cast these to float32 explicitly ---
+        # Cast epsilon/alpha to float32 to match image tensor type
         eps_255 = tf.cast(epsilon * 255.0, dtype=tf.float32)
         alpha_255 = tf.cast(alpha * 255.0, dtype=tf.float32)
-        # ----------------------------------------------
 
         for _ in range(num_iter):
             with tf.GradientTape() as tape:
                 tape.watch(x_adv)
+                # CRITICAL: training=False ensures random layers are dormant
                 prediction = model(x_adv, training=False)
                 loss = tf.keras.losses.categorical_crossentropy(lbl_batch, prediction)
             
             gradients = tape.gradient(loss, x_adv)
             x_adv = x_adv + alpha_255 * tf.sign(gradients)
             
-            # Now these subtractions/additions will work because both sides are float32
+            # Project back onto the epsilon ball and valid image range
             x_adv = tf.clip_by_value(x_adv, img_batch - eps_255, img_batch + eps_255)
-            x_adv = tf.clip_by_value(x_adv, 0.0, 255.0) # Also use 0.0 to ensure float
+            x_adv = tf.clip_by_value(x_adv, 0.0, 255.0) 
             
         return x_adv
+
     def plot_culture_transition(self, original, adversarial, culture_idx, main_class, index=0):
         """
-        Saves comparison plots in a structured directory hierarchy.
+        Saves comparison plots. Clips values to [0,1] to avoid Matplotlib warnings.
         """
         div_status = "ClassDiv_ON" if self.class_division else "ClassDiv_OFF"
-        
-        specific_path = os.path.join(
-            self.path, 
-            div_status, 
-            f"MainClass_{int(main_class)}", 
-            f"SourceCulture_{culture_idx}"
-        )
+        specific_path = os.path.join(self.path, div_status, f"MainClass_{int(main_class)}", f"SourceCulture_{culture_idx}")
         
         if not os.path.exists(specific_path):
             os.makedirs(specific_path, exist_ok=True)
             
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-        axes[0].imshow(original / 255.0)
+        
+        # np.clip avoids "Clipping input data to the valid range" warnings
+        axes[0].imshow(np.clip(original / 255.0, 0, 1))
         axes[0].set_title(f"Original (Culture {culture_idx})")
         axes[0].axis("off")
         
-        axes[1].imshow(adversarial / 255.0)
+        axes[1].imshow(np.clip(adversarial / 255.0, 0, 1))
         axes[1].set_title(f"Adv (Main Class {int(main_class)})")
         axes[1].axis("off")
         
@@ -118,29 +111,11 @@ class AdversarialStandard(GeneralModelClass):
         plt.close()
 
     def remove_data_aug(self, model):
-        # Find the Rescaling layer or the first layer after augmentation
-        # Assuming your model structure is: Input -> Aug -> Rescaling -> Base...
-        try:
-            # Get the 'rescaling' layer by name or class
-            rescaling_layer = None
-            for l in model.layers:
-                if isinstance(l, layers.Rescaling):
-                    rescaling_layer = l
-                    break
-            
-            if rescaling_layer is None:
-                return model # Fallback
-                
-            new_inputs = keras.Input(shape=self.shape)
-            # Link the new input directly to the rescaling layer and everything after it
-            x = rescaling_layer(new_inputs)
-            
-            # This is tricky with Functional API; a cleaner way is to 
-            # just call the original model but pass the input through rescaling first
-            # and ensure augmentation layers are in 'training=False' mode.
-            return model 
-        except:
-            return model
+        """
+        Keras handles augmentation removal automatically during .predict(training=False).
+        Manual graph reconstruction is disabled to prevent 'Empty batch_outputs' errors.
+        """
+        return model
 
     def LearningAdversarially(self, TS, VS, aug, path="./", eps=0.1, **kwargs):
         # 1. Shuffle
@@ -157,7 +132,6 @@ class AdversarialStandard(GeneralModelClass):
 
         # 2. Phase 1: Train Cultural Discriminators
         if self.class_division:
-            # Train two discriminators based on the binary label (e.g., On/Off)
             for j in range(2): 
                 tempTS = ([TS[0][i] for i in range(len(TS[0])) if TS[1][i][self.n_cultures] == j],
                           [TS[1][i] for i in range(len(TS[1])) if TS[1][i][self.n_cultures] == j])
@@ -166,19 +140,21 @@ class AdversarialStandard(GeneralModelClass):
                 
                 if len(tempTS[0]) > 0:
                     self.ModelSelection(TS=tempTS, VS=tempVS, aug=aug, adv=1, eps=eps, path=path, **kwargs)
-                    adversarial_models.append(self.remove_data_aug(self.model) if aug else self.model)
+                    adversarial_models.append(self.model)
                 else:
                     adversarial_models.append(None)
-                self.model = None
+                
+                self.model = None # Clear reference for next loop
                 gc.collect()
         else:
             self.ModelSelection(TS=TS, VS=VS, aug=aug, adv=1, eps=eps, path=path, **kwargs)
-            adversarial_models = self.remove_data_aug(self.model) if aug else self.model
+            adversarial_models = self.model
 
         self.adversarial_model = adversarial_models
 
         # 3. Generate Adversarial Samples
         original_len = len(TS[0])
+        # Generate for 25% of the dataset
         for i in range(original_len // 4):
             culture_vec = TS[1][i][0:self.n_cultures]
             main_label = TS[1][i][self.n_cultures]
@@ -189,15 +165,18 @@ class AdversarialStandard(GeneralModelClass):
             original_img = TS[0][i].copy()
             lbl = tf.cast(culture_vec, dtype=tf.float32)
             
+            # Generate perturbed image
             adv_img_batch = self.generate_adversarial_image_pgd(
                 tf.cast(original_img, tf.float32), lbl, target_model, epsilon=eps
             )
-            adv_img = adv_img_batch[0].numpy() 
+            
+            # Detach from GPU graph with .numpy().copy()
+            adv_img = adv_img_batch[0].numpy().copy() 
             
             TS[0].append(adv_img)
             TS[1].append(TS[1][i])
             
-            if i < 20: # Visual audit
+            if i < 20: # Visual audit for the first 20 samples
                 self.plot_culture_transition(
                     original=original_img, 
                     adversarial=adv_img, 
@@ -206,7 +185,8 @@ class AdversarialStandard(GeneralModelClass):
                     index=i
                 )
 
-        # 4. Phase 2: Final Training for the Binary Classification task
+        # 4. Phase 2: Final Training for Binary Classification
+        print("Starting Phase 2: Final Binary Classification...")
         self.ModelSelection(TS=TS, VS=VS, aug=aug, adv=0, eps=eps, path=path, **kwargs)
         tf.keras.backend.clear_session()
 
@@ -224,6 +204,7 @@ class AdversarialStandard(GeneralModelClass):
                             best_loss = loss
                             best_params = {'b': b, 'lr': lr, 'f_lr': f_lr, 'drop': drop}
         
+        # Train final version with best params
         self.DL(TS, VS, aug=aug, batch_size=best_params['b'], lr=best_params['lr'], 
                 fine_lr=best_params['f_lr'], epochs=epochs, fine_epochs=fine_epochs, 
                 nDropout=best_params['drop'], val=False, adv=adv, **kwargs)
@@ -234,7 +215,7 @@ class AdversarialStandard(GeneralModelClass):
             class_idx = np.argmax(label[:self.n_cultures])
             repeat = ceil(1.0 / self.weights[class_idx])
             for _ in range(repeat):
-                newX.append(img)
+                newX.append(img.copy())
                 newY.append(label)
         return (newX, newY)
 
@@ -246,9 +227,9 @@ class AdversarialStandard(GeneralModelClass):
         monitor = "val_loss" if val else "loss"
 
         def map_fn(img, y):
-            # Culture vector if adv=1, Binary scalar if adv=0
+            # If adv=1: target is Culture Vector. If adv=0: target is Binary Scalar.
             label = y[0:self.n_cultures] if adv else tf.expand_dims(y[self.n_cultures], axis=-1)
-            return img, label
+            return tf.cast(img, tf.float32), label
 
         train_ds = tf.data.Dataset.from_tensor_slices((TS[0], TS[1])).map(map_fn).shuffle(1000).batch(batch_size).prefetch(tf.data.AUTOTUNE)
         val_ds = tf.data.Dataset.from_tensor_slices((VS[0], VS[1])).map(map_fn).batch(batch_size).prefetch(tf.data.AUTOTUNE) if val else None
@@ -262,6 +243,7 @@ class AdversarialStandard(GeneralModelClass):
             x = layers.RandomFlip("horizontal")(x)
             x = layers.RandomRotation(0.01)(x)
             x = layers.GaussianNoise(g)(x)
+        
         x = layers.Rescaling(1./255.0)(x)
         x = base_model(x, training=False)
         x = layers.GlobalAveragePooling2D()(x)
@@ -272,6 +254,7 @@ class AdversarialStandard(GeneralModelClass):
         outputs = layers.Dense(output_dim, activation=activation)(x)
         
         self.model = keras.Model(inputs, outputs)
+        
         loss_fn = keras.losses.CategoricalCrossentropy() if adv else keras.losses.BinaryCrossentropy()
         self.model.compile(optimizer=keras.optimizers.Adam(lr), loss=loss_fn, metrics=['accuracy'])
         
@@ -280,6 +263,7 @@ class AdversarialStandard(GeneralModelClass):
         
         self.model.fit(train_ds, epochs=epochs, validation_data=val_ds, callbacks=callbacks, verbose=self.verbose_param)
 
+        # Fine-tuning phase
         base_model.trainable = True
         self.model.compile(optimizer=keras.optimizers.Adam(fine_lr), loss=loss_fn, metrics=['accuracy'])
         history = self.model.fit(train_ds, epochs=fine_epochs, validation_data=val_ds, callbacks=callbacks, verbose=self.verbose_param)

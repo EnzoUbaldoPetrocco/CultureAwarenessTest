@@ -16,15 +16,15 @@ from datetime import datetime
 import numpy as np
 import cv2
 
-random.seed(datetime.now().timestamp())
-tf.random.set_seed(datetime.now().timestamp())
+random.seed(int(datetime.now().timestamp()))
+tf.random.set_seed(int(datetime.now().timestamp()))
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # tf.config.set_soft_device_placement(True)
 
-memory_limit = 8000
+memory_limit = 7000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
@@ -59,22 +59,22 @@ imb = 0
 g_augs = np.logspace(-2, -1, 2)
 eps = np.logspace(-2, -1, 2)
 g_aug = g_augs[1]
-ep=eps[0]
+ep=0.2
 cs = [2, 0, 1]
 lamps = [1, 0]
 
 diffusion = 0
 k = 1
-adv = 0
-#parify_batches_diffusion = 
-only_min=0
+adv = 1
+parify_batches_diffusion = 0
+only_min = 0
+standard = 1
 
-basePath = "./try3/"
-for lamp in lamps:
+basePath = "./try4/"
+for i in range(6):
+  for lamp in lamps:
     for c in cs:
-     for k in [0, 1]:
-        for parify_batches_diffusion in [1, 0]:    
-            for i in range(3):
+        for cl_div in [1, 0]:
                 procObj = ProcessingClass(
                     shallow=0,
                     lamp=lamp,
