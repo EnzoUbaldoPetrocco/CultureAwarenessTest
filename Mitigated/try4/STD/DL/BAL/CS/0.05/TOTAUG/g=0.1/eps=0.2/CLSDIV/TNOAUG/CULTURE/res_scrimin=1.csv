@@ -28,3 +28,13 @@ Class 0,CM,38,4,158
 Class 1,CM,5,101,94
 Class 2,CM,0,0,200
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,64,7,129
+Class 1,CM,8,84,108
+Class 2,CM,0,1,199
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,84,2,114
+Class 1,CM,8,102,90
+Class 2,CM,2,0,198
+
