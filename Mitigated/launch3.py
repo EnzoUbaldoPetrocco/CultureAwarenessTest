@@ -41,12 +41,12 @@ verbose_param = 1
 # Requirement: If DIFF=1, then Augment=1
 todo_configs = [
     # --- MIT Group (standard=0) ---
-    (0, 0, 0, 0, 0, 0, 1), # MIT -> CI -> DIFF -> STDAUG
-    (0, 0, 1, 0, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
-    (0, 0, 2, 0, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
-    (0, 1, 0, 0, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
-    (0, 1, 1, 0, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
-    (0, 1, 2, 0, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
+    (0, 0, 0, 1, 0, 0, 1), # MIT -> CI -> DIFF -> STDAUG
+    (0, 0, 1, 1, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
+    (0, 0, 2, 1, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
+    (0, 1, 0, 1, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
+    (0, 1, 1, 1, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
+    (0, 1, 2, 1, 0, 0, 1), # MIT -> CI -> DIFF ->   STDAUG
 
     # --- NO MIT Group (standard=1) ---
     #(1, 0, 0, 1, 1, 1, 1), # CI -> DIFF -> ONLYMIN -> PARBS -> STDAUG
@@ -88,6 +88,7 @@ for i in range(3):
             only_minority_diffusion=omin,
             parify_batches_diffusion=par,
             mitigation_type=1,
+            just_preprare = True
         )
 
         procObj.test(

@@ -107,6 +107,7 @@ for i in range(3):
             only_minority_diffusion=omin,
             parify_batches_diffusion=par,
             mitigation_type=1,
+            just_preprare = True
         )
 
         procObj.test(
