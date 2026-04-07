@@ -848,9 +848,10 @@ class DiffusionStandardModel(tf.keras.Model):
 
         generated_images = np.asarray(generated_images)
         if lamp:
-            net_path = f'{percent}/parbs={parify_batches_diffusion}/Lamps{culture}_{category}/imb={imb}/'
+            net_path = f'diff_res/{percent}/parbs={parify_batches_diffusion}/Lamps{culture}_{category}/imb={imb}/'
         else:
-            net_path = f'{percent}/parbs={parify_batches_diffusion}/Carpets{culture}_{category}/imb={imb}/'
+            net_path = f'diff_res/{percent}/parbs={parify_batches_diffusion}/Carpets{culture}_{category}/imb={imb}/'
+
         if onlymin:
             net_path += '/only_min/'
 

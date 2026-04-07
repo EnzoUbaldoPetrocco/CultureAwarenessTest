@@ -14,7 +14,7 @@ from Processing.processing import ProcessingClass
 
 # --- GPU Configuration ---
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 memory_limit = 13000
 gpus = tf.config.experimental.list_physical_devices("GPU")
@@ -40,14 +40,19 @@ verbose_param = 1
 # standard=0 (MIT) | standard=1 (Control)
 # Requirement: If DIFF=1, then Augment=1
 todo_configs = [
-    # --- MIT Group (standard=0) ---
-    (0, 1, 0, 1, 1, 0, 1), # MIT -> LC -> DIFF -> ONLYMIN -> STDAUG
-
-    # --- NO MIT Group (standard=1) ---
-    (1, 0, 0, 1, 1, 1, 1), # CI -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 0, 2, 1, 1, 1, 1), # CS -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (1, 1, 1, 1, 0, 0, 1), # LF -> DIFF -> STDAUG
-    (1, 1, 2, 1, 1, 1, 1), # LT -> DIFF -> ONLYMIN -> PARBS -> STDAUG
+    # --- STD Group (standard=0) ---
+    (1, 0, 0, 1, 1, 0, 1), #  ONLYMIN->  STDAUG CI ->   DIFF->   ONLYMIN->  STDAUG
+    (1, 0, 1, 1, 1, 0, 1), #  ONLYMIN->  STDAUG CJ ->   DIFF->   ONLYMIN->  STDAUG
+    (1, 0, 2, 1, 1, 0, 1), #  ONLYMIN->  STDAUG CS ->   DIFF->   ONLYMIN->  STDAUG
+    (1, 1, 0, 1, 1, 0, 1), #  ONLYMIN->  STDAUG LC ->   DIFF->   ONLYMIN->  STDAUG
+    (1, 1, 1, 1, 1, 0, 1), #  ONLYMIN->  STDAUG LF ->   DIFF->   ONLYMIN->  STDAUG
+    (1, 1, 2, 1, 1, 0, 1), #  ONLYMIN->  STDAUG LT ->   DIFF->   ONLYMIN->  STDAUG
+    (1, 0, 0, 1, 0, 0, 1), #  ONLYMIN->  STDAUG CI ->   DIFF->  STDAUG
+    (1, 0, 1, 1, 0, 0, 1), #  ONLYMIN->  STDAUG CJ ->   DIFF->  STDAUG
+    (1, 0, 2, 1, 0, 0, 1), #  ONLYMIN->  STDAUG CS ->   DIFF->  STDAUG
+    (1, 1, 0, 1, 0, 0, 1), #  ONLYMIN->  STDAUG LC ->   DIFF->  STDAUG
+    (1, 1, 1, 1, 0, 0, 1), #  ONLYMIN->  STDAUG LF ->   DIFF->  STDAUG
+    (1, 1, 2, 1, 0, 0, 1), #  ONLYMIN->  STDAUG LT ->   DIFF->  STDAUG
 ]
 
 # --- Execution Loop ---
@@ -55,7 +60,7 @@ for i in range(3):
     random.seed(datetime.now().timestamp())
     tf.random.set_seed(datetime.now().timestamp())
     
-    for std, lp, cult, diff, omin, par, aug in todo_configs[::-1]:
+    for std, lp, cult, diff, omin, par, aug in todo_configs:
         print(f"\n[Iteration {i}] Std:{std} | L:{lp} | C:{cult} | Diff:{diff} | OMin:{omin} | Aug:{aug}")
         
         procObj = ProcessingClass(
@@ -83,6 +88,7 @@ for i in range(3):
             only_minority_diffusion=omin,
             parify_batches_diffusion=par,
             mitigation_type=1,
+            just_preprare = True
         )
 
         procObj.test(

@@ -298,6 +298,7 @@ class ProcessingClass:
             5. Store in self.dataobj for use in model training
         """
         # Load and split data with specified cultural composition
+        
         self.dataobj.prepare(
             standard=standard,
             culture=culture,
@@ -544,7 +545,8 @@ class ProcessingClass:
         diffusion=0,
         only_minority_diffusion=0,
         parify_batches_diffusion=0,
-        mitigation_type=0
+        mitigation_type=0,
+        just_preprare = False
     ):
         """
         process function prepares the data and fit the model
@@ -598,6 +600,8 @@ class ProcessingClass:
             parify_batches_diffusion=parify_batches_diffusion
         )
         self.model = None
+        if just_preprare:
+            return
         
         # Base path:
         # - STD/MIT
