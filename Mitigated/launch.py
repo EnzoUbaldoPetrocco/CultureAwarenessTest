@@ -55,6 +55,8 @@ todo_configs = [
     (1, 1, 2, 1, 0, 0, 1), #  ONLYMIN->  STDAUG LT ->   DIFF->  STDAUG
 ]
 
+todo_configs = todo_configs[::-1]
+
 # --- Execution Loop ---
 for i in range(3): 
     random.seed(datetime.now().timestamp())
