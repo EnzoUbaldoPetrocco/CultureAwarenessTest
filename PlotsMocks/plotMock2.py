@@ -25,15 +25,15 @@ def generate_paper_plot():
     # Culture 1: Located in the top-left quadrant
     # Culture 2: Located in the bottom-right quadrant
     n_samples = 150
-    cov = [[0.1, 0], [0, 0.1]]  # Tight variance for clarity
+    cov = [[0.2, 0], [0, 0.2]]  # Tight variance for clarity
 
     # Culture 1 (Blue tones)
-    c1_class0 = np.random.multivariate_normal([-1.3, 2.0], cov, n_samples)
-    c1_class1 = np.random.multivariate_normal([-2.0, 1.3], cov, n_samples)
+    c1_class0 = np.random.multivariate_normal([-0.75, 2.4], cov, n_samples)
+    c1_class1 = np.random.multivariate_normal([-2.4, 0.75], cov, n_samples)
 
     # Culture 2 (Red/Orange tones)
-    c2_class0 = np.random.multivariate_normal([2.0, -1.3], cov, n_samples)
-    c2_class1 = np.random.multivariate_normal([1.3, -2.0], cov, n_samples)
+    c2_class0 = np.random.multivariate_normal([2.4, -0.75], cov, n_samples)
+    c2_class1 = np.random.multivariate_normal([0.75, -2.4], cov, n_samples)
 
     # 3. Plotting
     fig, ax = plt.subplots(figsize=(8, 6))

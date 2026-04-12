@@ -72,8 +72,8 @@ for i, xt in enumerate(procObj.dataobj.Xt):
     print(f"Shape of procObj.dataobj.yt[i][:,3]: {np.shape(np.asarray(procObj.dataobj.yt[i])[:,3])}")
     print(f"Shape of np.multiply(procObj.dataobj.yt[i],i): {np.shape(np.multiply(procObj.dataobj.yt[i],i))}")
     print(f"Shape of np.add(np.multiply(procObj.dataobj.yt[i],i), procObj.dataobj.yt[i]): {np.shape(np.add(np.multiply(procObj.dataobj.yt[i],i), procObj.dataobj.yt[i]))}")
-    y_c = np.asarray(np.add(2*i, np.asarray(procObj.dataobj.yt[i])[:,3]))
-    y_c_uniques = np.unique(y_c)
+    y_c = np.asarray(np.add(2*i, np.asarray(procObj.dataobj.yt[i])[:,3])) #creating 6 clusters (chineseOn, chineseOff, frenchOn, ...)
+    y_c_uniques = np.unique(y_c) 
     print(f"Unique labels in culture set {i}: {y_c_uniques}")
     for j, label in enumerate(y_c_uniques):
         class_names[2*i+j] = f"Culture_{i}_label:{j}"
