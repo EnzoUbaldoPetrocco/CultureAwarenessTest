@@ -38,7 +38,7 @@ base_model = ResNet50(
 # LOAD IMAGE PATHS
 # =========================
 basePath = "./KMeans/"
-lamp = 0
+lamp = 1
 if lamp == 1:
     IMAGE_SIZE = 120
 else:
@@ -144,12 +144,13 @@ for cls_idx, cls_name in enumerate(class_names):
     centroids[cls_name] = X[y == cls_idx].mean(axis=0)
 
 inter_distances = []
-
+inter_distances_dict = defaultdict(dict)
 for i, cls_i in enumerate(class_names):
     for j, cls_j in enumerate(class_names):
         if j > i:
             dist = np.linalg.norm(centroids[cls_i] - centroids[cls_j])
             inter_distances.append(dist)
+            inter_distances_dict[cls_i][cls_j] = dist
             print(f"  {cls_i} ↔ {cls_j}: {dist:.4f}")
 
 mean_inter = np.mean(inter_distances)
@@ -189,7 +190,8 @@ results = {
     "separation_ratio": float(separation_ratio),
     "silhouette_score": float(sil) if len(np.unique(y)) > 1 else None,
     "class_names": class_names,
-    "intra_distances": {k: float(v) if not np.isnan(v) else None for k, v in intra_distances.items()}
+    "intra_distances": {k: float(v) if not np.isnan(v) else None for k, v in intra_distances.items()},
+    "inter_distances": {k: {kk: float(vv) for kk, vv in vv_dict.items()} for k, vv_dict in inter_distances_dict.items()}
 }
 
 output_filename = f"results_lamp_{lamp}.json"
