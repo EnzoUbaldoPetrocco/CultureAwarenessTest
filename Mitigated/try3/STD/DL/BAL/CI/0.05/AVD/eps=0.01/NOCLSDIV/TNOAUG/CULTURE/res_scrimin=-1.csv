@@ -13,3 +13,18 @@ Class 0,CM,199,0,1
 Class 1,CM,79,120,1
 Class 2,CM,142,7,51
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,199,0,1
+Class 1,CM,98,100,2
+Class 2,CM,138,2,60
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,199,0,1
+Class 1,CM,87,107,6
+Class 2,CM,95,0,105
+
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,196,2,2
+Class 1,CM,79,115,6
+Class 2,CM,69,6,125
+
