@@ -45,7 +45,7 @@ def latex_to_df_row_comparison(latex_str):
                 # Subsequent rows with standard size delta
                 sign = "+" if d >= 0 else ""
                 # Format: 12.6% (+1.2)
-                diff_str = f" ({sign}{d:.1f}\%)"
+                diff_str = f" ({sign}{d:.1f})\%"
                 formatted_cells.append(f"{val:.1f}\%{diff_str}")
         
         # JOIN all cells for the row and add the LaTeX line break
@@ -56,14 +56,9 @@ def latex_to_df_row_comparison(latex_str):
 
 # --- INPUT DATA ---
 raw_input = r"""
-MTL   & 22.5&	20.9&	23.8&	22.4&	2.2\\
-MTL +  RT  & 26.1&	20.6&	23.4&	23.4&	3.4\\	
-MTL +  DM  & 26.3&	17.8&	21.3&	21.8&	4.31\\	
-MTL +  DMMIN  & 26.6&	18.9&	18.5&	21.3&	3.9\\	
-MTL + BB  & 20.5&	17.5&	24.2&	20.7&	3.2\\
-MTL + BB + RT  & 23.3&	14.8& 23.0&	20.4&	5.6\\	
-MTL + BB + DM  & 23.1& 16.6& 22.2& 20.7& 4.1\\	
-MTL + BB + DMMIN  & 22.9&	17.7&	21.6&	20.7&	3.6\\
+Baseline & 12.8 & 15.7 & 19.6 & 16.0 & 4.0 \\
+DIV & 11.2 & 15.4 & 15.6 & 14.1 & 3.3 \\
+NODIV & 12.0 & 15.1 & 16.8 & 14.6 & 2.6 \\
 """
 
 print(latex_to_df_row_comparison(raw_input))
