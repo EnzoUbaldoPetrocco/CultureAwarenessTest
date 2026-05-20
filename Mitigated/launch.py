@@ -16,7 +16,7 @@ from Processing.processing import ProcessingClass
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-memory_limit = 13000
+memory_limit = 6000
 gpus = tf.config.experimental.list_physical_devices("GPU")
 if gpus:
     try:
@@ -41,20 +41,27 @@ verbose_param = 1
 # Requirement: If DIFF=1, then Augment=1
 todo_configs = [
     # --- STD Group (standard=0) ---
-    (0, 0, 0, 1, 1, 1, 1), # MIT -> CI -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (0, 0, 1, 1, 1, 1, 1), # MIT -> CJ -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (0, 0, 2, 1, 1, 1, 1), # MIT -> CS -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (0, 1, 0, 1, 1, 1, 1), # MIT -> LC -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (0, 1, 1, 1, 1, 1, 1), # MIT -> LF -> DIFF -> ONLYMIN -> PARBS -> STDAUG
-    (0, 1, 2, 1, 1, 1, 1), # MIT -> LT -> DIFF -> ONLYMIN -> PARBS -> STDAUG
+    (0, 0, 0, 0, 0, 0, 0), # STD -> CI 
+    (0, 0, 1, 0, 0, 0, 0), # STD -> CJ 
+    (0, 0, 2, 0, 0, 0, 0), # STD -> CS 
+    (0, 1, 0, 0, 0, 0, 0), # STD -> LC 
+    (0, 1, 1, 0, 0, 0, 0), # STD -> LF 
+    (0, 1, 2, 0, 0, 0, 0), # STD -> LT 
+    (1, 0, 0, 0, 0, 0, 0), # STD -> CI 
+    (1, 0, 1, 0, 0, 0, 0), # STD -> CJ 
+    (1, 0, 2, 0, 0, 0, 0), # STD -> CS 
+    (1, 1, 0, 0, 0, 0, 0), # STD -> LC 
+    (1, 1, 1, 0, 0, 0, 0), # STD -> LF 
+    (1, 1, 2, 0, 0, 0, 0), # STD -> LT 
 ]
 
 todo_configs = todo_configs[::-1]
 
 # --- Execution Loop ---
-for i in range(3): 
-    random.seed(datetime.now().timestamp())
-    tf.random.set_seed(datetime.now().timestamp())
+for i in range(2): 
+ for cls_div in [0,1]:
+    random.seed(int(datetime.now().timestamp()))
+    tf.random.set_seed(int(datetime.now().timestamp()))
     
     for std, lp, cult, diff, omin, par, aug in todo_configs:
         print(f"\n[Iteration {i}] Std:{std} | L:{lp} | C:{cult} | Diff:{diff} | OMin:{omin} | Aug:{aug}")
@@ -74,17 +81,13 @@ for i in range(3):
             culture=cult,
             percent=percent,
             n=n,
-            augment=aug,
-            gaug=g_aug,
-            adversary=0,
+            augment=0,
+            gaug=0,
+            adversary=1,
             eps=ep,
-            class_division=0,
+            class_division=cls_div,
             imbalanced=0, 
-            diffusion=diff,
-            only_minority_diffusion=omin,
-            parify_batches_diffusion=par,
-            mitigation_type=1,
-            just_preprare = True
+            diffusion=0,
         )
 
         procObj.test(
@@ -95,6 +98,7 @@ for i in range(3):
             adversary=0,
         )
 
+        
         # Cleanup
         procObj.partial_clear(basePath)
         del procObj

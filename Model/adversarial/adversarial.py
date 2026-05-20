@@ -176,7 +176,7 @@ class AdversarialStandard(GeneralModelClass):
             TS[0].append(adv_img)
             TS[1].append(TS[1][i])
             
-            if i < 20: # Visual audit for the first 20 samples
+            if i < 40: # Visual audit for the first 20 samples
                 self.plot_culture_transition(
                     original=original_img, 
                     adversarial=adv_img, 
