@@ -33,3 +33,8 @@ Class 0,CM,128,43,29
 Class 1,CM,12,172,16
 Class 2,CM,1,1,198
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,129,31,40
+Class 1,CM,25,159,16
+Class 2,CM,0,1,199
+
