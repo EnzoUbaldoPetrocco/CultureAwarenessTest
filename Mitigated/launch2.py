@@ -28,10 +28,10 @@ if gpus:
         print(e)
 
 # --- Hyperparameters ---
-percent = 0.2
+percent = 0.05
 n = 1000
 g_aug = 0.1  
-ep = 0.01    
+ep = 0.2
 basePath = "./try4/"
 verbose_param = 1
 
@@ -41,12 +41,6 @@ verbose_param = 1
 # Requirement: If DIFF=1, then Augment=1
 todo_configs = [
     # --- STD Group (standard=0) ---
-    (1, 0, 0, 0, 0, 0, 1), # STD -> CI 
-    (1, 0, 1, 0, 0, 0, 1), # STD -> CJ 
-    (1, 0, 2, 0, 0, 0, 1), # STD -> CS 
-    (1, 1, 0, 0, 0, 0, 1), # STD -> LC 
-    (1, 1, 1, 0, 0, 0, 1), # STD -> LF 
-    (1, 1, 2, 0, 0, 0, 1), # STD -> LT 
     (1, 0, 0, 0, 0, 0, 0), # STD -> CI 
     (1, 0, 1, 0, 0, 0, 0), # STD -> CJ 
     (1, 0, 2, 0, 0, 0, 0), # STD -> CS 
