@@ -3,3 +3,8 @@ Class 0,CM,198,1,1
 Class 1,CM,131,67,2
 Class 2,CM,13,2,185
 
+,Matrix,Class 0,Class 1,Class 2
+Class 0,CM,198,2,0
+Class 1,CM,152,45,3
+Class 2,CM,13,0,187
+
