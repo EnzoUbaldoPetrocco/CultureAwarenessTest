@@ -1,1 +1,0 @@
-"['kid', {'n_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.14682323>, 'i_loss': <tf.Tensor: shape=(), dtype=float32, numpy=0.2311121>, 'kid': <tf.Tensor: shape=(), dtype=float32, numpy=0.36150527>}]"
