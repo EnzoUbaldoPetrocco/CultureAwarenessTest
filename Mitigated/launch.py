@@ -1,116 +1,145 @@
 #!/usr/bin/env python
-__author__ = "Enzo Ubaldo Petrocco"
+"""
+Main Execution Script for Bias Mitigation Experiments.
+
+This script serves as the primary launcher for evaluating and comparing 
+Standard vs. Culture-Mitigated Deep Learning models across multiple datasets 
+(Lamps and Carpets) under varying experimental configurations.
+
+Configurations control:
+- Standard baseline vs. Mitigated model architecture
+- Target majority culture vs. minority cultures
+- Data augmentation strategy (Classical augmentation, Diffusion synthetic generation)
+- Adversarial robustness evaluation (PGD attacks)
+
+Author: Enzo Ubaldo Petrocco
+"""
+
 import sys
-
-import cv2
-
-sys.path.insert(1, "../")
-from GradCam.gradCam import GradCAM
-from Utils.FileManager.FileManager import FileManagerClass
-from Processing.processing import ProcessingClass
-from math import floor
+import os
+import gc
+import random
+import numpy as np
 import tensorflow as tf
+from datetime import datetime
 
-tf.config.set_soft_device_placement(True)
+# Insert parent directory to access top-level modules (Processing, Model, Utils)
+sys.path.insert(1, "../")
+from Processing.processing import ProcessingClass
 
-percents = [0.05, 0.1]
-standard = 0
-lamp = 1
+# ==============================================================================
+# GPU CONFIGURATION & MEMORY MANAGEMENT
+# ==============================================================================
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Select target GPU device ID
 
-verbose_param = 0
-n = 1000
-bs = 2
-learning_rate = 5e-4
-val_split = 0.2
-test_split = 0.1
-epochs = 15
+# Set virtual GPU memory limit (in MB) to avoid allocating entire VRAM
+memory_limit = 6000
+gpus = tf.config.experimental.list_physical_devices("GPU")
+if gpus:
+    try:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)]
+        )
+        print(f"[GPU Setup] Allocated {memory_limit} MB limit on GPU: {gpus[0]}")
+    except RuntimeError as e:
+        print(f"[GPU Setup Warning] {e}")
 
-g_aug = 0.1
-test_g_augs = [0.01, 0.05, 0.1]
-eps = 0.03
-test_eps = [0.0005, 0.001, 0.005]
-mult = 0.25
-memory_limit = 5000
-cs = [2, 1, 0]
-ks = [3, 2, 1, 0]
+# ==============================================================================
+# HYPERPARAMETERS & EXPERIMENT SETTINGS
+# ==============================================================================
+percent = 0.05         # Fraction of minority culture data retained (5% minority ratio)
+n = 1000               # Number of samples per class/culture block
+g_aug = 0.1            # Augment intensity / Gaussian noise strength
+ep = 0.2               # Adversarial perturbation epsilon for PGD attack
+basePath = "./try3/"   # Output directory for saving model checkpoints and results
+verbose_param = 1      # Verbosity level (0=silent, 1=detailed)
 
+# ==============================================================================
+# EXPERIMENT CONFIGURATION MAPPING TABLE
+# ==============================================================================
+# Tuple signature: (standard, lamp, culture, diffusion, only_min, parify, augment)
+# - standard: 1 = Standard Control Model, 0 = Bias-Mitigated Model
+# - lamp:     1 = Lamps Dataset, 0 = Carpets Dataset
+# - culture:  Majority culture index (0, 1, or 2)
+# - diffusion: 1 = Enable Diffusion synthetic data generation, 0 = Disabled
+# - only_min:  1 = Generate diffusion data ONLY for minority cultures, 0 = All
+# - parify:    1 = Enable culture-balanced batch sampling, 0 = Disabled
+# - augment:   1 = Enable classical image data augmentation, 0 = Disabled
+# Note: Rule requirement: If diffusion == 1, then augment MUST be 1.
 
-procObj = ProcessingClass(shallow=0, lamp=lamp, gpu=True, memory_limit=memory_limit)
-with tf.device("/CPU:0"):
-        for j in range(0, 13):
-            for percent in percents:
-                for c in cs:
-                    for k in ks:
-                        model = None
-                        for i in range(6):
-                            print(f"Training->aug={k%2};adv={floor(k/2)}")
-                            procObj.process(
-                                standard=standard,
-                                type="DL",
-                                verbose_param=verbose_param,
-                                learning_rate=learning_rate,
-                                epochs=epochs,
-                                batch_size=bs,
-                                lambda_index=12-j,
-                                culture=c,
-                                percent=percent,
-                                val_split=val_split,
-                                test_split=test_split,
-                                n=n,
-                                augment=k % 2,
-                                g_rot=g_aug,
-                                g_noise=g_aug,
-                                g_bright=g_aug,
-                                adversary=floor(k / 2),
-                                eps=eps,
-                                mult=mult,
-                            )
-                            # NoAUg
-                            print(f"Testing->aug={0};adv={0}")
-                            procObj.test(
-                                standard=standard,
-                                culture=c,
-                                augment=0,
-                                g_rot=g_aug,
-                                g_noise=g_aug,
-                                g_bright=g_aug,
-                                adversary=0,
-                                eps=test_eps,
-                            )
-                            print(f"Testing->aug={1};adv={0}")
-                            for t_g_aug in test_g_augs:
-                                procObj.test(
-                                        standard=standard,
-                                        culture=c,
-                                        augment=1,
-                                        g_rot=t_g_aug,
-                                        g_noise=t_g_aug,
-                                        g_bright=t_g_aug,
-                                        adversary=0,
-                                        eps=None)
-                            print(f"Testing->aug={0};adv={1}")
-                            for test_ep in test_eps:
-                                procObj.test(
-                                            standard=standard,
-                                            culture=c,
-                                            augment=0,
-                                            g_rot=None,
-                                            g_noise=None,
-                                            g_bright=None,
-                                            adversary=1,
-                                            eps=test_ep)
-                            print(f"Testing->aug={1};adv={1}")
-                            for t, t_g_aug in enumerate(test_g_augs):
-                                for test_ep in test_eps:  
-                                    procObj.test(
-                                        standard=standard,
-                                        culture=c,
-                                        augment=1,
-                                        g_rot=t_g_aug,
-                                        g_noise=t_g_aug,
-                                        g_bright=t_g_aug,
-                                        adversary=1,
-                                        eps=test_ep)
-                            model = procObj.model.model   
-                            path = procObj.basePath + "out.jpg"
-                            procObj.partial_clear()
+todo_configs = [
+    # --- STD Control Group (Standard ResNet models without mitigation) ---
+    (1, 0, 0, 0, 0, 0, 0), # Standard Model -> Carpets Dataset, Culture 0 Majority
+    (1, 0, 1, 0, 0, 0, 0), # Standard Model -> Carpets Dataset, Culture 1 Majority
+    (1, 0, 2, 0, 0, 0, 0), # Standard Model -> Carpets Dataset, Culture 2 Majority
+    (1, 1, 0, 0, 0, 0, 0), # Standard Model -> Lamps Dataset,   Culture 0 Majority
+    (1, 1, 1, 0, 0, 0, 0), # Standard Model -> Lamps Dataset,   Culture 1 Majority
+    (1, 1, 2, 0, 0, 0, 0), # Standard Model -> Lamps Dataset,   Culture 2 Majority
+]
+
+# Reverse configuration list to prioritize specific test orders if needed
+todo_configs = todo_configs[::-1]
+
+# ==============================================================================
+# EXPERIMENT EXECUTION LOOP
+# ==============================================================================
+for i in range(2):  # Run 2 independent random seed iterations for statistical stability
+    for cls_div in [0, 1]:  # Class division split options (binary class separation)
+        # Seed random number generators for reproducibility
+        seed_val = int(datetime.now().timestamp())
+        random.seed(seed_val)
+        tf.random.set_seed(seed_val)
+        
+        for std, lp, cult, diff, omin, par, aug in todo_configs:
+            print(f"\n========================================================")
+            print(f"Running Experiment [Iter {i} | ClsDiv {cls_div}]:")
+            print(f"  Standard Model: {std} | Dataset (Lamp={lp}) | Majority Culture: {cult}")
+            print(f"  Diffusion: {diff} | OnlyMinority: {omin} | Augment: {aug}")
+            print(f"========================================================")
+            
+            # Instantiate pipeline processor for target dataset
+            procObj = ProcessingClass(
+                shallow=0,          # 0 = Deep Learning (ResNet architecture)
+                lamp=lp,            # Dataset selector (1=Lamps, 0=Carpets)
+                gpu=False,          # CPU/GPU processing delegation handled via TF config
+                memory_limit=memory_limit,
+                basePath=basePath,
+            )
+
+            # Step 1: Preprocess data and train model
+            procObj.process(
+                standard=std,
+                type="DL",
+                verbose_param=verbose_param,
+                culture=cult,
+                percent=percent,
+                n=n,
+                augment=0,
+                gaug=0,
+                adversary=1,       # Include adversarial PGD training evaluation
+                eps=ep,
+                class_division=cls_div,
+                imbalanced=0, 
+                diffusion=0,
+            )
+
+            # Step 2: Evaluate model performance and log results
+            procObj.test(
+                standard=std,
+                culture=cult,
+                augment=0,
+                gaug=0,
+                adversary=0,
+            )
+
+            # Step 3: Resource Cleanup to prevent GPU/RAM memory leaks
+            procObj.partial_clear(basePath)
+            del procObj
+            gc.collect()
+            tf.keras.backend.clear_session()
+
+print("\n--------------------------------------------------------")
+print("All targeted bias mitigation experiments completed successfully.")
+print("--------------------------------------------------------")

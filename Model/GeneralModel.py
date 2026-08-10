@@ -8,10 +8,20 @@ from matplotlib import pyplot as plt
 import cv2
 from tf_explain.utils.display import grid_display, heatmap_display
 from tf_explain.utils.saver import save_rgb
+<<<<<<< HEAD
+=======
+import gc
+from keras.models import Model
+import random
+from datetime import datetime
+random.seed(datetime.now().timestamp())
+tf.random.set_seed(datetime.now().timestamp())
+>>>>>>> dev
 
 
 class GeneralModelClass:
     """
+<<<<<<< HEAD
     This Class is the middleware for collecting common actions of the models
     """
     def __init__(self) -> None:
@@ -62,12 +72,74 @@ class GeneralModelClass:
                         if (out>0):
                             res = res[out]
                         return res
+=======
+    Base class providing common functionality for all model implementations.
+    
+    This class serves as middleware for collecting and standardizing common actions across
+    different model types (standard, mitigated, adversarial, discriminator).
+    
+    Provides unified interfaces for:
+        - Inference (__call__, test)
+        - Evaluation (get_model_stats)
+        - Explanation (explain with GradCAM)
+        - Model persistence (save_model, get_model_from_weights)
+    
+    Attributes:
+        model: The underlying Keras/TensorFlow model
+        standard (int): 0 for mitigated models, 1 for standard models
+        n_cultures (int): Number of cultures in dataset
+        adversarial (int): Flag for adversarial mode
+        imbalanced (int): Flag for imbalanced learning mode
+    """
+    def __init__(self, standard=0, n_cultures=3, adversarial=0, imbalanced=0) -> None:
+        """
+        Initialize the base model class.
+        
+        Args:
+            standard (int): 0=mitigated (per-culture outputs), 1=standard (single output)
+            n_cultures (int): Number of cultural groups in the dataset
+            adversarial (int): Whether adversarial robustness is being tested
+            imbalanced (int): Whether to use imbalanced learning strategies
+        """
+        self.model = Model()
+        self.standard = standard
+        self.n_cultures = n_cultures
+        self.adversarial = adversarial
+        self.imbalanced = imbalanced
+
+    def __call__(self, X, out=-1):
+        """
+        Perform inference on input samples.
+        
+        For mitigated models: Returns predictions for a specific culture output.
+        For standard models: Returns binary predictions directly.
+        
+        Args:
+            X (array-like): Input samples for inference (images or flattened features)
+            out (int): Output index for mitigated models (-1 for default/all outputs)
+        
+        Returns:
+            array: Model predictions
+            - Mitigated: Predictions for specified culture output
+            - Standard: Binary predictions (0 or 1)
+        """
+        if self.model != None:
+                # Get raw predictions from the model
+                res = self.model.predict(np.asarray(X, dtype='int32'))
+                if not self.standard:
+                    # For mitigated models: extract specific culture output
+                    # Model outputs shape: [batch_size, n_cultures, 1]
+                    # Select output index and get probability values
+                    res = np.asarray(res, dtype=np.float32)[out][:, 0]
+                return res
+>>>>>>> dev
         else:
             print("Try fitting the model before")
             return None
 
     def quantize(self, yF):
         """
+<<<<<<< HEAD
         Quantize a prediction, because we are dealing with binary classification.
         In principle we could set a threshold for imbalanced learning. 
         Since the imbalance is not inter class, but intra class, we simply set the threshold to (max-min)/2=0.5
@@ -75,14 +147,39 @@ class GeneralModelClass:
         """
         values = []
         for y in yF:
+=======
+        Convert continuous predictions to discrete class labels (0 or 1).
+        
+        For binary classification, applies a threshold of 0.5 to convert
+        probability scores to class predictions.
+        
+        Note: The threshold is fixed at 0.5 because class imbalance is intra-class
+        (within each cultural group) rather than inter-class, so optimal threshold
+        remains at midpoint.
+        
+        Args:
+            yF (array-like): Continuous predictions (floats) from model
+        
+        Returns:
+            list: Quantized predictions as binary values (0 or 1)
+        """
+        values = []
+        for y in yF:
+            # Binary classification: threshold at 0.5
+>>>>>>> dev
             if y > 0.5:
                 values.append(1)
             else:
                 values.append(0)
+<<<<<<< HEAD
+=======
+            gc.collect()
+>>>>>>> dev
         return values
 
     def test(self, Xt, out=-1):
         """
+<<<<<<< HEAD
         Test the quality of the model on a set of samples
         :param Xt: set of samples
         :param out: desired output to be tested if any  
@@ -123,6 +220,101 @@ class GeneralModelClass:
             # yT = list([c_i, y_i])
             cm = confusion_matrix(y_true=yT, y_pred=yFq)
             return cm
+=======
+        Evaluate model on test samples and return quantized predictions.
+        
+        Combines inference (__call__) and quantization (quantize) for complete
+        evaluation workflow.
+        
+        Args:
+            Xt (array-like): Test samples
+            out (int): Output index for mitigated models (-1 for default)
+        
+        Returns:
+            list: Quantized predictions (0 or 1) for test samples,
+                  or None if model not fitted
+        """
+        if self.model:
+            # Get raw predictions
+            yF = self(Xt, out)
+            # Quantize to class labels
+            yFq = self.quantize(yF)
+            gc.collect()
+            return yFq
+        else:
+            gc.collect()
+            print("Try fitting the model before")
+            return None
+
+    def get_model_stats(self, Xt, yT, out=-1, discriminator=0, j=-1):
+        """
+        Compute confusion matrix for model evaluation.
+        
+        Supports two evaluation modes:
+        1. Standard classification: Compare predictions vs true labels
+        2. Discriminator evaluation: Per-culture discrimination accuracy
+        
+        Args:
+            Xt (array-like): Test samples
+            yT (array-like): True labels/one-hot encoded labels
+            out (int): Output index for mitigated models
+            discriminator (int): 0=classification, 1=discriminator evaluation
+            j (int): Unused parameter
+        
+        Returns:
+            ndarray: Confusion matrix showing classification performance
+                     shape: (n_classes, n_classes)
+        """
+        
+        if discriminator == 0:
+            # Standard classification evaluation
+            yFq = self.test(Xt, out)
+            if len(np.shape(yT)) > 1:
+                if type(yT) == list:
+                    yT = np.asarray(yT)
+                if self.standard:
+                    # Standard model: class label at index 1
+                    if not self.adversarial:
+                        yT = yT[:, 1]
+                    else:
+                        # Adversarial: class label at n_cultures index
+                        yT = yT[:, self.n_cultures]
+                else:
+                    # Mitigated model: class label at n_cultures index
+                    yT = yT[:, self.n_cultures]
+                gc.collect()
+            gc.collect()
+            if yFq != None:
+                cm = confusion_matrix(y_true=yT, y_pred=yFq)
+                print(f"Confusion Matrix: {cm}")
+                return cm
+        else:
+            # Discriminator mode: evaluate per-culture discrimination
+            X = []
+            for XC in Xt:
+                X.extend(XC)
+            y = []
+            for yC in yT:
+                y.extend(yC)
+            # Get predictions from discriminator
+            yF = self.model.predict(np.asarray(X, dtype='int32'))
+            # Get predicted culture
+            yF = np.argmax(yF, axis=1)
+            y = np.asarray(y)
+            # Extract true culture labels (one-hot)
+            y = y[:, 0:self.n_cultures]
+            y = np.argmax(y, axis=1)
+            if yF.any() != None:
+                cm = confusion_matrix(y_true=y, y_pred=yF)
+                print(f"Confusion Matrix: {cm}")
+                return cm
+        
+    def get_model_from_weights(self, path="./"):
+        self.model = tf.keras.models.load_model(path)
+
+    def save_model(self, path="./"):
+        self.model.save(path)
+>>>>>>> dev
         
 
 
@@ -217,9 +409,16 @@ class GeneralModelClass:
             Tuple[tf.Tensor, tf.Tensor]: (Target layer outputs, Guided gradients)
         """
         grad_model = tf.keras.models.Model(
+<<<<<<< HEAD
             [self.model.inputs], [self.model.get_layer(layer_name).output, self.model.output]
         )
         print(f"layer name is {layer_name}")
+=======
+            [self.model.inputs], [self.model.layers[2].get_layer(layer_name).output, self.model.output]
+        )
+        print(f"layer name is {layer_name}")
+        print(f"self.model.layers[2] = {self.model.layers[2]}")
+>>>>>>> dev
         print(f"Created grad model with:\n inputs:{self.model.inputs};\n output:{[self.model.get_layer(layer_name).output, self.model.output]}")
         with tf.GradientTape() as tape:
             inputs = tf.cast(images, tf.float32)

@@ -1,0 +1,18 @@
+{
+  "lamp": 1,
+  "dataset": "lamp_dataset",
+  "total_images": 5940,
+  "num_classes": 2,
+  "mean_intra_class_distance": 62.04741986823038,
+  "mean_inter_class_distance": 6.1877055168151855,
+  "separation_ratio": 0.0997254282282159,
+  "silhouette_score": 0.005225507076829672,
+  "class_names": {
+    "4": "Label:0",
+    "5": "Label:1"
+  },
+  "intra_distances": {
+    "4": 62.56299163704696,
+    "5": 61.531848099413786
+  }
+}
