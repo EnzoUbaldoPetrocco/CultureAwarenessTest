@@ -23,23 +23,6 @@ class DeepStrings:
                         found = True
 
         self.lamp_paths = [
-<<<<<<< HEAD
-            rt + "/lamps/chinese/100/RGB",
-            rt + "/lamps/french/100/RGB",
-            rt + "/lamps/turkish/100/RGB",
-        ]
-
-        self.carpet_paths_str = [
-            rt + "/carpets_stretched/indian/100/RGB",
-            rt + "/carpets_stretched/japanese/100/RGB",
-            rt + "/carpets_stretched/scandinavian/100/RGB",
-        ]
-
-        self.carpet_paths_bla = [
-            rt + "/carpets_blanked/indian/100/RGB",
-            rt + "/carpets_blanked/japanese/100/RGB",
-            rt + "/carpets_blanked/scandinavian/100/RGB",
-=======
             rt + "/lamps/chinese/120/RGB",
             rt + "/lamps/french/120/RGB",
             rt + "/lamps/turkish/120/RGB",
@@ -55,5 +38,4 @@ class DeepStrings:
             rt + "/carpets_blanked/indian/200/RGB",
             rt + "/carpets_blanked/japanese/200/RGB",
             rt + "/carpets_blanked/scandinavian/200/RGB",
->>>>>>> dev
         ]

@@ -7,10 +7,6 @@ import random
 import time
 import tensorflow as tf
 import numpy as np
-<<<<<<< HEAD
-from cleverhans.tf2.utils import optimize_linear
-from matplotlib import pyplot as plt
-=======
 from matplotlib import pyplot as plt
 from datetime import datetime
 import sys
@@ -18,7 +14,6 @@ import sys
 from tensorflow import keras
 from keras import layers
 random.seed(datetime.now().timestamp())
->>>>>>> dev
 
 
 ## DataClass should:
@@ -91,11 +86,7 @@ class DataClass:
                 dir_list.append(d)
         return dir_list
 
-<<<<<<< HEAD
-    def get_images(self, path, n=1000):
-=======
     def get_images(self, path, n=1000, rescale=False):
->>>>>>> dev
         """
         get_images returns min(n, #images contained in a directory)
 
@@ -111,13 +102,9 @@ class DataClass:
             paths.extend(pathlib.Path(path).glob(typ))
         paths = paths[0 : min(len(paths), n)]
         for i in paths:
-<<<<<<< HEAD
-            im = cv2.imread(str(i)) / 255
-=======
             im = cv2.imread(str(i)) 
             if rescale:
                 im = im  /255
->>>>>>> dev
             im = im[..., ::-1]
             images.append(im)
         return images
@@ -134,12 +121,9 @@ class DataClass:
         val_split=0.2,
         test_split=0.2,
         n=1000,
-<<<<<<< HEAD
-=======
         n_cultures=3,
         adversarial=0,
         imbalanced=0
->>>>>>> dev
     ):
         """
         this function prepares time by time the sets for training
@@ -174,10 +158,6 @@ class DataClass:
                 yds = []
 
                 for img, label in lDS:
-<<<<<<< HEAD
-                    if standard:
-                        label = int(label[1])
-=======
                     if standard and not adversarial and not imbalanced:
                         label = int(label[1])
                     else:
@@ -187,7 +167,6 @@ class DataClass:
                             a = np.append(a, label[1])
                             label=list(a) #label is {0,..0,1,0...0, original_label}  with 0,..,0,1,0..,0 is one hot encoding
                         
->>>>>>> dev
                     if shallow:
                         img = img[0::]
                         img = img.flatten()
@@ -220,13 +199,10 @@ class DataClass:
             self.Xt.append(cultureXt)
             self.yt.append(cultureyT)
 
-<<<<<<< HEAD
-=======
 
 
         
 
->>>>>>> dev
     def clear(self):
         """
         clear empty all the dataset divisions
@@ -245,8 +221,6 @@ class DataClass:
         del self.yt
 
 
-<<<<<<< HEAD
-=======
 class NullWriter:
     def write(self, _): pass
 
@@ -255,16 +229,11 @@ def suppress_output():
 
 def restore_output():
     sys.stdout = sys.__stdout__
->>>>>>> dev
 ## Preprocessing Class should:
 # given a dataset it should perform standard data augmentation
 # given a dataset and a model it should perform adversarial data augm
 class PreprocessingClass:
-<<<<<<< HEAD
-    def classical_augmentation(self, X, g_rot=0.1, g_noise=0.1, g_bright=0.1, n=-1):
-=======
     def classical_augmentation(self, X, g=0.1, n=-1):
->>>>>>> dev
         """
         this function gets a set of images and return them augmented
         param: X: the set of images
@@ -276,14 +245,6 @@ class PreprocessingClass:
         if n <= 0 or n == None:
             n = len(X)
         X = X[0:n]
-<<<<<<< HEAD
-
-        X = tf.keras.layers.RandomFlip("horizontal_and_vertical")(X, training=True)
-        X = tf.keras.layers.RandomRotation(g_rot)(X, training=True)
-        X = tf.keras.layers.GaussianNoise(g_noise)(X, training=True)
-        X_augmented = tf.keras.layers.RandomBrightness(g_bright / 5)(X, training=True)
-
-=======
         X = np.asarray(X)
 
         shape = np.shape(X[0])
@@ -301,7 +262,6 @@ class PreprocessingClass:
         
         X_augmented = data_augmentation(X, training=True)
         restore_output()
->>>>>>> dev
         return np.asarray(X_augmented)
 
     def adversarial_augmentation(self, X, y, model, culture, eps=0.3):
@@ -377,83 +337,3 @@ class PreprocessingClass:
         grad = g.gradient(loss, x)
         return grad
 
-<<<<<<< HEAD
-    def my_fast_gradient_method(
-        self,
-        model_fn,
-        x,
-        eps,
-        norm,
-        loss_fn=None,
-        clip_min=None,
-        clip_max=None,
-        y=None,
-        targeted=False,
-        sanity_checks=False,
-        culture=0,
-        plot=None,
-    ):
-        """
-        Implementation of fast gradient method: the samples are moved against the
-        gradient using an eps step
-
-        :param model_fn: model w.r.t compute the gradient
-        :param x: samples
-        :param eps: gain of the step
-        :param norm: type of norm to be applied to optimize perturbation
-        :param loss_fn: loss function
-        :param clip_min: minimum threshold for saturation
-        :param clip_max: maximum threshold for saturation
-        :param y: label of samples
-        :param target:  if targeted, minimize loss of target label rather than maximize loss of correct label
-        :param sanity_checks: if enable, checks for asserts
-        :param culture: select the correct output in our Mitigation Strategy
-        :param plot: if enabled, plot the adversarial sample
-
-        """
-        if norm not in [np.inf, 1, 2]:
-            raise ValueError("Norm order must be either np.inf, 1, or 2.")
-
-        if loss_fn is None:
-            loss_fn = tf.nn.sparse_softmax_cross_entropy_with_logits
-
-        asserts = []
-
-        # If a data range was specified, check that the input was in that range
-        if clip_min is not None:
-            asserts.append(tf.math.greater_equal(x, clip_min))
-
-        if clip_max is not None:
-            asserts.append(tf.math.less_equal(x, clip_max))
-
-        # cast to tensor if provided as numpy array
-        x = tf.cast(x, tf.float32)
-
-        if y is None:
-            # Using model predictions as ground truth to avoid label leaking
-            yf = model_fn(x)[:, culture]
-            y = tf.argmax(yf, 1)
-        grad = self.my_compute_gradient(
-            model_fn, loss_fn, x, y, targeted, culture=culture
-        )
-
-        optimal_perturbation = optimize_linear(grad, eps, norm)
-
-        if plot is not None:
-            plt.imshow(optimal_perturbation[0])
-            plt.show()
-
-        # Add perturbation to original example to obtain adversarial example
-        adv_x = x + optimal_perturbation
-
-        # If clipping is needed, reset all values outside of [clip_min, clip_max]
-        if (clip_min is not None) or (clip_max is not None):
-            # We don't currently support one-sided clipping
-            assert clip_min is not None and clip_max is not None
-            adv_x = tf.clip_by_value(adv_x, clip_min, clip_max)
-
-        if sanity_checks:
-            assert np.all(asserts)
-        return np.asarray(adv_x[0])
-=======
->>>>>>> dev

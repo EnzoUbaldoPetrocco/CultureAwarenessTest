@@ -3,10 +3,6 @@ __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
 sys.path.insert(1, "../")
-<<<<<<< HEAD
-from Model.mitigated.mitigated_models import MitigatedModels
-from Model.standard.standard_models import StandardModels
-=======
 import tensorflow as tf
 tf_version = tf.__version__
 # Split version string into major, minor, and patch numbers
@@ -23,7 +19,6 @@ from Model.standard.standard_models import StandardModels
 from Model.standard.gradcam_standard import StandardModels4GradCam
 from Model.adversarial.adversarial import AdversarialStandard
 from Model.discriminator.discriminator import Discriminator
->>>>>>> dev
 from Utils.Data.Data import DataClass
 from Utils.FileManager.FileManager import FileManagerClass
 from Utils.Results.Results import ResultsClass
@@ -31,32 +26,6 @@ from Utils.Data.deep_paths import DeepStrings
 from Utils.Data.shallow_paths import ShallowStrings
 from Utils.Data.Data import PreprocessingClass
 import numpy as np
-<<<<<<< HEAD
-import tensorflow as tf
-import os
-import gc
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-
-class ProcessingClass:
-    """
-    ProcessingClass is a middleware that takes into account
-    the the processing modules for testing the models
-    """
-    def __init__(self, shallow, lamp, gpu=False, memory_limit=2700) -> None:
-        """
-        init function initialize the dataset object and the gpu setup
-        :param shallow: if enabled, shallow learning mode is activated and
-        we can use models such as Linear SVM, Gaussian SVM, ... If so, 
-        we have the images to be greyscale and then flattened, else, we can use 
-        deep learning algorithms (such as RESNER), so we must have images as RGB
-        :param lamp: if enabled we get the images from lamp folder, else from carpet
-        folder
-        :param gpu: if enabled we use the gpu, else we use the cpu
-        """
-=======
 
 import os
 import gc
@@ -119,42 +88,25 @@ class ProcessingClass:
         for image loading and preprocessing.
         """
         # Load dataset paths based on learning type
->>>>>>> dev
         if shallow:
             strObj = ShallowStrings()
             if lamp:
                 paths = strObj.lamp_paths
             else:
-<<<<<<< HEAD
-                paths = None
-        else:
-=======
                 # Shallow learning for carpets not implemented
                 paths = None
         else:
             # Deep learning uses RGB images
->>>>>>> dev
             strObj = DeepStrings()
             if lamp:
                 paths = strObj.lamp_paths
             else:
                 paths = strObj.carpet_paths_str
-<<<<<<< HEAD
-=======
         
->>>>>>> dev
         if paths:
             self.dataobj = DataClass(paths)
         else:
             raise Exception("Carpet Problem has not been tackled in shallow learning")
-<<<<<<< HEAD
-        self.shallow = shallow
-        self.lamp = lamp
-        if gpu:
-            gpus = tf.config.experimental.list_physical_devices("GPU")
-            if gpus:
-                # Restrict TensorFlow to only allocate 2GB of memory on the first GPU
-=======
         
         self.shallow = shallow
         self.lamp = lamp
@@ -165,7 +117,6 @@ class ProcessingClass:
             gpus = tf.config.experimental.list_physical_devices("GPU")
             if gpus:
                 # Set memory limit for GPU to prevent OOM errors
->>>>>>> dev
                 try:
                     tf.config.experimental.set_virtual_device_configuration(
                         gpus[0],
@@ -186,10 +137,6 @@ class ProcessingClass:
             else:
                 print("no gpus")
         else:
-<<<<<<< HEAD
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-=======
             # Disable GPU: use CPU only
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -298,7 +245,6 @@ class ProcessingClass:
         return DS, DSlabel
 
 
->>>>>>> dev
     def prepare_data(
         self,
         standard,
@@ -308,28 +254,6 @@ class ProcessingClass:
         test_split: float = 0.2,
         n: int = 1000,
         augment=0,
-<<<<<<< HEAD
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-    ):
-        """
-        This function prepares the data for training
-
-        :param standard: if enabled, we prepare the dataset for
-        standard ML, else our mitigation strategy
-        :param culture: culture is an integer number from 0 to |C|-1,
-        that represents the majority culture used for training the dataset
-        :param percent: is the percentage of images from their dataset of the minority cultures
-        :param val_split: is the proportion of the Validation Set w.r.t the union of the Learning and Validation sets
-        :param test_split: is the proprtion of the Test Set w.r.t the whole dataset
-        :param n: is the maximum number of images contained in each cultural dataset for each class
-        :param augment: if enabled, we augment the dataset
-        :param g_rot: if augment is enabled, is the gain of random rotation
-        :param g_noise: if augment is enabled, is the gain of gaussian noise
-        :param g_bright: if augment is enabled, is the gain of random brightness
-        """
-=======
         gaug = 0.01,
         adversarial=0,
         imbalanced=0,
@@ -375,7 +299,6 @@ class ProcessingClass:
         """
         # Load and split data with specified cultural composition
         
->>>>>>> dev
         self.dataobj.prepare(
             standard=standard,
             culture=culture,
@@ -384,27 +307,6 @@ class ProcessingClass:
             val_split=val_split,
             test_split=test_split,
             n=n,
-<<<<<<< HEAD
-        )
-        if augment:
-            with tf.device("/gpu:0"):
-                print("Training Augmentation...")
-                prepObj = PreprocessingClass()
-                X_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.X, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
-                )
-                Xv_augmented = prepObj.classical_augmentation(
-                    X=self.dataobj.Xv, g_rot=g_rot, g_noise=g_noise, g_bright=g_bright
-                )
-
-            self.dataobj.X.extend(X_augmented)
-            self.dataobj.Xv.extend(Xv_augmented)
-            self.dataobj.y.extend(self.dataobj.y)
-            self.dataobj.yv.extend(self.dataobj.yv)
-            del X_augmented
-            del Xv_augmented
-            del prepObj
-=======
             adversarial=adversarial or discriminator,
             imbalanced=imbalanced,
 
@@ -522,7 +424,6 @@ class ProcessingClass:
             del diff_model   
         
         
->>>>>>> dev
 
     def prepare_test(
         self,
@@ -537,11 +438,6 @@ class ProcessingClass:
     ):
         """
         This function prepares the data for testing
-<<<<<<< HEAD
-        
-=======
-
->>>>>>> dev
         :param augment: if enabled, we augment the dataset
         :param g_rot: if augment is enabled, is the gain of random rotation
         :param g_noise: if augment is enabled, is the gain of gaussian noise
@@ -551,11 +447,6 @@ class ProcessingClass:
         fast gradient method
         :param eps: is adversary is enabled, it is the gain of fast gradient method
         :param nt: is the number of images to use for testing
-<<<<<<< HEAD
-        
-=======
-
->>>>>>> dev
         """
         self.Xt_totaug = []
         self.Xt_adv = []
@@ -566,10 +457,6 @@ class ProcessingClass:
             if augment:
                 if adversary:
                     if self.model != None and culture != None:
-<<<<<<< HEAD
-                        with tf.device("/gpu:0"):
-=======
->>>>>>> dev
                             print("Preparing Tot Aug for Testing...")
                             prepObj = PreprocessingClass()
                             Xt_aug = prepObj.classical_augmentation(
@@ -593,11 +480,7 @@ class ProcessingClass:
                             "Incorrect call for prepare_test, missing model or culture"
                         )
                 else:
-<<<<<<< HEAD
-                    with tf.device("/gpu:0"):
-=======
                     
->>>>>>> dev
                         print("Preparing Aug for Testing...")
                         prepObj = PreprocessingClass()
                         self.Xt_aug.append(
@@ -613,20 +496,6 @@ class ProcessingClass:
                 if adversary:
                     if self.model != None and culture != None:
                         print("Preparing Adv for Testing...")
-<<<<<<< HEAD
-                        with tf.device("/gpu:0"):
-                            prepObj = PreprocessingClass()
-                            self.Xt_adv.append(
-                                prepObj.adversarial_augmentation(
-                                    X=self.dataobj.Xt[culture],
-                                    y=self.dataobj.yt[culture],
-                                    model=self.model,
-                                    culture=culture,
-                                    eps=eps,
-                                )
-                            )
-                            del prepObj
-=======
                         
                         prepObj = PreprocessingClass()
                         self.Xt_adv.append(
@@ -639,7 +508,6 @@ class ProcessingClass:
                             )
                         )
                         del prepObj
->>>>>>> dev
                     else:
                         raise Exception(
                             "Incorrect call for prepare_test, missing model or culture"
@@ -654,23 +522,6 @@ class ProcessingClass:
         verbose_param=0,
         learning_rate=0.001,
         epochs=15,
-<<<<<<< HEAD
-        batch_size=15,
-        lambda_index=-1,
-        culture=0,
-        percent=0,
-        val_split: float = 0.2,
-        test_split: float = 0.2,
-        n: int = 1000,
-        augment=0,
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-        adversary=0,
-        eps=0.3,
-        mult=0.05,
-        gradcam=False,
-=======
         batch_size=2,
         lambda_index=0,
         culture=0,
@@ -694,17 +545,11 @@ class ProcessingClass:
         parify_batches_diffusion=0,
         mitigation_type=0,
         just_preprare = False
->>>>>>> dev
     ):
         """
         process function prepares the data and fit the model
 
         This function prepares the data for training
-<<<<<<< HEAD
-        
-=======
-
->>>>>>> dev
         :param standard: if enabled, we prepare the dataset for
         standard ML, else our mitigation strategy
         :param type: select the algorithm, possible values: (SVM and DL/RESNET)
@@ -731,12 +576,9 @@ class ProcessingClass:
         :param nt: is the number of images to use for testing
         :param gradcam: if enabled, we extrapolate the GradCAM during training for explainability
         """
-<<<<<<< HEAD
-=======
         weights = np.ones(n_cultures) * 1/2 #percent
         weights[culture] = 1  # these are the proportions in the dataset
         self.n_cultures = n_cultures
->>>>>>> dev
         self.prepare_data(
             standard=standard,
             culture=culture,
@@ -745,35 +587,6 @@ class ProcessingClass:
             test_split=test_split,
             n=n,
             augment=augment,
-<<<<<<< HEAD
-            g_rot=g_rot,
-            g_noise=g_noise,
-            g_bright=g_bright,
-        )
-        self.model = None
-        if standard:
-            self.model = StandardModels(
-                type=type,
-                points=points,
-                kernel=kernel,
-                verbose_param=verbose_param,
-                learning_rate=learning_rate,
-                epochs=epochs,
-                batch_size=batch_size,
-            )
-
-        else:
-            self.model = MitigatedModels(
-                type=type,
-                culture=culture,
-                verbose_param=verbose_param,
-                epochs=epochs,
-                batch_size=batch_size,
-                learning_rate=learning_rate,
-                lambda_index=lambda_index,
-            )
-            # Base path:
-=======
             adversarial=adversary,
             imbalanced=imbalanced,
             discriminator=discriminator,
@@ -788,7 +601,6 @@ class ProcessingClass:
             return
         
         # Base path:
->>>>>>> dev
         # - STD/MIT
         # - model: SVC, RFC, DL
         # - culture: LC, LF, LT, CI, CJ, CS
@@ -796,12 +608,6 @@ class ProcessingClass:
         # - lambda index: -1, 0, 1, ...
         # Complete path:
         # - augment in Test: TNOAUG, TSTDAUG, TADV, TTOTAUG
-<<<<<<< HEAD
-        if standard:
-            self.basePath = "./STD/" + type
-        else:
-            self.basePath = "./MIT/" + type
-=======
         if discriminator:
             self.basePath = self.basePath + "/DISCR/STD/" + type
         else:
@@ -819,7 +625,6 @@ class ProcessingClass:
             self.basePath = self.basePath + "/IMB/"
         else:
             self.basePath = self.basePath + "/BAL/"
->>>>>>> dev
         if self.lamp:
             if culture == 0:
                 c = "/LC/"
@@ -839,16 +644,6 @@ class ProcessingClass:
             else:
                 c = "/CI/"
         self.basePath = self.basePath + c + str(percent) + "/"
-<<<<<<< HEAD
-        if augment:
-            if adversary:
-                aug = "TOTAUG/"
-            else:
-                aug = "STDAUG/"
-        else:
-            if adversary:
-                aug = "AVD/"
-=======
         if diffusion: 
             self.basePath = self.basePath + "DIFFUSION/"
             if only_minority_diffusion:
@@ -880,26 +675,10 @@ class ProcessingClass:
                 else:
                     aug = aug + "/NOCLSDIV/"
             
->>>>>>> dev
             else:
                 aug = "NOAUG/"
 
         self.basePath = self.basePath + aug
-<<<<<<< HEAD
-        if not standard:
-            self.basePath = self.basePath + str(lambda_index) + "/"
-        del c
-        del aug
-        self.model.fit(
-            (self.dataobj.X, self.dataobj.y),
-            (self.dataobj.Xv, self.dataobj.yv),
-            adversary=adversary,
-            eps=eps,
-            mult=mult,
-            gradcam=gradcam,
-            out_dir=self.basePath,
-        )
-=======
         if (not standard) and (not complete):
             self.basePath = self.basePath + str(lambda_index) + "/"
 
@@ -1036,27 +815,17 @@ class ProcessingClass:
         testaug = testaug + f"CULTURE/"
         path = self.basePath + testaug + f"res_scrimin={j}.csv"
         self.save_results(cm, path, discriminator=1)
->>>>>>> dev
 
     def test(
         self,
         standard,
         culture=0,
         augment=0,
-<<<<<<< HEAD
-        g_rot: float = 0.1,
-        g_noise: float = 0.1,
-        g_bright: float = 0.1,
-        adversary=0,
-        eps=0.3,
-        nt = None
-=======
         gaug=0.1,
         adversary=0,
         eps=0.3,
         nt=None,
         discriminator=0,
->>>>>>> dev
     ):
         """
         This function is used for testing the model
@@ -1076,15 +845,9 @@ class ProcessingClass:
         if self.model:
             self.prepare_test(
                 augment=augment,
-<<<<<<< HEAD
-                g_rot=g_rot,
-                g_noise=g_noise,
-                g_bright=g_bright,
-=======
                 g_rot=gaug,
                 g_noise=gaug,
                 g_bright=gaug,
->>>>>>> dev
                 adversary=adversary,
                 culture=culture,
                 eps=eps,
@@ -1092,52 +855,6 @@ class ProcessingClass:
         else:
             print("Pay attention: no model information given for tests")
             return -1
-<<<<<<< HEAD
-        for culture in range(3):
-            if standard:
-                if augment:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_totaug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.Xt_aug[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TSTDAUG/G_AUG={g_noise}/"
-                else:
-                    if adversary:
-                        cm = self.model.get_model_stats(
-                            self.Xt_adv[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TAVD/EPS={eps}/"
-                    else:
-                        cm = self.model.get_model_stats(
-                            self.dataobj.Xt[culture], self.dataobj.yt[culture]
-                        )
-                        testaug = f"TNOAUG/"
-                testaug = testaug + f"CULTURE{culture}/"
-                path = self.basePath + testaug + "res.csv"
-                self.save_results(cm, path)
-            else:
-                for i in range(3):
-                    if augment:
-                        if adversary:
-                            cm = self.model.get_model_stats(
-                                self.Xt_totaug[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TTOTAUG/G_AUG={g_noise}/EPS={eps}/"
-                        else:
-                            cm = self.model.get_model_stats(
-                                self.Xt_aug[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TSTDAUG/G_AUG={g_noise}/"
-                    else:
-                        if adversary:
-                            cm = self.model.get_model_stats(
-                                self.Xt_adv[culture], self.dataobj.yt[culture], i
-=======
         if discriminator==0:
             for culture in range(3):
                 if standard:
@@ -1162,24 +879,10 @@ class ProcessingClass:
                                 self.Xt_adv[culture],
                                 self.dataobj.yt[culture],
                                 discriminator=discriminator,
->>>>>>> dev
                             )
                             testaug = f"TAVD/EPS={eps}/"
                         else:
                             cm = self.model.get_model_stats(
-<<<<<<< HEAD
-                                self.dataobj.Xt[culture], self.dataobj.yt[culture], i
-                            )
-                            testaug = f"TNOAUG/"
-                    testaug = testaug + f"CULTURE{culture}/"
-                    path = self.basePath + testaug + "out " + str(i) + ".csv"
-                    self.save_results(cm, path)
-                    del path
-                    del testaug
-        return 0
-
-    def save_results(self, cm, path):
-=======
                                 self.dataobj.Xt[culture],
                                 self.dataobj.yt[culture],
                                 discriminator=discriminator,
@@ -1236,21 +939,10 @@ class ProcessingClass:
         return
 
     def save_results(self, cm, path, discriminator=0):
->>>>>>> dev
         """
         :param cm: is the confusion matrix to be saved
         :param path: is the path in which we want to save the confusion matrix
         """
-<<<<<<< HEAD
-        fObj = FileManagerClass(path)
-        fObj.writecm(cm)
-        del fObj
-
-    def partial_clear(self):
-        """
-        Partially clear the space for avoiding memory issues
-        """
-=======
         print(f"Path is {path}")
         fObj = FileManagerClass(path)
         fObj.writecm(cm, discriminator=discriminator)
@@ -1261,7 +953,6 @@ class ProcessingClass:
         Partially clear the space for avoiding memory issues
         """
         tf.keras.backend.clear_session()
->>>>>>> dev
         self.model = None
         del self.model
         self.dataobj.clear()
@@ -1271,11 +962,6 @@ class ProcessingClass:
         del self.Xt_adv
         self.Xt_aug = None
         del self.Xt_aug
-<<<<<<< HEAD
-        self.basePath = None
-        del self.basePath
-=======
         self.basePath = basePath
 
->>>>>>> dev
         gc.collect()

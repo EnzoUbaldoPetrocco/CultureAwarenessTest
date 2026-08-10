@@ -8,71 +8,16 @@ from matplotlib import pyplot as plt
 import cv2
 from tf_explain.utils.display import grid_display, heatmap_display
 from tf_explain.utils.saver import save_rgb
-<<<<<<< HEAD
-=======
 import gc
 from keras.models import Model
 import random
 from datetime import datetime
 random.seed(datetime.now().timestamp())
 tf.random.set_seed(datetime.now().timestamp())
->>>>>>> dev
 
 
 class GeneralModelClass:
     """
-<<<<<<< HEAD
-    This Class is the middleware for collecting common actions of the models
-    """
-    def __init__(self) -> None:
-        """
-        Init function links self.model attribute
-        """
-        self.model = 0
-
-    def __call__(self, X, out=-1):
-        """
-        Call function makes the inference according to 
-        the model (standard, our Mitigation Strategy)
-        :param X: samples from which we make the inference 
-        :param out: if not -1, we select the output 
-        :return list of inferences
-        """
-        if self.model != None:
-            with tf.device("/gpu:0"):
-                if tf.is_tensor(X):
-                    yP = self.model(X)
-                    if tf.shape(yP)[0] > 1:
-                        res = tf.gather(yP, indices=[[0, 0], [1, 0], [2, 0]])
-                        if(out>0):
-                            res = res[out]
-                        return res
-                    else:
-                        res = yP[0][0]
-                        if (out>0):
-                            res = res[out]
-                        return res
-                else:
-                    yP = np.asarray(self.model(X))
-                    if type(self.model) == keras.engine.functional.Functional:
-                        if tf.shape(yP)[0] > 1:
-                            # print(np.shape(yP))
-                            res = yP[:, 0]
-                            if (out>0):
-                                res = res[out]
-                            return res
-                        else:
-                            # print(np.shape(yP))
-                            res = yP[0]
-                            if (out>0):
-                                res = res[out]
-                            return res
-                    else:
-                        yP = res
-                        if (out>0):
-                            res = res[out]
-                        return res
-=======
     Base class providing common functionality for all model implementations.
     
     This class serves as middleware for collecting and standardizing common actions across
@@ -132,22 +77,12 @@ class GeneralModelClass:
                     # Select output index and get probability values
                     res = np.asarray(res, dtype=np.float32)[out][:, 0]
                 return res
->>>>>>> dev
         else:
             print("Try fitting the model before")
             return None
 
     def quantize(self, yF):
         """
-<<<<<<< HEAD
-        Quantize a prediction, because we are dealing with binary classification.
-        In principle we could set a threshold for imbalanced learning. 
-        Since the imbalance is not inter class, but intra class, we simply set the threshold to (max-min)/2=0.5
-        :return the prediction quantized
-        """
-        values = []
-        for y in yF:
-=======
         Convert continuous predictions to discrete class labels (0 or 1).
         
         For binary classification, applies a threshold of 0.5 to convert
@@ -166,61 +101,15 @@ class GeneralModelClass:
         values = []
         for y in yF:
             # Binary classification: threshold at 0.5
->>>>>>> dev
             if y > 0.5:
                 values.append(1)
             else:
                 values.append(0)
-<<<<<<< HEAD
-=======
             gc.collect()
->>>>>>> dev
         return values
 
     def test(self, Xt, out=-1):
         """
-<<<<<<< HEAD
-        Test the quality of the model on a set of samples
-        :param Xt: set of samples
-        :param out: desired output to be tested if any  
-
-        :return list of quantized predictions of the model
-        """
-        if self.model:
-            yF = []
-            for xt in Xt:
-                if out < 0:
-                    yF.append(np.asarray(self(xt[None, ...])))
-                else:
-                    pL = np.asarray(self(xt[None, ...]))[out]
-                    yF.append(pL)
-            yFq = self.quantize(yF)
-            return yFq
-        else:
-            print("Try fitting the model before")
-            return None
-
-    def get_model_stats(self, Xt, yT, out=-1):
-        """
-        This function returns a confusion matrix based on a set of samples and its true values
-        :param Xt: set of samples
-        :param yT: true values of Xt
-        :param out: desired output to be tested if any
-
-        :return list confusion matrix
-        """
-        yFq = self.test(Xt, out)
-        if len(np.shape(yT)) > 1:
-            if type(yT) == np.ndarray:
-                yT = yT[:, 1]
-            elif type(yT) == list:
-                yT = np.asarray(yT)[:, 1]
-        
-        if yFq:
-            # yT = list([c_i, y_i])
-            cm = confusion_matrix(y_true=yT, y_pred=yFq)
-            return cm
-=======
         Evaluate model on test samples and return quantized predictions.
         
         Combines inference (__call__) and quantization (quantize) for complete
@@ -314,7 +203,6 @@ class GeneralModelClass:
 
     def save_model(self, path="./"):
         self.model.save(path)
->>>>>>> dev
         
 
 
@@ -409,16 +297,10 @@ class GeneralModelClass:
             Tuple[tf.Tensor, tf.Tensor]: (Target layer outputs, Guided gradients)
         """
         grad_model = tf.keras.models.Model(
-<<<<<<< HEAD
-            [self.model.inputs], [self.model.get_layer(layer_name).output, self.model.output]
-        )
-        print(f"layer name is {layer_name}")
-=======
             [self.model.inputs], [self.model.layers[2].get_layer(layer_name).output, self.model.output]
         )
         print(f"layer name is {layer_name}")
         print(f"self.model.layers[2] = {self.model.layers[2]}")
->>>>>>> dev
         print(f"Created grad model with:\n inputs:{self.model.inputs};\n output:{[self.model.get_layer(layer_name).output, self.model.output]}")
         with tf.GradientTape() as tape:
             inputs = tf.cast(images, tf.float32)

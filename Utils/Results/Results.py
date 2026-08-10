@@ -39,18 +39,11 @@ class ResultsClass:
             self.CIC = self.get_CIC(self.pcms_list)
             self.CIC_std = self.get_CIC_std(self.pcms_list, len(self.pcms_list))
 
-<<<<<<< HEAD
-    def to_df(self):
-        """
-        This function converts the analysis to Pandas DataFrame
-        """
-=======
     def to_df(self, w=None):
         """
         This function converts the analysis to Pandas DataFrame
         """
 
->>>>>>> dev
         def convert_to_percentage(value):
             """
             This function converts a value to percentages, using 2 decimals
@@ -67,14 +60,11 @@ class ResultsClass:
             ls.append(ERR)
             ERRstd = convert_to_percentage(np.sum(self.meanError_stds))
             ls.append(ERRstd)
-<<<<<<< HEAD
-=======
 
             wERR = convert_to_percentage(np.average(self.meanErrors, weights=w))
             ls.append(wERR)
             ls.append(ERRstd)
 
->>>>>>> dev
             ls.append(convert_to_percentage(self.CIC))
             ls.append(convert_to_percentage(self.CIC_std))
             columns = []
@@ -83,11 +73,8 @@ class ResultsClass:
                 columns.append(f"ERR^CULTURE {i} std")
             columns.append("ERR")
             columns.append("ERR std")
-<<<<<<< HEAD
-=======
             columns.append("W_ERR")
             columns.append("W_ERR std")
->>>>>>> dev
             columns.append("CIC")
             columns.append("CIC std")
             ls = np.expand_dims(np.asarray(ls, dtype=object), 0)
@@ -185,13 +172,8 @@ class ResultsClass:
                 stdtp_i += (tp - mean_tp) ** 2
                 stdfp_i += (fp - mean_fp) ** 2
             std_matrix = np.array([[stdtn_i, stdfp_i], [stdfn_i, stdtp_i]])
-<<<<<<< HEAD
-            if len(pcms) > 1:
-                std_matrix = std_matrix / np.sqrt(len(pcms) - 1)
-=======
             std_matrix = np.sqrt(std_matrix) / len(pcms)
             # std_matrix = np.power(std_matrix, 2)
->>>>>>> dev
             return mean_matrix, std_matrix
         else:
             return [], []
@@ -206,11 +188,7 @@ class ResultsClass:
             return -1
         return pcm[0][0] + pcm[1][1]
 
-<<<<<<< HEAD
-    def get_error(self, pcm): 
-=======
     def get_error(self, pcm):
->>>>>>> dev
         """
         Given a percentage confusion matrix, it returns the error
         :param pcm: confusion matrix
@@ -348,11 +326,7 @@ class ResultsClass:
     # CIC
     def get_CIC(self, c_pcms):
         """
-<<<<<<< HEAD
-        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric. 
-=======
         Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric.
->>>>>>> dev
         With CIC = 1/|C| * sum |ERR^C-min(ERR^C)|
         :param c_pcms: list of percentage confusion matrices subdivided in cultures
         :return CIC
@@ -380,11 +354,7 @@ class ResultsClass:
 
     def get_CIC_std(self, c_pcms, n_cultures=3):
         """
-<<<<<<< HEAD
-        Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric. 
-=======
         Given a list of percentage confusion matrices subdivided in cultures it returns the CIC metric.
->>>>>>> dev
         With CIC standard deviation
         :param c_pcms: list of percentage confusion matrices subdivided in cultures
         :param n_cultures: number of cultures
@@ -472,29 +442,21 @@ class ResAcquisitionClass:
         tadversary,
         tgaug,
         teps,
-<<<<<<< HEAD
-        t_cult,
-        out,
-=======
         t_cult=0,
         out=0,
         g_augment=0,
         eps=0,
         class_division=0,
         imbalanced=0,
->>>>>>> dev
     ):
         if standard:
             basePath = basePath + "STD/" + alg
         else:
             basePath = basePath + "MIT/" + alg
-<<<<<<< HEAD
-=======
         if imbalanced:
             basePath = basePath + "/IMB/"
         else:
             basePath = basePath + "/BAL/"
->>>>>>> dev
         if lamp:
             if culture == 0:
                 c = "/LC/"
@@ -516,14 +478,6 @@ class ResAcquisitionClass:
         basePath = basePath + c + str(percent) + "/"
         if augment:
             if adversary:
-<<<<<<< HEAD
-                aug = "TOTAUG/"
-            else:
-                aug = "STDAUG/"
-        else:
-            if adversary:
-                aug = "AVD/"
-=======
                 aug = f"TOTAUG/g={g_augment}/eps={eps}"
                 if class_division:
                     aug = aug + "/CLSDIV/"
@@ -538,7 +492,6 @@ class ResAcquisitionClass:
                     aug = aug + "/CLSDIV/"
                 else:
                     aug = aug + "/NOCLSDIV/"
->>>>>>> dev
             else:
                 aug = "NOAUG/"
 
@@ -576,260 +529,6 @@ class ResAcquisitionClass:
         return cm_list
 
     def get_cm_structure(self, basePath):
-<<<<<<< HEAD
-        standards = [0, 1]
-        alg = "DL"
-        lamps = [0, 1]
-        cultures = [0, 1, 2]
-        percents = [0.05, 0.1]
-        augments = [0, 1]
-        adversary = [0, 1]
-        lambda_indeces = range(-1, 13)
-        taugments = [0, 1]
-        tadversaries = [0, 1]
-        test_g_augs = [0.01, 0.05, 0.1]
-        test_eps = [0.0005, 0.001, 0.005]
-        t_cults = [0, 1, 2]
-
-        structure = []
-        for standard in standards:
-            lampsl = []
-            for lamp in lamps:
-                culturesl = []
-                for culture in cultures:
-                    percentsl = []
-                    for percent in percents:
-                        augmentsl = []
-                        for augment in augments:
-                            adversaryl = []
-                            for adv in adversary:
-                                if standard == 0:
-                                    lambda_indecesl = []
-                                    for lambda_index in lambda_indeces:
-                                        taugmentsl = []
-                                        for taugment in taugments:
-                                            tadversariesl = []
-                                            for tadversary in tadversaries:
-                                                test_g_augsl = []
-                                                for tgaug in test_g_augs:
-                                                    tepsl = []
-                                                    for teps in test_eps:
-                                                        tcultsl = []
-                                                        for t_cult in t_cults:
-                                                            path = self.buildPath(
-                                                                basePath,
-                                                                standard,
-                                                                alg,
-                                                                lamp,
-                                                                culture,
-                                                                percent,
-                                                                augment,
-                                                                adv,
-                                                                lambda_index,
-                                                                taugment,
-                                                                tadversary,
-                                                                tgaug,
-                                                                teps,
-                                                                t_cult,
-                                                                t_cult,
-                                                            )
-                                                            outsl = self.get_cm_list(
-                                                                path
-                                                            )
-                                                            tcultsl.append(outsl)
-
-                                                        tempst = path.split("/")
-                                                        tempst2 = "./"
-                                                        for i in range(
-                                                            3, len(tempst) - 2
-                                                        ):
-                                                            tempst2 += tempst[i] + "/"
-                                                        st = tempst2
-                                                        dir = os.path.dirname(st)
-                                                        mkdir(dir)
-                                                        rc = ResultsClass(
-                                                            np.asarray(tcultsl)
-                                                        )
-                                                        data = rc.to_df()
-                                                        data.to_csv(st + "res.csv")
-
-                                                        tepsl.append(tcultsl)
-                                                    test_g_augsl.append(tepsl)
-                                                tadversariesl.append(test_g_augsl)
-                                            taugmentsl.append(tadversariesl)
-                                        lambda_indecesl.append(taugmentsl)
-                                    adversaryl.append(lambda_indecesl)
-                                else:
-                                    taugmentsl = []
-                                    for taugment in taugments:
-                                        tadversariesl = []
-                                        for tadversary in tadversaries:
-                                            test_g_augsl = []
-                                            for tgaug in test_g_augs:
-                                                tepsl = []
-                                                for teps in test_eps:
-                                                    tcultsl = []
-                                                    for t_cult in t_cults:
-                                                        path = self.buildPath(
-                                                            basePath,
-                                                            standard,
-                                                            alg,
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            0,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
-                                                            t_cult,
-                                                            t_cult,
-                                                        )
-                                                        outsl = self.get_cm_list(path)
-                                                        tcultsl.append(outsl)
-
-                                                    tempst = path.split("/")
-                                                    tempst2 = "./"
-                                                    for i in range(3, len(tempst) - 2):
-                                                        tempst2 += tempst[i] + "/"
-                                                    st = tempst2
-                                                    dir = os.path.dirname(st)
-                                                    mkdir(dir)
-                                                    rc = ResultsClass(
-                                                        np.asarray(tcultsl)
-                                                    )
-                                                    data = rc.to_df()
-                                                    data.to_csv(st + "res.csv")
-                                                    tepsl.append(tcultsl)
-                                                test_g_augsl.append(tepsl)
-                                            tadversariesl.append(test_g_augsl)
-                                        taugmentsl.append(tadversariesl)
-                                adversaryl.append(taugmentsl)
-                            augmentsl.append(adversaryl)
-                        percentsl.append(augmentsl)
-                    culturesl.append(percentsl)
-                lampsl.append(culturesl)
-            structure.append(lampsl)
-        return structure
-
-    def get_paths(self, basePath):
-        standards = [0, 1]
-        alg = "DL"
-        lamps = [0, 1]
-        cultures = [0, 1, 2]
-        percents = [0.05, 0.1]
-        augments = [0, 1]
-        adversary = [0, 1]
-        lambda_indeces = range(-1, 13)
-        taugments = [0, 1]
-        tadversaries = [0, 1]
-        test_g_augs = [0.01, 0.05, 0.1]
-        test_eps = [0.0005, 0.001, 0.005]
-        t_cults = [0, 1, 2]
-
-        structure = []
-        for standard in standards:
-            lampsl = []
-            for lamp in lamps:
-                culturesl = []
-                for culture in cultures:
-                    percentsl = []
-                    for percent in percents:
-                        augmentsl = []
-                        for augment in augments:
-                            adversaryl = []
-                            for adv in adversary:
-                                if standard == 0:
-                                    lambda_indecesl = []
-                                    for lambda_index in lambda_indeces:
-                                        taugmentsl = []
-                                        for taugment in taugments:
-                                            tadversariesl = []
-                                            for tadversary in tadversaries:
-                                                test_g_augsl = []
-                                                for tgaug in test_g_augs:
-                                                    tepsl = []
-                                                    for teps in test_eps:
-                                                        for t_cult in t_cults:
-                                                            path = self.buildPath(
-                                                                basePath,
-                                                                standard,
-                                                                alg,
-                                                                lamp,
-                                                                culture,
-                                                                percent,
-                                                                augment,
-                                                                adv,
-                                                                lambda_index,
-                                                                taugment,
-                                                                tadversary,
-                                                                tgaug,
-                                                                teps,
-                                                                t_cult,
-                                                                t_cult,
-                                                            )
-                                                            pt = path.split("/")
-                                                            path = ""
-                                                            for i in range(len(pt) - 2):
-                                                                path += pt[i] + "/"
-                                                        if tadversary:
-                                                            print(path)
-                                                        tepsl.append(path)
-                                                    if taugment:
-                                                        print(path)
-                                                    test_g_augsl.append(tepsl)
-                                                tadversariesl.append(test_g_augsl)
-                                            taugmentsl.append(tadversariesl)
-                                        lambda_indecesl.append(taugmentsl)
-                                    adversaryl.append(lambda_indecesl)
-                                else:
-                                    taugmentsl = []
-                                    for taugment in taugments:
-                                        tadversariesl = []
-                                        for tadversary in tadversaries:
-                                            test_g_augsl = []
-                                            for tgaug in test_g_augs:
-                                                tepsl = []
-                                                for teps in test_eps:
-
-                                                    for t_cult in t_cults:
-                                                        path = self.buildPath(
-                                                            basePath,
-                                                            standard,
-                                                            alg,
-                                                            lamp,
-                                                            culture,
-                                                            percent,
-                                                            augment,
-                                                            adv,
-                                                            lambda_index,
-                                                            taugment,
-                                                            tadversary,
-                                                            tgaug,
-                                                            teps,
-                                                            t_cult,
-                                                            t_cult,
-                                                        )
-                                                        pt = path.split("/")
-                                                        path = ""
-                                                        for i in range(len(pt) - 2):
-                                                            path += pt[i] + "/"
-
-                                                    tepsl.append(path)
-                                                test_g_augsl.append(tepsl)
-
-                                            tadversariesl.append(test_g_augsl)
-                                        taugmentsl.append(tadversariesl)
-                                adversaryl.append(taugmentsl)
-                            augmentsl.append(adversaryl)
-                        percentsl.append(augmentsl)
-                    culturesl.append(percentsl)
-                lampsl.append(culturesl)
-            structure.append(lampsl)
-        return structure
-=======
         standards = [1]
         alg = "DL"
         lamps = [0, 1]
@@ -1512,7 +1211,6 @@ class ResAcquisitionClass:
                                                                 data.to_csv(
                                                                     st + "res.csv"
                                                                 )
->>>>>>> dev
 
 
 def mkdir(dir):
@@ -1526,12 +1224,8 @@ def mkdir(dir):
 
 def main():
     rac = ResAcquisitionClass()
-<<<<<<< HEAD
-    rac.get_cm_structure("../../Mitigated/")
-=======
     basepath = "../../Mitigated/"
     rac.get_cm_structure(basepath)
->>>>>>> dev
 
 
 if __name__ == "__main__":

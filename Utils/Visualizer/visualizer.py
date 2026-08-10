@@ -2,25 +2,18 @@
 __author__ = "Enzo Ubaldo Petrocco"
 import sys
 
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
 sys.path.insert(1, "../../")
 
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from Utils.Results.Results import ResAcquisitionClass
-<<<<<<< HEAD
-=======
 from Utils.FileManager.FileManager import FileManagerClass
 import functools
 import matplotlib.colors as mcolors
 
 taus = [0.1, 0.3, 0.5]
 basePath = "../Results/"
->>>>>>> dev
 
 
 class VisualizerClass:
@@ -43,28 +36,6 @@ class VisualizerClass:
         plt.show()
 
 
-<<<<<<< HEAD
-def main():
-    visobj = VisualizerClass()
-    resacqobj = ResAcquisitionClass()
-
-    paths = resacqobj.get_paths(basePath="../Results/")
-
-    standards = [0, 1]
-    alg = "DL"
-    lamps = [0, 1]
-    cultures = [0, 1, 2]
-    percents = [0.05, 0.1]
-    augments = [0, 1]
-    adversary = [0, 1]
-    lambda_indeces = range(-1, 13)
-    taugments = [0, 1]
-    tadversaries = [0, 1]
-    test_g_augs = [0.01, 0.05, 0.1]
-    test_eps = [0.0005, 0.001, 0.005]
-    t_cults = [0, 1, 2]
-
-=======
 def print_tables(
     standards,
     lamps,
@@ -80,7 +51,6 @@ def print_tables(
     paths,
     visobj,
 ):
->>>>>>> dev
     for standard in standards:
         for lamp in lamps:
             for culture in cultures:
@@ -90,12 +60,6 @@ def print_tables(
                             if standard:
                                 for taugment in taugments:
                                     for tadversary in tadversaries:
-<<<<<<< HEAD
-                                        for tgaug in range(len(test_g_augs)):
-
-                                            for teps in range(len(test_eps)):
-
-=======
                                         if taugment and tadversary:
                                             for tgaug in range(len(test_g_augs)):
                                                 for teps in range(len(test_eps)):
@@ -122,7 +86,6 @@ def print_tables(
                                                     )
                                         if taugment and not tadversary:
                                             for tgaug in range(len(test_g_augs)):
->>>>>>> dev
                                                 pt = paths[standard][lamp][culture][
                                                     percent
                                                 ][augment][adv][taugment][tadversary][
@@ -130,18 +93,12 @@ def print_tables(
                                                 ][
                                                     teps
                                                 ]
-<<<<<<< HEAD
-
-=======
->>>>>>> dev
                                                 pt = pt + "res.csv"
                                                 df = pd.read_csv(pt)
                                                 visobj.plot_table(
                                                     df[df.columns[1 : len(df.columns)]],
                                                     pt,
                                                 )
-<<<<<<< HEAD
-=======
 
                                         if not taugment and tadversary:
                                             for teps in range(len(test_eps)):
@@ -172,16 +129,10 @@ def print_tables(
                                                 df[df.columns[1 : len(df.columns)]],
                                                 pt,
                                             )
->>>>>>> dev
                             else:
                                 for lambda_index in lambda_indeces:
                                     for taugment in taugments:
                                         for tadversary in tadversaries:
-<<<<<<< HEAD
-                                            for tgaug in range(len(test_g_augs)):
-                                                for teps in range(len(test_eps)):
-
-=======
                                             if taugment and tadversary:
                                                 for tgaug in range(len(test_g_augs)):
                                                     for teps in range(len(test_eps)):
@@ -211,7 +162,6 @@ def print_tables(
                                                         )
                                             if taugment and not tadversary:
                                                 for tgaug in range(len(test_g_augs)):
->>>>>>> dev
                                                     pt = paths[standard][lamp][culture][
                                                         percent
                                                     ][augment][adv][lambda_index][
@@ -223,13 +173,7 @@ def print_tables(
                                                     ][
                                                         teps
                                                     ]
-<<<<<<< HEAD
-
                                                     pt = pt + "res.csv"
-                                                    print(pt)
-=======
-                                                    pt = pt + "res.csv"
->>>>>>> dev
                                                     df = pd.read_csv(pt)
                                                     visobj.plot_table(
                                                         df[
@@ -239,8 +183,6 @@ def print_tables(
                                                         ],
                                                         pt,
                                                     )
-<<<<<<< HEAD
-=======
                                             if not taugment and tadversary:
                                                 for teps in range(len(test_eps)):
                                                     pt = paths[standard][lamp][culture][
@@ -1199,7 +1141,6 @@ def main():
 
     res2tabObj = Res2TabClass()
     res2tabObj.conversion()
->>>>>>> dev
 
 
 if __name__ == "__main__":
