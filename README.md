@@ -1,47 +1,58 @@
-# CultureAwarenessTest
+# Culturally Competent ML
 
-CultureAwarenessTest is a machine learning research framework designed to investigate, measure, and mitigate cultural bias in deep learning models for image classification. The repository contains implementation scripts for training baseline control models (e.g., standard ResNet), bias-mitigated architectures using custom variance-minimization regularization, diffusion-based synthetic data generation (DDPM) for minority culture augmentation, adversarial testing, and model explainability via GradCAM.
+This repository is a machine learning research framework designed to investigate, measure, and mitigate cultural bias in deep learning models for image classification. The repository contains implementation scripts for training baseline control models (e.g., standard ResNet), bias-mitigated architectures using a multi-task learning inspired regularizer, diffusion-based, and adversarial data generation.
+
+This repository contains also the two datasets (LAMPS and CARPETS) for testing the Cultural Competence of a model and the related code. 
+
+This dataset is licensed under a Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+
+This allows for the sharing and adaptation of the datasets for any purpose, provided that the appropriate credit is given.
 
 ---
 
 ## Key Features
 
-- **Bias Detection**: Binary and multiclass discriminators designed to evaluate if cultural patterns leak into latent representations.
-- **Custom Bias Mitigation**: Regularized objective function designed to minimize the variance of weights and gradients across cultural groups.
+- **Bias Detection**: Implementation of the Cultural Incompetence (CIC) metric.
+- **Multi-task-learning-inspired Mitigation**: Regularized objective function designed to minimize the distance among the weight across cultural groups.
 - **Synthetic Augmentation**: Denoising Diffusion Probabilistic Models (DDPM) to synthesize representative samples for underrepresented cultures.
 - **Adversarial Robustness Evaluator**: Tests resilience under culture-specific Projected Gradient Descent (PGD) perturbations.
-- **Explainability (XAI)**: Visualizes network focus areas using Gradient-weighted Class Activation Maps (GradCAM).
 
 ---
 
 ## Installation & Environment Setup
 
-This project requires a Python environment configured with GPU-enabled TensorFlow. You can set it up using either **Conda** (recommended) or **Pip**.
+This repository contains two options for setting up your environment depending on your system's hardware capabilities:
 
-### Option A: Setup using Conda (Recommended)
-An environment configuration file is provided at [`Mitigated/environment.yml`](file:///C:/Users/Utente/Desktop/CultureAwarenessTest/Mitigated/environment.yml). This will install Python 3.9, CUDA Toolkit 11.2, cuDNN 8.1, and all dependencies:
+### Option A: Local GPU Acceleration (TensorFlow 2.10 — Recommended for Windows)
+This setup installs **TensorFlow 2.10.1** and **Keras 2.10.0**, which is the final version supporting native GPU acceleration on Windows (without requiring WSL2). 
+
+- **Conda Environment Setup (Includes CUDA/cuDNN)**:
+  ```bash
+  conda env create -f environment_tf210_gpu.yml
+  conda activate windows-tf210-gpu
+  ```
+- **Pip Virtual Environment Setup**:
+  ```bash
+  python -m venv .venv
+  # Windows:
+  .venv\Scripts\Activate.ps1
+  # Linux:
+  source .venv/bin/activate
+  
+  pip install -r requirements_tf210_gpu.txt
+  ```
+
+### Option B: CPU-Only / Alternative Setup (TensorFlow 2.14)
+This configuration uses **TensorFlow 2.14.0** and **Keras 2.14.0**. This option is suitable for CPU-only environments or systems utilizing Linux / WSL2 for GPU acceleration.
 
 ```bash
-# Create the environment from the environment.yml file
-conda env create -f Mitigated/environment.yml
-
-# Activate the new environment
-conda activate petrocco
-```
-
-### Option B: Setup using Pip
-If you prefer using `pip` inside a virtual environment, ensure you have Python 3.8+ and TensorFlow-compatible CUDA drivers installed. Then, use the requirements file at [`Mitigated/requirements.txt`](file:///C:/Users/Utente/Desktop/CultureAwarenessTest/Mitigated/requirements.txt):
-
-```bash
-# Create and activate a virtual environment
 python -m venv .venv
 # Windows:
 .venv\Scripts\Activate.ps1
-# Linux/macOS:
+# Linux:
 source .venv/bin/activate
 
-# Install requirements
-pip install -r Mitigated/requirements.txt
+pip install -r requirements_tf214_cpu.txt
 ```
 
 ---
@@ -65,22 +76,15 @@ CultureAwarenessTest/
 │   ├── Preprocessing/          # Standalone dataset prep (create_ds)
 │   ├── Results/                # CM metrics & results aggregation
 │   └── Visualizer/             # Confusion matrix & performance plotting
-├── Mitigated/                  # Primary launch scripts & config environment files
+├── Mitigated/                  # Primary launch scripts
 │   ├── launch.py               # Main deep learning pipeline experiment loop
-│   ├── launch_shallow.py       # Main shallow baseline pipeline loop
-│   ├── environment.yml         # Conda environment definition
-│   └── requirements.txt        # Pip dependencies list
-├── LaunchFiles/                # Auxiliary execution and visualization scripts
-│   ├── diffusion_step_plot.py  # DDPM step generator plotter
-│   └── plot_standard_augmentation.py # Preview noise-based data augmentation
+│   └── launch_shallow.py       # Main shallow baseline pipeline loop
 ├── DatasetAnalysis/            # Feature analysis and clustering scripts
 │   ├── examinate.py            # Deep feature embedding & distance examiner
 │   └── k-means.py              # KMeans unsupervised clustering ($K=6$)
-├── GradCam/                    # Model explainability suite
-│   ├── launch.py               # Computes heatmaps for TP, TN, FP, FN categories
-│   └── gradCam.py              # Core GradCAM activation map engine
-├── OverallPipeline.ipynb       # Jupyter notebook aggregating final figures & tables
-├── general_file.py             # Legacy monolithic single-file baseline compiler
+├── environment_tf210_gpu.yml   # Conda GPU environment specification
+├── requirements_tf210_gpu.txt  # Pip GPU requirements (includes tf-explain)
+├── requirements_tf214_cpu.txt  # Pip CPU requirements
 └── LAUNCH_GUIDE.md             # Detailed execution reference guide
 ```
 
@@ -106,12 +110,6 @@ python Mitigated/launch_shallow.py
 To extract ResNet embeddings and output intra/inter-class distances to JSON:
 ```bash
 python DatasetAnalysis/examinate.py
-```
-
-### 4. Generate GradCAM Interpretability Maps
-To generate attention heatmaps across confusion matrix buckets (TP, TN, FP, FN):
-```bash
-python GradCam/launch.py
 ```
 
 ---
@@ -160,4 +158,4 @@ procObj.test(standard=0, culture=0)
    )
    ```
 2. **Missing Dataset Directories**:
-   Verify raw input files are mapped to the directory targets defined inside [`Utils/Data/deep_paths.py`](file:///C:/Users/Utente/Desktop/CultureAwarenessTest/Utils/Data/deep_paths.py) and [`Utils/Data/shallow_paths.py`](file:///C:/Users/Utente/Desktop/CultureAwarenessTest/Utils/Data/shallow_paths.py).
+   Verify raw input files are mapped to the directory targets defined inside [`Utils/Data/deep_paths.py`](file:///C:/Users/Utente/Desktop/CultureAwarenessTest/Utils/Data/deep_paths.py) and [`Utils/Data/shallow_paths.py`](file:///C:/Users/Utente/Desktop/CultureAwarenessTest/Utils/Data/shallow_paths.py).
